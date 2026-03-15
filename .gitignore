@@ -7,3 +7,5 @@ uploads/*
 .DS_Store
 *.log
 .claude/
+docker-compose.yml
+docker-compose.yaml
