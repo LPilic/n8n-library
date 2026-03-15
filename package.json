@@ -7,7 +7,8 @@
     "start": "node server.js",
     "setup": "node setup.js",
     "dev": "node --watch server.js",
-    "migrate": "node migrate.js"
+    "migrate": "node migrate.js",
+    "mcp": "node mcp-stdio.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",

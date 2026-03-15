@@ -109,7 +109,7 @@ app.use(apiKeyAuth);
 app.use((req, res, next) => {
   if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
     if (req.apiKeyAuth) return next(); // API key auth is not susceptible to CSRF
-    if (req.path.startsWith('/templates/') || req.path === '/health' || req.path.startsWith('/api/public/')) return next();
+    if (req.path.startsWith('/templates/') || req.path === '/health' || req.path.startsWith('/api/public/') || req.path === '/mcp') return next();
     const xrw = req.headers['x-requested-with'];
     if (xrw !== 'XMLHttpRequest') {
       return res.status(403).json({ error: 'Missing X-Requested-With header' });
@@ -137,11 +137,12 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Headers', 'Content-Type, Accept');
     if (req.method === 'OPTIONS') return res.sendStatus(204);
   }
-  // CORS for API key authenticated requests
-  if (req.path.startsWith('/api/') && (req.headers['authorization'] || req.headers['x-api-key'])) {
+  // CORS for API key authenticated requests and MCP endpoint
+  if ((req.path.startsWith('/api/') || req.path === '/mcp') && (req.headers['authorization'] || req.headers['x-api-key'])) {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-API-Key');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-API-Key, Mcp-Session-Id');
+    res.header('Access-Control-Expose-Headers', 'Mcp-Session-Id');
     if (req.method === 'OPTIONS') return res.sendStatus(204);
   }
   next();
@@ -193,6 +194,62 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec, {
   customCss: '.swagger-ui .topbar { display: none }',
   customSiteTitle: 'n8n Library API',
 }));
+
+// --- MCP Server endpoint ---
+
+const { createMcpServer } = require('./lib/mcp-server');
+
+(async () => {
+  try {
+    const mcpServer = await createMcpServer();
+    const { StreamableHTTPServerTransport } = await import('@modelcontextprotocol/sdk/server/streamableHttp.js');
+    const transports = {};
+
+    // MCP endpoint — requires API key auth
+    app.all('/mcp', async (req, res) => {
+      if (!req.user) return res.status(401).json({ error: 'API key required' });
+
+      const sessionId = req.headers['mcp-session-id'];
+
+      if (req.method === 'GET' || req.method === 'DELETE') {
+        if (!sessionId || !transports[sessionId]) return res.status(400).json({ error: 'Invalid or missing session' });
+        const transport = transports[sessionId];
+        if (req.method === 'GET') return transport.handleRequest(req, res);
+        // DELETE — close session
+        await transport.handleRequest(req, res);
+        delete transports[sessionId];
+        return;
+      }
+
+      if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+      // Check if this is an initialize request (new session)
+      const body = req.body;
+      const isInit = body?.method === 'initialize' || (Array.isArray(body) && body.some(m => m.method === 'initialize'));
+
+      if (isInit) {
+        const transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => crypto.randomUUID(),
+          onsessioninitialized: (sid) => { transports[sid] = transport; },
+        });
+        transport.onclose = () => {
+          const sid = Object.keys(transports).find(k => transports[k] === transport);
+          if (sid) delete transports[sid];
+        };
+        await mcpServer.server.connect(transport);
+        return transport.handleRequest(req, res, body);
+      }
+
+      // Existing session
+      if (!sessionId || !transports[sessionId]) return res.status(400).json({ error: 'Invalid or missing session' });
+      return transports[sessionId].handleRequest(req, res, body);
+    });
+
+    console.log('MCP server endpoint available at /mcp');
+  } catch (e) {
+    console.warn('Failed to initialize MCP server endpoint:', e.message);
+  }
+})();
 
 // --- Startup tasks ---
 
