@@ -992,7 +992,7 @@ function md(s) {
   if (!s) return '';
   // If HTML, sanitize and return
   if (s.trim().startsWith('<') || s.includes('</')) {
-    return typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(s) : s;
+    return typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(s, { FORBID_TAGS: ['style'] }) : s;
   }
   // Legacy markdown rendering for old content
   let h = esc(s);

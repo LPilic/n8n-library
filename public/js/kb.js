@@ -30,7 +30,7 @@ function renderContent(content) {
   });
   html = tmp.innerHTML;
   if (typeof DOMPurify !== 'undefined') {
-    html = DOMPurify.sanitize(html, { ADD_TAGS: ['iframe','span'], ADD_ATTR: ['target','rel','class','spellcheck'] });
+    html = DOMPurify.sanitize(html, { ADD_TAGS: ['iframe','span'], ADD_ATTR: ['target','rel','class','spellcheck'], FORBID_TAGS: ['style'] });
   } else {
     html = esc(html || '').replace(/\n/g, '<br>');
   }
