@@ -21,6 +21,7 @@
     "http-proxy-middleware": "^3.0.5",
     "node-cron": "^3.0.3",
     "nodemailer": "^8.0.2",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "swagger-ui-express": "^5.0.1"
   }
 }

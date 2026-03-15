@@ -99,10 +99,16 @@ app.use(async (req, _res, next) => {
   next();
 });
 
+// --- API Key authentication ---
+
+const apiKeyAuth = require('./lib/api-key-auth');
+app.use(apiKeyAuth);
+
 // --- CSRF protection ---
 
 app.use((req, res, next) => {
   if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+    if (req.apiKeyAuth) return next(); // API key auth is not susceptible to CSRF
     if (req.path.startsWith('/templates/') || req.path === '/health' || req.path.startsWith('/api/public/')) return next();
     const xrw = req.headers['x-requested-with'];
     if (xrw !== 'XMLHttpRequest') {
@@ -122,13 +128,20 @@ app.use(express.static(path.join(__dirname, 'public'), {
   }
 }));
 
-// --- CORS for n8n-facing routes ---
+// --- CORS for n8n-facing routes and API key requests ---
 
 app.use((req, res, next) => {
   if (req.path.startsWith('/templates/') || req.path.startsWith('/workflows/') || req.path.startsWith('/api/public/')) {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Accept');
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+  }
+  // CORS for API key authenticated requests
+  if (req.path.startsWith('/api/') && (req.headers['authorization'] || req.headers['x-api-key'])) {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-API-Key');
     if (req.method === 'OPTIONS') return res.sendStatus(204);
   }
   next();
@@ -165,6 +178,21 @@ app.use(require('./routes/monitoring'));
 app.use(require('./routes/settings'));
 app.use(require('./routes/ai'));
 app.use(require('./routes/mcp-routes'));
+app.use(require('./routes/api-keys'));
+
+// --- API Documentation (Swagger) ---
+
+const swaggerUi = require('swagger-ui-express');
+let openApiSpec = {};
+try {
+  openApiSpec = JSON.parse(fs.readFileSync(path.join(__dirname, 'openapi.json'), 'utf8'));
+} catch (e) {
+  console.warn('openapi.json not found — /api/docs will show empty spec');
+}
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'n8n Library API',
+}));
 
 // --- Startup tasks ---
 

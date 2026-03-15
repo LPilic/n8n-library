@@ -1,0 +1,668 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "n8n Library API",
+    "description": "API for the n8n workflow template library, service desk, knowledge base, and monitoring.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    { "url": "/", "description": "Current server" }
+  ],
+  "security": [],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key authentication. Use your API key as the bearer token (format: n8nlib_...)"
+      },
+      "apiKeyHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "Alternative: pass API key via X-API-Key header"
+      },
+      "sessionAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "connect.sid",
+        "description": "Session cookie (browser-based auth)"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" }
+        }
+      },
+      "Template": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "total_views": { "type": "integer" },
+          "nodes": { "type": "array", "items": { "type": "object" } },
+          "workflow": { "type": "object" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Ticket": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "status": { "type": "string", "enum": ["open", "in_progress", "waiting", "resolved", "closed"] },
+          "priority": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "KbArticle": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "title": { "type": "string" },
+          "slug": { "type": "string" },
+          "body": { "type": "string" },
+          "excerpt": { "type": "string" },
+          "status": { "type": "string", "enum": ["draft", "published", "archived"] },
+          "view_count": { "type": "integer" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ApiKey": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "key_prefix": { "type": "string" },
+          "role": { "type": "string", "enum": ["admin", "editor", "viewer"] },
+          "last_used_at": { "type": "string", "format": "date-time", "nullable": true },
+          "expires_at": { "type": "string", "format": "date-time", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  },
+  "tags": [
+    { "name": "Health", "description": "Server health" },
+    { "name": "Auth", "description": "Authentication & user management" },
+    { "name": "Templates", "description": "Workflow templates & categories" },
+    { "name": "Tickets", "description": "Service desk tickets" },
+    { "name": "Knowledge Base", "description": "KB articles, categories, tags" },
+    { "name": "Monitoring", "description": "n8n instance monitoring & metrics" },
+    { "name": "Settings", "description": "System configuration" },
+    { "name": "AI", "description": "AI/LLM features" },
+    { "name": "MCP", "description": "Model Context Protocol servers" },
+    { "name": "API Keys", "description": "API key management" }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health check",
+        "description": "Returns server and database health status",
+        "responses": {
+          "200": { "description": "Server is healthy", "content": { "application/json": { "schema": { "type": "object", "properties": { "status": { "type": "string", "example": "ok" } } } } } },
+          "503": { "description": "Database unavailable" }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Login",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["email", "password"], "properties": { "email": { "type": "string" }, "password": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Login successful" }, "401": { "description": "Invalid credentials" } }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Logout",
+        "responses": { "200": { "description": "Logged out" } }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Get current user",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "responses": { "200": { "description": "Current user info" }, "401": { "description": "Not authenticated" } }
+      }
+    },
+    "/api/auth/forgot-password": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Request password reset",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["email"], "properties": { "email": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Reset email sent (always returns success)" } }
+      }
+    },
+    "/api/auth/reset-password": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Reset password with token",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["token", "password"], "properties": { "token": { "type": "string" }, "password": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Password reset" }, "400": { "description": "Invalid or expired token" } }
+      }
+    },
+    "/api/users": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "List users",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "responses": { "200": { "description": "User list" }, "403": { "description": "Admin only" } }
+      },
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Create user",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["username", "email", "password", "role"], "properties": { "username": { "type": "string" }, "email": { "type": "string" }, "password": { "type": "string" }, "role": { "type": "string", "enum": ["admin", "editor", "viewer"] } } } } } },
+        "responses": { "200": { "description": "User created" }, "403": { "description": "Admin only" } }
+      }
+    },
+    "/api/users/{id}": {
+      "put": {
+        "tags": ["Auth"],
+        "summary": "Update user",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "User updated" } }
+      },
+      "delete": {
+        "tags": ["Auth"],
+        "summary": "Delete user",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "User deleted" } }
+      }
+    },
+    "/templates/search": {
+      "get": {
+        "tags": ["Templates"],
+        "summary": "Search templates",
+        "description": "n8n-compatible endpoint for searching workflow templates",
+        "parameters": [
+          { "name": "q", "in": "query", "schema": { "type": "string" }, "description": "Search query" },
+          { "name": "category", "in": "query", "schema": { "type": "string" }, "description": "Category filter" },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "rows", "in": "query", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": { "200": { "description": "Template search results" } }
+      }
+    },
+    "/templates/categories": {
+      "get": {
+        "tags": ["Templates"],
+        "summary": "List template categories",
+        "responses": { "200": { "description": "Category list" } }
+      }
+    },
+    "/templates/workflows/{id}": {
+      "get": {
+        "tags": ["Templates"],
+        "summary": "Get template by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Template details" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/workflows/templates/{id}": {
+      "get": {
+        "tags": ["Templates"],
+        "summary": "Get workflow JSON for import",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Workflow JSON" } }
+      }
+    },
+    "/templates/collections": {
+      "get": {
+        "tags": ["Templates"],
+        "summary": "List collections",
+        "responses": { "200": { "description": "Collection list" } }
+      }
+    },
+    "/templates/collections/{id}": {
+      "get": {
+        "tags": ["Templates"],
+        "summary": "Get collection by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Collection details" } }
+      }
+    },
+    "/api/templates": {
+      "post": {
+        "tags": ["Templates"],
+        "summary": "Create template",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["name", "workflow"], "properties": { "name": { "type": "string" }, "description": { "type": "string" }, "workflow": { "type": "object" }, "category_ids": { "type": "array", "items": { "type": "integer" } } } } } } },
+        "responses": { "200": { "description": "Template created" } }
+      }
+    },
+    "/api/templates/{id}": {
+      "put": {
+        "tags": ["Templates"],
+        "summary": "Update template",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Template updated" } }
+      },
+      "delete": {
+        "tags": ["Templates"],
+        "summary": "Delete template",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Template deleted" } }
+      }
+    },
+    "/api/categories": {
+      "get": {
+        "tags": ["Templates"],
+        "summary": "List categories with descriptions",
+        "responses": { "200": { "description": "Categories" } }
+      },
+      "post": {
+        "tags": ["Templates"],
+        "summary": "Create category",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "responses": { "200": { "description": "Category created" } }
+      }
+    },
+    "/api/categories/{id}": {
+      "put": {
+        "tags": ["Templates"],
+        "summary": "Update category",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Category updated" } }
+      },
+      "delete": {
+        "tags": ["Templates"],
+        "summary": "Delete category",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Category deleted" } }
+      }
+    },
+    "/api/tickets": {
+      "get": {
+        "tags": ["Tickets"],
+        "summary": "List tickets",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "name": "priority", "in": "query", "schema": { "type": "string" } },
+          { "name": "q", "in": "query", "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } }
+        ],
+        "responses": { "200": { "description": "Ticket list" } }
+      },
+      "post": {
+        "tags": ["Tickets"],
+        "summary": "Create ticket",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["title"], "properties": { "title": { "type": "string" }, "description": { "type": "string" }, "priority": { "type": "string" }, "category_id": { "type": "integer" } } } } } },
+        "responses": { "200": { "description": "Ticket created" } }
+      }
+    },
+    "/api/tickets/{id}": {
+      "get": {
+        "tags": ["Tickets"],
+        "summary": "Get ticket details",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Ticket details with comments" } }
+      },
+      "put": {
+        "tags": ["Tickets"],
+        "summary": "Update ticket",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Ticket updated" } }
+      },
+      "delete": {
+        "tags": ["Tickets"],
+        "summary": "Delete ticket",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Ticket deleted" } }
+      }
+    },
+    "/api/tickets/{id}/comments": {
+      "post": {
+        "tags": ["Tickets"],
+        "summary": "Add comment to ticket",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["body"], "properties": { "body": { "type": "string" }, "is_internal": { "type": "boolean" } } } } } },
+        "responses": { "200": { "description": "Comment added" } }
+      }
+    },
+    "/api/tickets/stats": {
+      "get": {
+        "tags": ["Tickets"],
+        "summary": "Get ticket statistics",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "responses": { "200": { "description": "Ticket stats" } }
+      }
+    },
+    "/api/public/ticket": {
+      "post": {
+        "tags": ["Tickets"],
+        "summary": "Submit ticket (public, from n8n)",
+        "description": "Public endpoint for n8n users to submit support tickets",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["title"], "properties": { "title": { "type": "string" }, "description": { "type": "string" }, "priority": { "type": "string" }, "n8n_user_id": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Ticket created" } }
+      }
+    },
+    "/api/kb/articles": {
+      "get": {
+        "tags": ["Knowledge Base"],
+        "summary": "List KB articles",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [
+          { "name": "q", "in": "query", "schema": { "type": "string" } },
+          { "name": "category", "in": "query", "schema": { "type": "integer" } },
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "name": "tag", "in": "query", "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } }
+        ],
+        "responses": { "200": { "description": "Article list" } }
+      },
+      "post": {
+        "tags": ["Knowledge Base"],
+        "summary": "Create KB article",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["title"], "properties": { "title": { "type": "string" }, "body": { "type": "string" }, "excerpt": { "type": "string" }, "category_id": { "type": "integer" }, "status": { "type": "string" }, "tags": { "type": "array", "items": { "type": "string" } } } } } } },
+        "responses": { "200": { "description": "Article created" } }
+      }
+    },
+    "/api/kb/articles/{idOrSlug}": {
+      "get": {
+        "tags": ["Knowledge Base"],
+        "summary": "Get KB article by ID or slug",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "idOrSlug", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Article details" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/api/kb/articles/{id}": {
+      "put": {
+        "tags": ["Knowledge Base"],
+        "summary": "Update KB article",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Article updated" } }
+      },
+      "delete": {
+        "tags": ["Knowledge Base"],
+        "summary": "Delete KB article",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Article deleted" } }
+      }
+    },
+    "/api/kb/categories": {
+      "get": {
+        "tags": ["Knowledge Base"],
+        "summary": "List KB categories",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "responses": { "200": { "description": "KB categories" } }
+      },
+      "post": {
+        "tags": ["Knowledge Base"],
+        "summary": "Create KB category",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "responses": { "200": { "description": "Category created" } }
+      }
+    },
+    "/api/kb/tags": {
+      "get": {
+        "tags": ["Knowledge Base"],
+        "summary": "List KB tags",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "responses": { "200": { "description": "Tag list" } }
+      }
+    },
+    "/api/kb/stats": {
+      "get": {
+        "tags": ["Knowledge Base"],
+        "summary": "Get KB statistics",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "responses": { "200": { "description": "KB stats" } }
+      }
+    },
+    "/api/monitoring/health": {
+      "get": {
+        "tags": ["Monitoring"],
+        "summary": "n8n instance health check",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "instance_id", "in": "query", "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Health status" } }
+      }
+    },
+    "/api/monitoring/metrics": {
+      "get": {
+        "tags": ["Monitoring"],
+        "summary": "Get n8n Prometheus metrics",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "instance_id", "in": "query", "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Parsed metrics" } }
+      }
+    },
+    "/api/monitoring/workflows": {
+      "get": {
+        "tags": ["Monitoring"],
+        "summary": "List n8n workflows",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "instance_id", "in": "query", "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Workflow list" } }
+      }
+    },
+    "/api/monitoring/executions": {
+      "get": {
+        "tags": ["Monitoring"],
+        "summary": "List n8n executions",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [
+          { "name": "instance_id", "in": "query", "schema": { "type": "integer" } },
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "name": "workflowId", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": { "200": { "description": "Execution list" } }
+      }
+    },
+    "/api/monitoring/stats": {
+      "get": {
+        "tags": ["Monitoring"],
+        "summary": "Get aggregated n8n stats",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "instance_id", "in": "query", "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Aggregated stats" } }
+      }
+    },
+    "/api/monitoring/workers": {
+      "get": {
+        "tags": ["Monitoring"],
+        "summary": "Get worker status",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "instance_id", "in": "query", "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Worker health and metrics" } }
+      }
+    },
+    "/api/instances": {
+      "get": {
+        "tags": ["Monitoring"],
+        "summary": "List n8n instances",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "responses": { "200": { "description": "Instance list" } }
+      },
+      "post": {
+        "tags": ["Monitoring"],
+        "summary": "Create n8n instance",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["name", "internal_url"], "properties": { "name": { "type": "string" }, "environment": { "type": "string" }, "internal_url": { "type": "string" }, "api_key": { "type": "string" }, "workers": { "type": "array" } } } } } },
+        "responses": { "200": { "description": "Instance created" } }
+      }
+    },
+    "/api/instances/{id}": {
+      "put": {
+        "tags": ["Monitoring"],
+        "summary": "Update n8n instance",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Instance updated" } }
+      },
+      "delete": {
+        "tags": ["Monitoring"],
+        "summary": "Delete n8n instance",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Instance deleted" } }
+      }
+    },
+    "/api/settings/branding": {
+      "get": {
+        "tags": ["Settings"],
+        "summary": "Get branding settings",
+        "responses": { "200": { "description": "Branding config" } }
+      },
+      "put": {
+        "tags": ["Settings"],
+        "summary": "Update branding",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "responses": { "200": { "description": "Branding saved" } }
+      }
+    },
+    "/api/settings/smtp": {
+      "get": {
+        "tags": ["Settings"],
+        "summary": "Get SMTP settings",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "responses": { "200": { "description": "SMTP config" } }
+      },
+      "put": {
+        "tags": ["Settings"],
+        "summary": "Update SMTP settings",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "responses": { "200": { "description": "SMTP saved" } }
+      }
+    },
+    "/api/settings/ai": {
+      "get": {
+        "tags": ["Settings"],
+        "summary": "Get AI configuration",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "responses": { "200": { "description": "AI config" } }
+      },
+      "put": {
+        "tags": ["Settings"],
+        "summary": "Update AI settings",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "responses": { "200": { "description": "AI config saved" } }
+      }
+    },
+    "/api/ai/describe-workflow": {
+      "post": {
+        "tags": ["AI"],
+        "summary": "Generate workflow description",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "workflow": { "type": "object" } } } } } },
+        "responses": { "200": { "description": "Generated description" } }
+      }
+    },
+    "/api/ai/analyze-error": {
+      "post": {
+        "tags": ["AI"],
+        "summary": "Analyze workflow error",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "error": { "type": "string" }, "workflow_name": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Error analysis" } }
+      }
+    },
+    "/api/ai/chat": {
+      "post": {
+        "tags": ["AI"],
+        "summary": "Chat with AI",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["messages"], "properties": { "messages": { "type": "array", "items": { "type": "object" } }, "conversation_id": { "type": "integer" } } } } } },
+        "responses": { "200": { "description": "AI response" } }
+      }
+    },
+    "/api/mcp/servers": {
+      "get": {
+        "tags": ["MCP"],
+        "summary": "List MCP servers",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "responses": { "200": { "description": "MCP server list with status" } }
+      },
+      "post": {
+        "tags": ["MCP"],
+        "summary": "Add MCP server",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "responses": { "200": { "description": "Server added" } }
+      }
+    },
+    "/api/mcp/tools": {
+      "get": {
+        "tags": ["MCP"],
+        "summary": "List available MCP tools",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "responses": { "200": { "description": "Tool list" } }
+      }
+    },
+    "/api/mcp/tools/call": {
+      "post": {
+        "tags": ["MCP"],
+        "summary": "Call MCP tool",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["server_id", "tool_name"], "properties": { "server_id": { "type": "integer" }, "tool_name": { "type": "string" }, "arguments": { "type": "object" } } } } } },
+        "responses": { "200": { "description": "Tool result" } }
+      }
+    },
+    "/api/api-keys": {
+      "get": {
+        "tags": ["API Keys"],
+        "summary": "List your API keys",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "responses": { "200": { "description": "API key list", "content": { "application/json": { "schema": { "type": "object", "properties": { "keys": { "type": "array", "items": { "$ref": "#/components/schemas/ApiKey" } } } } } } } }
+      },
+      "post": {
+        "tags": ["API Keys"],
+        "summary": "Create API key",
+        "description": "Creates a new API key. The full key is returned ONLY in this response — store it securely.",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "name": { "type": "string", "example": "CI/CD Pipeline" }, "role": { "type": "string", "enum": ["admin", "editor", "viewer"], "default": "viewer" }, "expires_in": { "type": "integer", "description": "Days until expiry (omit for never)" } } } } } },
+        "responses": { "200": { "description": "API key created (includes full key)", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/ApiKey" }, { "type": "object", "properties": { "key": { "type": "string", "example": "n8nlib_a1b2c3d4..." } } }] } } } } }
+      }
+    },
+    "/api/api-keys/all": {
+      "get": {
+        "tags": ["API Keys"],
+        "summary": "List all API keys (admin)",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "responses": { "200": { "description": "All API keys across all users" } }
+      }
+    },
+    "/api/api-keys/{id}": {
+      "put": {
+        "tags": ["API Keys"],
+        "summary": "Update API key",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "name": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Key updated" } }
+      },
+      "delete": {
+        "tags": ["API Keys"],
+        "summary": "Delete API key",
+        "security": [{ "bearerAuth": [] }, { "sessionAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Key deleted" } }
+      }
+    }
+  }
+}

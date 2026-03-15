@@ -124,6 +124,7 @@ function saveSettings() {
 function loadSettings() {
   loadBranding();
   loadInstances();
+  loadApiKeys();
   if (currentUser && currentUser.role === 'admin') { loadSmtpSettings(); loadEmailTemplates(); }
 }
 
@@ -870,5 +871,97 @@ async function deleteCategory(id) {
   await fetch(API + cfg.api + '/' + id, { method: 'DELETE', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
   toast('Category deleted', 'success');
   loadCategories();
+}
+
+// --- API Key Management ---
+
+async function loadApiKeys() {
+  try {
+    var res = await fetch(API + '/api/api-keys');
+    if (!res.ok) return;
+    var data = await res.json();
+    var container = document.getElementById('apiKeysList');
+    if (!data.keys || !data.keys.length) {
+      container.innerHTML = '<p style="color:var(--color-text-muted);font-size:13px">No API keys yet. Create one to access the API programmatically.</p>';
+      return;
+    }
+    var html = '<div class="users-card"><table class="users-table"><thead><tr>';
+    html += '<th>Name</th><th>Key</th><th>Role</th><th>Last Used</th><th>Expires</th><th style="width:60px"></th>';
+    html += '</tr></thead><tbody>';
+    for (var i = 0; i < data.keys.length; i++) {
+      var k = data.keys[i];
+      var lastUsed = k.last_used_at ? new Date(k.last_used_at).toLocaleDateString() : 'Never';
+      var expires = k.expires_at ? new Date(k.expires_at).toLocaleDateString() : 'Never';
+      var isExpired = k.expires_at && new Date(k.expires_at) < new Date();
+      html += '<tr>';
+      html += '<td><strong>' + esc(k.name) + '</strong></td>';
+      html += '<td><code style="font-size:12px;color:var(--color-text-muted)">' + esc(k.key_prefix) + '...</code></td>';
+      html += '<td><span class="role-badge ' + k.role + '">' + k.role + '</span></td>';
+      html += '<td style="font-size:12px;color:var(--color-text-muted)">' + lastUsed + '</td>';
+      html += '<td style="font-size:12px;' + (isExpired ? 'color:var(--color-danger)' : 'color:var(--color-text-muted)') + '">' + (isExpired ? 'Expired' : expires) + '</td>';
+      html += '<td><button class="delete-btn" title="Revoke" onclick="deleteApiKey(' + k.id + ',\'' + esc(k.name).replace(/'/g, "\\'") + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></td>';
+      html += '</tr>';
+    }
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+  } catch (e) {
+    console.error('Failed to load API keys:', e);
+  }
+}
+
+function openApiKeyModal() {
+  document.getElementById('apiKeyName').value = '';
+  document.getElementById('apiKeyExpiry').value = '';
+  // Filter role options based on current user's role
+  var roleSelect = document.getElementById('apiKeyRole');
+  roleSelect.value = 'viewer';
+  var hierarchy = { admin: 3, editor: 2, viewer: 1 };
+  var userLevel = hierarchy[currentUser.role] || 1;
+  for (var opt of roleSelect.options) {
+    opt.disabled = hierarchy[opt.value] > userLevel;
+  }
+  document.getElementById('apiKeyModal').classList.add('active');
+}
+
+async function saveApiKey() {
+  var name = document.getElementById('apiKeyName').value.trim();
+  var role = document.getElementById('apiKeyRole').value;
+  var expiresIn = document.getElementById('apiKeyExpiry').value;
+  if (!name) { toast('Name is required', 'error'); return; }
+  try {
+    var res = await fetch(API + '/api/api-keys', {
+      method: 'POST',
+      headers: CSRF_HEADERS,
+      body: JSON.stringify({ name: name, role: role, expires_in: expiresIn || undefined })
+    });
+    var data = await res.json();
+    if (!res.ok) { toast(data.error || 'Failed to create key', 'error'); return; }
+    closeModal('apiKeyModal');
+    // Show the key once
+    document.getElementById('apiKeyRevealValue').value = data.key;
+    document.getElementById('apiKeyRevealModal').classList.add('active');
+    loadApiKeys();
+  } catch (e) {
+    toast('Failed to create API key', 'error');
+  }
+}
+
+function copyApiKey() {
+  var input = document.getElementById('apiKeyRevealValue');
+  input.select();
+  navigator.clipboard.writeText(input.value).then(function() {
+    toast('API key copied to clipboard', 'success');
+  });
+}
+
+async function deleteApiKey(id, name) {
+  if (!confirm('Revoke API key "' + name + '"? Any integrations using this key will stop working.')) return;
+  try {
+    await fetch(API + '/api/api-keys/' + id, { method: 'DELETE', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+    toast('API key revoked', 'success');
+    loadApiKeys();
+  } catch (e) {
+    toast('Failed to delete API key', 'error');
+  }
 }
 
