@@ -3377,7 +3377,7 @@
   .kb-reader-meta-item svg { width: 14px; height: 14px; opacity: 0.5; }
   .kb-reader-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 
-  .kb-reader-body { font-size: 15px; line-height: 1.75; color: var(--color-text); }
+  .kb-reader-body { font-size: 15px; line-height: 1.75; color: var(--color-text); overflow: hidden; word-break: break-word; }
   .kb-reader-body h1,.kb-reader-body h2,.kb-reader-body h3 { margin: 1.4em 0 0.6em; color: var(--color-text); font-weight: 600; }
   .kb-reader-body h1 { font-size: 22px; } .kb-reader-body h2 { font-size: 19px; border-bottom: 1px solid var(--color-border); padding-bottom: 6px; } .kb-reader-body h3 { font-size: 16px; }
   .kb-reader-body pre { background: var(--color-bg-alt, #f3f4f6); padding: 14px 18px; border-radius: 8px; overflow-x: auto; font-size: 13px; border: 1px solid var(--color-border); font-family: 'SFMono-Regular',Consolas,'Liberation Mono',monospace; line-height: 1.5; }
@@ -3392,6 +3392,13 @@
   .kb-reader-body ul, .kb-reader-body ol { padding-left: 24px; }
   .kb-reader-body li { margin-bottom: 6px; }
   .kb-reader-body hr { border: none; border-top: 1px solid var(--color-border); margin: 1.5em 0; }
+  /* Override Quill indent/align classes inside reader to prevent layout overflow */
+  .kb-reader-body [class*="ql-indent"] { padding-left: 1.5em !important; padding-right: 0 !important; }
+  .kb-reader-body .ql-align-center { text-align: center; }
+  .kb-reader-body .ql-align-right { text-align: right; }
+  .kb-reader-body .ql-align-justify { text-align: justify; }
+  .kb-reader-body .ql-video { display: block; max-width: 100%; }
+  .kb-reader-body .ql-code-block-container { background: var(--color-bg-alt, #f3f4f6); padding: 12px 16px; border-radius: 6px; overflow-x: auto; font-family: 'SFMono-Regular',Consolas,'Liberation Mono',monospace; font-size: 13px; }
 
   .kb-reader-actions {
     display: flex; align-items: center; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;
@@ -3433,6 +3440,10 @@
   .kb-att-item a:hover { text-decoration: underline; }
   .kb-att-item svg { width: 16px; height: 16px; color: var(--color-muted); flex-shrink: 0; }
   .kb-att-size { color: var(--color-muted); font-size: 12px; }
+
+  /* Neutralize Quill elements orphaned on body — prevent layout overflow */
+  body > .ql-clipboard,
+  body > .ql-tooltip { display: none !important; }
 
   /* Quill editor overrides */
   .quill-wrap { border: 1px solid var(--color-border); border-radius: var(--radius); overflow: hidden; }

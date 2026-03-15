@@ -30,9 +30,23 @@ function renderContent(content) {
   });
   html = tmp.innerHTML;
   if (typeof DOMPurify !== 'undefined') {
-    return DOMPurify.sanitize(html, { ADD_TAGS: ['iframe','span'], ADD_ATTR: ['target','rel','class','spellcheck'] });
+    html = DOMPurify.sanitize(html, { ADD_TAGS: ['iframe','span'], ADD_ATTR: ['target','rel','class','spellcheck'] });
+  } else {
+    html = esc(html || '').replace(/\n/g, '<br>');
   }
-  return esc(html || '').replace(/\n/g, '<br>');
+  // Strip Quill-specific classes that cause CSS leaks (ql-indent-*, ql-direction-*, ql-ui, etc.)
+  // Keep ql-align-* and ql-video as we handle those in CSS
+  var tmp2 = document.createElement('div');
+  tmp2.innerHTML = html;
+  tmp2.querySelectorAll('[class]').forEach(function(el) {
+    var classes = el.className.split(/\s+/).filter(function(c) {
+      if (!c.startsWith('ql-')) return true;
+      return c.startsWith('ql-align') || c === 'ql-video';
+    });
+    el.className = classes.join(' ');
+    if (!el.className) el.removeAttribute('class');
+  });
+  return tmp2.innerHTML;
 }
 function renderMarkdown(s) { return renderContent(s); }
 
@@ -401,6 +415,8 @@ async function openKbArticleModal(id) {
 
 function closeKbArticleModal() {
   document.getElementById('kbArticleModal').classList.remove('active');
+  // Clean up orphaned Quill elements from body
+  document.querySelectorAll('body > .ql-clipboard, body > .ql-tooltip').forEach(function(el) { el.remove(); });
 }
 
 async function saveKbArticle() {

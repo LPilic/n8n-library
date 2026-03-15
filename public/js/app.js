@@ -895,6 +895,8 @@ function initQuill(containerId, opts) {
   // Destroy previous instance — remove old Quill toolbar and container, recreate the div
   if (quillEditors[containerId]) {
     delete quillEditors[containerId];
+    // Clean up orphaned Quill elements from body
+    document.querySelectorAll('body > .ql-clipboard, body > .ql-tooltip').forEach(function(el) { el.remove(); });
   }
   var wrap = el.closest('.quill-wrap');
   if (wrap) {
