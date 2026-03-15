@@ -48,6 +48,13 @@ app.use(helmet({
   hsts: process.env.NODE_ENV === 'production',
 }));
 
+// Disable Cloudflare page modifications (Rocket Loader, email obfuscation, minification)
+app.use((_req, res, next) => {
+  res.setHeader('cf-edge-cache', 'no-cache');
+  res.setHeader('x-robots-tag', 'noindex');
+  next();
+});
+
 // --- Session ---
 
 const SESSION_SECRET = process.env.SESSION_SECRET;
