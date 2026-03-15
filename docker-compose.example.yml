@@ -1,0 +1,64 @@
+# Example Docker Compose for n8n Library
+#
+# Usage:
+#   cp docker-compose.example.yml docker-compose.yml
+#   # Edit environment variables below
+#   docker compose up -d
+#
+# This starts n8n-library + PostgreSQL. Your n8n instance runs separately.
+
+services:
+  n8n-library:
+    build: .
+    # Or use a pre-built image:
+    # image: ghcr.io/lpilic/n8n-library:latest
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    environment:
+      # Database
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_USER: postgres
+      DB_POSTGRESDB_PASSWORD: changeme
+      DB_POSTGRESDB_DATABASE: n8n_library
+
+      # Application
+      PORT: 3100
+      SESSION_SECRET: change-me-to-a-long-random-string-at-least-32-chars
+      APP_URL: http://localhost:3100
+      # NODE_ENV: production
+
+      # n8n connection (optional — can be configured in the UI)
+      # N8N_INTERNAL_URL: http://your-n8n-host:5678
+      # N8N_API_KEY: your-n8n-api-key
+
+      # SMTP (optional)
+      # SMTP_HOST: smtp.example.com
+      # SMTP_PORT: 587
+      # SMTP_USER: ""
+      # SMTP_PASS: ""
+      # SMTP_FROM: noreply@example.com
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/public/uploads
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: n8n_library
+      POSTGRES_PASSWORD: changeme
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:
+  uploads:
