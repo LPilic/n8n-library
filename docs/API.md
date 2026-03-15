@@ -1,12 +1,34 @@
 # API Reference
 
-All endpoints return JSON. Mutating requests (`POST`, `PUT`, `DELETE`) require the header `X-Requested-With: XMLHttpRequest`.
+All endpoints return JSON. Roles: `admin`, `editor`, `viewer`.
 
-Authenticated endpoints require an active session (cookie-based). Roles: `admin`, `editor`, `viewer`.
+> **Interactive docs:** Visit `/api/docs` for the Swagger UI with the full OpenAPI 3.0 specification.
+
+## Authentication Methods
+
+### Session (Browser)
+
+Login via `POST /api/auth/login` to obtain a session cookie. Mutating requests (`POST`, `PUT`, `DELETE`) require the header `X-Requested-With: XMLHttpRequest` for CSRF protection.
+
+### API Key (Programmatic)
+
+Generate API keys in **Settings > API Keys**. Authenticate via:
+
+```
+Authorization: Bearer n8nlib_your_key_here
+```
+
+Or:
+
+```
+X-API-Key: n8nlib_your_key_here
+```
+
+API key requests bypass CSRF checks and have CORS enabled. A key's effective role is the more restrictive of the key's role and the user's role.
 
 ---
 
-## Authentication
+## Auth Endpoints
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -160,3 +182,31 @@ Authenticated endpoints require an active session (cookie-based). Roles: `admin`
 | PUT | `/api/settings/ai-prompts` | Admin | Update AI prompts |
 | GET | `/api/settings/branding` | Any | Get branding (logo, name) |
 | PUT | `/api/settings/branding` | Admin | Update branding |
+
+## API Keys
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/api-keys` | Any | List current user's API keys |
+| GET | `/api/api-keys/all` | Admin | List all API keys across all users |
+| POST | `/api/api-keys` | Any | Create API key `{name, role, expires_in}` — returns full key once |
+| PUT | `/api/api-keys/:id` | Any | Update key name `{name}` |
+| DELETE | `/api/api-keys/:id` | Any | Revoke API key |
+
+**Key format:** `n8nlib_<64 hex chars>` (71 chars total). Only the SHA-256 hash is stored; the `key_prefix` (first 15 chars) is stored for display.
+
+**Create key response:**
+
+```json
+{
+  "id": 1,
+  "name": "CI/CD Pipeline",
+  "key_prefix": "n8nlib_a1b2c3d",
+  "role": "editor",
+  "key": "n8nlib_a1b2c3d4e5f6...full key here...",
+  "expires_at": "2027-03-16T00:00:00.000Z",
+  "created_at": "2026-03-16T12:00:00.000Z"
+}
+```
+
+> The `key` field is only returned in the create response. Store it securely.

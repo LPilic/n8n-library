@@ -42,6 +42,7 @@ n8n-library/
 │
 ├── lib/                   # Shared server-side modules
 │   ├── ai-providers.js    # LLM integration (Claude, OpenAI, Gemini, Groq, Ollama)
+│   ├── api-key-auth.js    # API key authentication middleware
 │   ├── email.js           # SMTP transport, email templates
 │   ├── helpers.js         # Utilities (escaping, slugs, validation, SSRF protection)
 │   ├── mcp.js             # MCP client manager (stdio/HTTP transports)
@@ -57,7 +58,8 @@ n8n-library/
 │   ├── kb.js              # Knowledge base: articles, categories, tags, versions
 │   ├── settings.js        # SMTP, email templates, AI config, branding
 │   ├── ai.js              # AI chat, workflow description, error analysis, reports
-│   └── mcp-routes.js      # MCP server management endpoints
+│   ├── mcp-routes.js      # MCP server management endpoints
+│   └── api-keys.js        # API key CRUD and management
 │
 ├── public/                # Frontend (SPA)
 │   ├── index.html         # Application shell (all panels defined inline)
@@ -91,10 +93,11 @@ Middleware chain (order matters):
 2. **Helmet** — Security headers (CSP disabled for inline scripts)
 3. **Session** — PostgreSQL-backed sessions via `connect-pg-simple`
 4. **User re-validation** — Fetches fresh user role from DB on every request
-5. **CSRF protection** — Requires `X-Requested-With: XMLHttpRequest` on mutating requests
-6. **Static files** — Serves `public/` with no-cache headers on HTML/JS/CSS
-7. **CORS** — Allows cross-origin for n8n-facing endpoints (`/templates/`, `/api/public/`)
-8. **Request logging** — Timestamps all requests
+5. **API key auth** — Bearer token / X-API-Key header authentication (SHA-256 hash lookup)
+6. **CSRF protection** — Requires `X-Requested-With: XMLHttpRequest` on mutating requests (bypassed for API key auth)
+7. **Static files** — Serves `public/` with no-cache headers on HTML/JS/CSS
+8. **CORS** — Allows cross-origin for n8n-facing endpoints and API key requests
+9. **Request logging** — Timestamps all requests
 
 ### Route Modules
 
@@ -102,9 +105,12 @@ Each route file exports an Express Router. All API endpoints use JSON request/re
 
 **Authentication model:**
 - Session-based auth (cookie + PostgreSQL session store)
+- API key auth (Bearer token or X-API-Key header, SHA-256 hashed storage)
 - Role hierarchy: `admin` > `editor` > `viewer`
+- API key role cannot exceed the user's own role
 - `requireRole('admin', 'editor')` middleware on protected endpoints
 - Public endpoints under `/api/public/` (ticket submission from n8n)
+- Interactive API docs at `/api/docs` (Swagger UI, OpenAPI 3.0)
 
 **Rate limiting:**
 - Login: 15 attempts / 15 min
@@ -165,7 +171,11 @@ All tables created by `migrate.js`. Migrations are idempotent (safe to re-run).
 ```
 users                    # Admin, editor, viewer accounts
   ├── id, username, email, password_hash, role
-  └── session            # PostgreSQL session store
+  ├── session            # PostgreSQL session store
+  └── api_keys           # Per-user API keys (SHA-256 hashed)
+       ├── key_prefix, key_hash, role
+       ├── last_used_at, expires_at
+       └── CASCADE on user delete
 
 settings                 # Key-value configuration store
 
@@ -300,11 +310,13 @@ Or use the setup wizard: `npm run setup`
 ## Security
 
 - Passwords hashed with bcrypt (cost factor 10)
+- API keys stored as SHA-256 hashes (raw key shown once at creation)
 - Sessions stored server-side in PostgreSQL
-- CSRF protection via `X-Requested-With` header validation
+- CSRF protection via `X-Requested-With` header validation (bypassed for API key auth)
 - Helmet security headers in production
 - Rate limiting on auth and AI endpoints
 - SSRF protection on external URL validation (`lib/helpers.js`)
-- HTML sanitization with DOMPurify on frontend
+- HTML sanitization with DOMPurify on frontend (`<style>` tags stripped to prevent CSS injection)
 - SQL injection prevention via parameterized queries throughout
 - No secrets in client-side code
+- API key role enforcement: key permissions capped at user's own role

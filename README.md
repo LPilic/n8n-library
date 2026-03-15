@@ -14,6 +14,8 @@ A self-hosted companion app for [n8n](https://n8n.io) that adds a workflow templ
 - **Multi-Instance Support** — Monitor and switch between multiple n8n instances (production, staging, dev) from a single dashboard
 - **Worker Monitoring** — Track n8n queue-mode workers with health checks and per-worker metrics
 - **Email Notifications** — Customizable email templates for password resets, ticket updates, and daily summary reports
+- **API Keys** — Per-user API key generation for programmatic access with role-based permissions and optional expiry
+- **API Documentation** — Interactive Swagger/OpenAPI docs at `/api/docs`
 - **Role-Based Access** — Admin, editor, and viewer roles with granular permissions
 - **Dark Mode** — System-preference-aware theme toggle
 
@@ -136,7 +138,7 @@ N8N_TEMPLATES_ENABLED=true
 
 When using the nginx proxy (see architecture docs), n8n's template browser seamlessly loads templates from the library.
 
-### API Key
+### n8n API Key
 
 Generate an API key in your n8n instance: **Settings > API > Create API Key**. Add it when configuring the n8n instance in the library's Settings panel.
 
@@ -152,6 +154,26 @@ N8N_METRICS_INCLUDE_QUEUE_METRICS=true
 ```
 
 Then add worker URLs in Settings > Instances > Edit > Workers.
+
+## API Access
+
+### API Keys
+
+Generate API keys in **Settings > API Keys** for programmatic access. Keys support role-based permissions (admin, editor, viewer) and optional expiry.
+
+```bash
+# Authenticate with Bearer token
+curl -H "Authorization: Bearer n8nlib_your_key_here" https://your-server/api/tickets
+
+# Or use the X-API-Key header
+curl -H "X-API-Key: n8nlib_your_key_here" https://your-server/api/kb/articles
+```
+
+Keys are hashed (SHA-256) in the database — the full key is shown only once at creation. A key's permissions cannot exceed its owner's role.
+
+### API Documentation
+
+Interactive Swagger UI is available at `/api/docs` with the full OpenAPI 3.0 specification covering all endpoints.
 
 ## Default Credentials
 
