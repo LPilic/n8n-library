@@ -1,0 +1,104 @@
+{
+  "id": 1,
+  "name": "Example: Send Slack message on new GitHub issue",
+  "description": "Automatically sends a Slack notification when a new GitHub issue is created.",
+  "totalViews": 150,
+  "recentViews": 25,
+  "price": null,
+  "purchaseUrl": null,
+  "createdAt": "2026-03-01T00:00:00.000Z",
+  "user": {
+    "username": "admin",
+    "verified": true
+  },
+  "image": [],
+  "categories": [
+    { "id": 3, "name": "DevOps" },
+    { "id": 5, "name": "Communication" }
+  ],
+  "nodes": [
+    {
+      "id": 1,
+      "icon": "file:github.svg",
+      "name": "n8n-nodes-base.githubTrigger",
+      "codex": {
+        "data": {
+          "categories": ["Development"]
+        }
+      },
+      "group": "trigger",
+      "defaults": { "name": "GitHub Trigger" },
+      "iconData": { "type": "file", "fileBuffer": "" },
+      "displayName": "GitHub Trigger",
+      "typeVersion": 1,
+      "nodeCategories": [
+        { "id": 3, "name": "DevOps" }
+      ]
+    },
+    {
+      "id": 2,
+      "icon": "file:slack.svg",
+      "name": "n8n-nodes-base.slack",
+      "codex": {
+        "data": {
+          "categories": ["Communication"]
+        }
+      },
+      "group": "output",
+      "defaults": { "name": "Slack" },
+      "iconData": { "type": "file", "fileBuffer": "" },
+      "displayName": "Slack",
+      "typeVersion": 2,
+      "nodeCategories": [
+        { "id": 5, "name": "Communication" }
+      ]
+    }
+  ],
+  "workflowInfo": {
+    "nodeCount": 2,
+    "nodeTypes": {
+      "n8n-nodes-base.githubTrigger": { "count": 1 },
+      "n8n-nodes-base.slack": { "count": 1 }
+    }
+  },
+  "workflow": {
+    "nodes": [
+      {
+        "parameters": {
+          "owner": "={{ $json.owner }}",
+          "repository": "={{ $json.repository }}",
+          "events": ["issues"]
+        },
+        "name": "GitHub Trigger",
+        "type": "n8n-nodes-base.githubTrigger",
+        "typeVersion": 1,
+        "position": [250, 300]
+      },
+      {
+        "parameters": {
+          "channel": "#dev-notifications",
+          "text": "=New issue: {{ $json.issue.title }} by {{ $json.issue.user.login }}\n{{ $json.issue.html_url }}"
+        },
+        "name": "Slack",
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 2,
+        "position": [500, 300]
+      }
+    ],
+    "connections": {
+      "GitHub Trigger": {
+        "main": [
+          [
+            {
+              "node": "Slack",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {},
+    "pinData": {}
+  }
+}

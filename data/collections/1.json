@@ -1,0 +1,11 @@
+{
+  "id": 1,
+  "rank": 1,
+  "name": "Getting Started",
+  "totalViews": 500,
+  "createdAt": "2026-03-01T00:00:00.000Z",
+  "workflows": [
+    { "id": 1 }
+  ],
+  "nodes": []
+}

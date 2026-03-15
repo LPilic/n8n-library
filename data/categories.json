@@ -1,0 +1,9 @@
+[
+  { "id": 1, "name": "Sales" },
+  { "id": 2, "name": "Marketing" },
+  { "id": 3, "name": "DevOps" },
+  { "id": 4, "name": "Data & Storage" },
+  { "id": 5, "name": "Communication" },
+  { "id": 6, "name": "AI" },
+  { "id": 7, "name": "Utility" }
+]

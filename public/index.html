@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>n8n Template Library Manager</title>
+<link rel="stylesheet" href="vendor/css/font-awesome.min.css">
+<script src="vendor/js/webcomponents-loader.js"></script>
+<script src="vendor/js/lit-polyfill-support.js"></script>
+<script type="module" src="vendor/js/n8n-demo.bundled.js"></script>
+<script>
+// Apply theme immediately to prevent flash
+(function() {
+  var mode = localStorage.getItem('theme_mode') || 'system';
+  var dark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+})();
+</script>
+<link rel="stylesheet" href="css/styles.css?v=6">
+<script src="vendor/js/purify.min.js"></script>
+<link rel="stylesheet" href="vendor/css/github-highlight.min.css">
+<script src="vendor/js/highlight.min.js"></script>
+<link rel="stylesheet" href="vendor/css/quill.snow.css">
+<script src="vendor/js/quill.js"></script>
+<script src="vendor/js/chart.umd.min.js"></script>
+</head>
+<body>
+  <!-- Login overlay -->
+  <div id="login-overlay">
+    <!-- Login form -->
+    <div class="login-card" id="loginForm">
+      <img id="loginLogo" class="login-logo" style="display:none" alt="">
+      <h2><span class="login-brand-span" style="color:var(--color-primary)">n8n</span> <span class="login-app-name">Library</span></h2>
+      <div class="login-subtitle">Sign in to manage templates</div>
+      <input type="email" id="loginEmail" placeholder="Email" autocomplete="email">
+      <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password">
+      <button onclick="doLogin()">Sign in</button>
+      <div class="login-error" id="loginError"></div>
+      <div style="margin-top:16px"><a href="#" onclick="showForgotPassword();return false" style="font-size:13px;color:var(--color-primary);text-decoration:none">Forgot password?</a></div>
+    </div>
+    <!-- Forgot password form -->
+    <div class="login-card" id="forgotForm" style="display:none">
+      <img class="login-logo branded-login-logo" style="display:none" alt="">
+      <h2><span class="login-brand-span" style="color:var(--color-primary)">n8n</span> <span class="login-app-name">Library</span></h2>
+      <div class="login-subtitle">Enter your email to receive a reset link</div>
+      <input type="email" id="forgotEmail" placeholder="Email" autocomplete="email">
+      <button onclick="doForgotPassword()">Send Reset Link</button>
+      <div class="login-error" id="forgotError"></div>
+      <div class="login-success" id="forgotSuccess"></div>
+      <div style="margin-top:16px"><a href="#" onclick="showLoginForm();return false" style="font-size:13px;color:var(--color-primary);text-decoration:none">Back to sign in</a></div>
+    </div>
+    <!-- Reset password form -->
+    <div class="login-card" id="resetForm" style="display:none">
+      <img class="login-logo branded-login-logo" style="display:none" alt="">
+      <h2><span class="login-brand-span" style="color:var(--color-primary)">n8n</span> <span class="login-app-name">Library</span></h2>
+      <div class="login-subtitle">Enter your new password</div>
+      <input type="password" id="resetPass" placeholder="New password" autocomplete="new-password">
+      <input type="password" id="resetPassConfirm" placeholder="Confirm password" autocomplete="new-password">
+      <button onclick="doResetPassword()">Reset Password</button>
+      <div class="login-error" id="resetError"></div>
+      <div class="login-success" id="resetSuccess"></div>
+      <div style="margin-top:16px"><a href="#" onclick="showLoginForm();return false" style="font-size:13px;color:var(--color-primary);text-decoration:none">Back to sign in</a></div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar" id="appSidebar" style="display:none">
+    <div class="sidebar-header">
+      <h1><img id="sidebarLogo" class="sidebar-logo" style="display:none" alt=""><span id="sidebarBrandSpan">n8n</span> <span id="sidebarAppName">Library Manager</span></h1>
+      <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">
+        <svg id="sidebarToggleIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 19l-7-7 7-7"/><path d="M18 19l-7-7 7-7" opacity="0.4"/></svg>
+      </button>
+    </div>
+    <div class="instance-selector write-only" id="instanceSelector" style="display:none">
+      <div class="instance-trigger" onclick="toggleInstanceDropdown()">
+        <span class="instance-env-dot" id="instanceDot"></span>
+        <span class="instance-name" id="instanceName">Loading...</span>
+        <span class="instance-env-badge" id="instanceBadge"></span>
+        <span class="cs-arrow"></span>
+      </div>
+      <div class="instance-menu" id="instanceMenu"></div>
+    </div>
+    <div class="sidebar-nav">
+      <!-- MAIN -->
+      <div class="sidebar-section-label">Main</div>
+      <div class="nav-item active" data-panel="library" onclick="switchPanel('library')" data-tooltip="Templates">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span>Templates</span>
+      </div>
+      <div class="nav-item write-only" data-panel="n8n" onclick="switchPanel('n8n')" data-tooltip="n8n Workflows">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+        <span>Workflows</span>
+      </div>
+
+      <!-- SUPPORT -->
+      <div class="sidebar-section-divider"></div>
+      <div class="sidebar-section-label">Support</div>
+      <div class="nav-item" data-panel="tickets" onclick="switchPanel('tickets')" data-tooltip="Service Desk">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5H9a2 2 0 0 0-2 2v12l5-3 5 3V7a2 2 0 0 0-2-2z"/></svg>
+        <span>Service Desk</span>
+        <span class="ticket-nav-badge" id="ticketNavBadge" style="display:none">0</span>
+      </div>
+      <div class="nav-item" data-panel="kb" onclick="switchPanel('kb')" data-tooltip="Knowledge Base">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span>Knowledge Base</span>
+      </div>
+
+      <!-- OPERATIONS -->
+      <div class="sidebar-section-divider write-only"></div>
+      <div class="sidebar-section-label write-only">Operations</div>
+      <div class="nav-item write-only" data-panel="monitoring" onclick="switchPanel('monitoring')" data-tooltip="Monitoring">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <span>Monitoring</span>
+      </div>
+      <div class="nav-item admin-only" data-panel="observability" onclick="switchPanel('observability')" data-tooltip="Observability">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        <span>Observability</span>
+      </div>
+
+      <!-- ADMIN -->
+      <div class="sidebar-section-divider admin-only"></div>
+      <div class="sidebar-section-label admin-only">Admin</div>
+      <div class="nav-item admin-only" data-panel="ai" onclick="switchPanel('ai')" data-tooltip="AI Config">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        <span>AI Config</span>
+      </div>
+      <div class="nav-item admin-only" data-panel="categories" onclick="switchPanel('categories')" data-tooltip="Categories">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H2v7l6.29 6.29c.94.94 2.48.94 3.42 0l4.58-4.58c.94-.94.94-2.48 0-3.42L9 5Z"/><path d="M6 9.01V9"/></svg>
+        <span>Categories</span>
+      </div>
+      <div class="nav-item" data-panel="settings" onclick="switchPanel('settings')" data-tooltip="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Settings</span>
+      </div>
+      <div class="nav-item admin-only" data-panel="users" onclick="switchPanel('users')" data-tooltip="Users">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Users</span>
+      </div>
+    </div>
+    <button class="ai-chat-sidebar-btn" id="aiChatFab" onclick="toggleAiChat()" title="AI Chat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+      </svg>
+      <span class="ai-btn-label">AI Chat</span>
+    </button>
+    <div class="sidebar-footer">
+      <div class="user-badge" id="userBadge" style="display:none">
+        <div class="user-badge-info">
+          <div class="user-badge-avatar" id="userAvatar"></div>
+          <div>
+            <div id="userDisplayName" style="font-weight:600"></div>
+            <span class="user-badge-role" id="userRoleBadge"></span>
+          </div>
+        </div>
+        <button class="logout-btn" onclick="doLogout()">Logout</button>
+      </div>
+      <div class="connection-status">
+        <span class="connection-dot disconnected" id="connDot"></span>
+        <span id="connLabel">n8n not connected</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Nav — fixed bottom tab bar (visible only on small screens) -->
+  <div class="mobile-nav" id="mobileNav" style="display:none">
+    <button data-panel="library" onclick="switchPanel('library')" class="active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <span>Library</span>
+    </button>
+    <button data-panel="n8n" class="write-only" onclick="switchPanel('n8n')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+      <span>Workflows</span>
+    </button>
+    <button data-panel="tickets" onclick="switchPanel('tickets')" style="position:relative">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5H9a2 2 0 0 0-2 2v12l5-3 5 3V7a2 2 0 0 0-2-2z"/></svg>
+      <span>Tickets</span>
+      <span class="mobile-ticket-badge" id="mobileTicketBadge" style="display:none">0</span>
+    </button>
+    <button id="mobileMoreBtn" onclick="toggleMobileMore()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+      <span>More</span>
+    </button>
+  </div>
+  <!-- Mobile "More" menu -->
+  <div class="mobile-more-menu" id="mobileMoreMenu">
+    <button data-panel="kb" onclick="switchPanel('kb');toggleMobileMore()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      Knowledge Base
+    </button>
+    <button data-panel="monitoring" class="write-only" onclick="switchPanel('monitoring');toggleMobileMore()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Monitoring
+    </button>
+    <button data-panel="observability" class="admin-only" onclick="switchPanel('observability');toggleMobileMore()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Observability
+    </button>
+    <button data-panel="ai" class="admin-only" onclick="switchPanel('ai');toggleMobileMore()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      AI Config
+    </button>
+    <button data-panel="categories" class="admin-only" onclick="switchPanel('categories');toggleMobileMore()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H2v7l6.29 6.29c.94.94 2.48.94 3.42 0l4.58-4.58c.94-.94.94-2.48 0-3.42L9 5Z"/><path d="M6 9.01V9"/></svg>
+      Categories
+    </button>
+    <button data-panel="settings" onclick="switchPanel('settings');toggleMobileMore()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </button>
+    <button data-panel="users" class="admin-only" onclick="switchPanel('users');toggleMobileMore()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Users
+    </button>
+    <button onclick="doLogout();toggleMobileMore()" class="mobile-more-logout">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Logout
+    </button>
+  </div>
+
+  <!-- Main -->
+  <div class="main" id="appMain" style="display:none">
+
+    <!-- Library Panel -->
+    <div class="panel active" id="panel-library">
+      <div class="toolbar">
+        <h2>Template Library</h2>
+        <input type="text" class="search-input" placeholder="Search templates..." id="librarySearch" oninput="loadLibrary()">
+        <div class="toolbar-right">
+          <span id="libraryCount" style="font-size:13px;color:var(--color-text-muted);align-self:center"></span>
+        </div>
+      </div>
+      <div class="content" id="libraryContent"></div>
+    </div>
+
+    <!-- n8n Workflows Panel -->
+    <div class="panel" id="panel-n8n">
+      <div class="toolbar">
+        <h2>n8n Workflows</h2>
+        <input type="text" class="search-input" placeholder="Search n8n workflows..." id="n8nSearch" oninput="filterN8nWorkflows()">
+        <div class="toolbar-right">
+          <span id="n8nCount" style="font-size:13px;color:var(--color-text-muted)"></span>
+          <button class="btn btn-secondary" onclick="loadN8nWorkflows()">Refresh</button>
+        </div>
+      </div>
+      <div class="content" id="n8nContent"></div>
+    </div>
+
+    <!-- Categories Panel -->
+    <div class="panel" id="panel-categories">
+      <div class="toolbar">
+        <h2>Categories</h2>
+        <input type="text" class="search-input" placeholder="Search categories..." id="categorySearch" oninput="renderCategoryTable()">
+        <div class="toolbar-right">
+          <button class="btn btn-primary admin-only" onclick="showAddCategory()">+ Add Category</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="ticket-panel-body">
+          <div class="ticket-panel-main" id="categoriesContent"></div>
+          <div class="ticket-panel-sidebar" id="categoriesSidebar">
+            <div class="ticket-kpi-card kpi-filters">
+              <div class="kpi-header">Filters</div>
+              <div id="catTypeFilter"></div>
+            </div>
+            <div class="ticket-kpi-card kpi-overview" id="catOverviewCard">
+              <div class="kpi-header">Overview</div>
+              <div id="catOverviewContent"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Service Desk Panel -->
+    <div class="panel" id="panel-tickets">
+      <div class="toolbar">
+        <h2>Service Desk</h2>
+        <input type="text" class="search-input" placeholder="Search tickets..." id="ticketSearch" oninput="debouncedLoadTickets()">
+        <div class="toolbar-right">
+          <button class="btn btn-primary" onclick="openCreateTicketModal()">+ New Ticket</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="ticket-panel-body">
+          <div class="ticket-panel-main" id="ticketsContent"></div>
+          <div class="ticket-panel-sidebar">
+            <div class="ticket-kpi-card kpi-filters">
+              <div class="kpi-header">Filters</div>
+              <div class="ticket-filters">
+                <select id="ticketFilterStatus" onchange="loadTickets()">
+                  <option value="">All Status</option>
+                  <option value="open">Open</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="waiting">Waiting</option>
+                  <option value="resolved">Resolved</option>
+                  <option value="closed">Closed</option>
+                </select>
+                <select id="ticketFilterPriority" onchange="loadTickets()">
+                  <option value="">All Priority</option>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+                <label class="my-tickets-toggle">
+                  <input type="checkbox" id="ticketFilterMine" onchange="loadTickets()"> My tickets
+                </label>
+              </div>
+            </div>
+            <div id="ticketStatsContainer"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Knowledge Base Panel -->
+    <div class="panel" id="panel-kb">
+      <div class="toolbar">
+        <h2>Knowledge Base</h2>
+        <input type="text" class="search-input" placeholder="Search articles..." id="kbSearch" oninput="debouncedLoadKbArticles()">
+        <div class="toolbar-right">
+          <button class="btn btn-primary write-only" onclick="openKbArticleModal()">+ New Article</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="ticket-panel-body">
+          <div class="ticket-panel-main" id="kbContent">
+            <!-- Article list or reader rendered here -->
+          </div>
+          <div class="ticket-panel-sidebar" id="kbSidebar">
+            <div class="ticket-kpi-card kpi-filters">
+              <div class="kpi-header">Filters</div>
+              <div class="ticket-filters">
+                <select id="kbFilterCategory" onchange="loadKbArticles()">
+                  <option value="">All Categories</option>
+                </select>
+                <select id="kbFilterStatus" class="write-only" onchange="loadKbArticles()">
+                  <option value="">All Status</option>
+                  <option value="published">Published</option>
+                  <option value="draft">Draft</option>
+                  <option value="archived">Archived</option>
+                </select>
+                <select id="kbFilterSort" onchange="loadKbArticles()">
+                  <option value="">Recent</option>
+                  <option value="views">Most Viewed</option>
+                  <option value="title">A-Z</option>
+                </select>
+              </div>
+            </div>
+            <div id="kbTagCloud"></div>
+            <div id="kbStatsContainer"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KB Article Create/Edit Modal -->
+    <div class="preview-modal-overlay" id="kbArticleModal">
+      <div class="preview-modal kb-article-modal-inner">
+        <div class="preview-modal-header">
+          <h2 id="kbModalTitle">New Article</h2>
+          <button class="preview-modal-close" onclick="closeKbArticleModal()">&times;</button>
+        </div>
+        <div class="preview-modal-body" style="padding:20px;overflow-y:auto">
+          <div class="form-group">
+            <label class="form-label">Title</label>
+            <input type="text" class="form-input" id="kbArtTitle" placeholder="Article title">
+          </div>
+          <div class="form-group" style="display:flex;gap:12px">
+            <div style="flex:1">
+              <label class="form-label">Category</label>
+              <select class="form-input" id="kbArtCategory"><option value="">None</option></select>
+            </div>
+            <div style="flex:1">
+              <label class="form-label">Status</label>
+              <select class="form-input" id="kbArtStatus">
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" style="position:relative">
+            <label class="form-label">Tags</label>
+            <div class="kb-tag-input-wrap" id="kbTagInputWrap" onclick="document.getElementById('kbTagInput').focus()">
+              <input type="text" id="kbTagInput" placeholder="Type to add tags..." autocomplete="off"
+                oninput="showKbTagSuggestions()" onkeydown="handleKbTagKeydown(event)">
+            </div>
+            <div class="kb-tag-suggestions" id="kbTagSuggestions" style="display:none"></div>
+            <input type="hidden" id="kbArtTags">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Excerpt <small>(short summary)</small></label>
+            <textarea class="form-input" id="kbArtExcerpt" rows="2" placeholder="Brief description shown in listings"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Body</label>
+            <div class="quill-wrap quill-lg" id="kbArtBodyWrap">
+              <div id="kbArtBody"></div>
+            </div>
+          </div>
+          <div class="form-group" style="display:flex;gap:12px">
+            <label class="my-tickets-toggle"><input type="checkbox" id="kbArtPinned"> Pinned</label>
+            <label class="my-tickets-toggle admin-only"><input type="checkbox" id="kbArtFeatured"> Featured</label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Attachments</label>
+            <div class="kb-dropzone" id="kbDropzone">
+              <input type="file" multiple onchange="handleKbAttachmentUpload(this)">
+              <div class="kb-dropzone-content">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>Drop files here or <em>browse</em></span>
+              </div>
+            </div>
+            <div id="kbAttachmentsList"></div>
+          </div>
+        </div>
+        <div class="preview-modal-footer" style="padding:16px 20px;border-top:1px solid var(--color-border);display:flex;justify-content:flex-end;gap:8px">
+          <button class="btn" onclick="closeKbArticleModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveKbArticle()" id="kbSaveBtn">Save Article</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- KB Version History Modal -->
+    <div class="preview-modal-overlay" id="kbVersionModal">
+      <div class="preview-modal" style="max-width:700px">
+        <div class="preview-modal-header">
+          <h2>Version History</h2>
+          <button class="preview-modal-close" onclick="document.getElementById('kbVersionModal').classList.remove('active')">&times;</button>
+        </div>
+        <div class="preview-modal-body" style="padding:20px;overflow-y:auto" id="kbVersionList"></div>
+      </div>
+    </div>
+
+    <!-- Monitoring Panel -->
+    <div class="panel" id="panel-monitoring">
+      <div class="toolbar">
+        <h2>Monitoring</h2>
+        <div class="toolbar-right">
+          <div class="mon-toolbar-filters" id="monToolbarFilters">
+            <select id="monFilterStatus" class="form-input" style="width:auto;min-width:120px" onchange="loadMonitoringExecutions(true)">
+              <option value="">All Status</option>
+              <option value="success">Success</option>
+              <option value="error">Error</option>
+              <option value="running">Running</option>
+              <option value="waiting">Waiting</option>
+            </select>
+            <select id="monFilterWorkflow" class="form-input" style="width:auto;min-width:150px" onchange="loadMonitoringExecutions(true)">
+              <option value="">All Workflows</option>
+            </select>
+          </div>
+          <div class="refresh-dropdown" id="monRefreshDropdown">
+            <i class="fa fa-clock-o" style="color:var(--color-text-muted)"></i>
+            <div class="refresh-dropdown-trigger" onclick="toggleRefreshDropdown('monRefreshDropdown')">
+              <span class="rd-label">30s</span>
+              <span class="rd-arrow">&#9660;</span>
+            </div>
+            <div class="refresh-dropdown-menu">
+              <div class="refresh-dropdown-item" data-value="0" onclick="selectRefreshInterval('monRefreshDropdown',this)">Off<span class="rd-check">&#10003;</span></div>
+              <div class="refresh-dropdown-item" data-value="10" onclick="selectRefreshInterval('monRefreshDropdown',this)">10s<span class="rd-check">&#10003;</span></div>
+              <div class="refresh-dropdown-item active" data-value="30" onclick="selectRefreshInterval('monRefreshDropdown',this)">30s<span class="rd-check">&#10003;</span></div>
+              <div class="refresh-dropdown-item" data-value="60" onclick="selectRefreshInterval('monRefreshDropdown',this)">1m<span class="rd-check">&#10003;</span></div>
+              <div class="refresh-dropdown-item" data-value="120" onclick="selectRefreshInterval('monRefreshDropdown',this)">2m<span class="rd-check">&#10003;</span></div>
+              <div class="refresh-dropdown-item" data-value="300" onclick="selectRefreshInterval('monRefreshDropdown',this)">5m<span class="rd-check">&#10003;</span></div>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="loadMonitoringData(true)"><i class="fa fa-refresh"></i> Refresh</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="mon-tabs">
+          <button class="mon-tab active" onclick="switchMonTab('executions')">Executions</button>
+          <button class="mon-tab" onclick="switchMonTab('workflows')">Workflows</button>
+        </div>
+        <div class="ticket-panel-body">
+          <div class="ticket-panel-main">
+            <div id="monTabExecutions" class="mon-tab-panel active">
+              <div id="monitoringContent"><div class="loading">Loading...</div></div>
+            </div>
+            <div id="monTabWorkflows" class="mon-tab-panel">
+              <div id="monWorkflowsContent"><div class="loading">Loading...</div></div>
+            </div>
+          </div>
+          <div class="ticket-panel-sidebar" id="monitoringSidebar">
+            <div id="monStatsContainer" style="display:flex;flex-direction:column;gap:12px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Observability Panel -->
+    <div class="panel" id="panel-observability">
+      <div class="toolbar">
+        <h2>Observability</h2>
+        <div class="toolbar-right">
+          <span id="obsLastUpdate" style="font-size:12px;color:var(--color-text-muted)"></span>
+          <div class="refresh-dropdown" id="obsRefreshDropdown">
+            <i class="fa fa-clock-o" style="color:var(--color-text-muted)"></i>
+            <div class="refresh-dropdown-trigger" onclick="toggleRefreshDropdown('obsRefreshDropdown')">
+              <span class="rd-label">20s</span>
+              <span class="rd-arrow">&#9660;</span>
+            </div>
+            <div class="refresh-dropdown-menu">
+              <div class="refresh-dropdown-item" data-value="0" onclick="selectRefreshInterval('obsRefreshDropdown',this)">Off<span class="rd-check">&#10003;</span></div>
+              <div class="refresh-dropdown-item" data-value="10" onclick="selectRefreshInterval('obsRefreshDropdown',this)">10s<span class="rd-check">&#10003;</span></div>
+              <div class="refresh-dropdown-item active" data-value="20" onclick="selectRefreshInterval('obsRefreshDropdown',this)">20s<span class="rd-check">&#10003;</span></div>
+              <div class="refresh-dropdown-item" data-value="30" onclick="selectRefreshInterval('obsRefreshDropdown',this)">30s<span class="rd-check">&#10003;</span></div>
+              <div class="refresh-dropdown-item" data-value="60" onclick="selectRefreshInterval('obsRefreshDropdown',this)">1m<span class="rd-check">&#10003;</span></div>
+              <div class="refresh-dropdown-item" data-value="300" onclick="selectRefreshInterval('obsRefreshDropdown',this)">5m<span class="rd-check">&#10003;</span></div>
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="loadObservability()"><i class="fa fa-refresh"></i> Refresh</button>
+          <button class="btn btn-primary btn-sm" id="obsAiReportBtn" onclick="generateObsAiReport()"><i class="fa fa-magic"></i> AI Report</button>
+        </div>
+      </div>
+      <div class="content" style="padding:20px">
+        <!-- KPI Row -->
+        <div class="obs-kpi-row" id="obsKpiRow"></div>
+        <!-- Charts -->
+        <div class="obs-charts-grid">
+          <div class="obs-chart-card"><h4>CPU Usage (seconds)</h4><canvas id="obsCpuChart"></canvas></div>
+          <div class="obs-chart-card"><h4>Memory (RSS)</h4><canvas id="obsMemoryChart"></canvas></div>
+          <div class="obs-chart-card"><h4>Heap Usage</h4><canvas id="obsHeapChart"></canvas></div>
+          <div class="obs-chart-card"><h4>Event Loop Lag</h4><canvas id="obsEventLoopChart"></canvas></div>
+          <div class="obs-chart-card"><h4>Queue Jobs</h4><canvas id="obsQueueChart"></canvas></div>
+          <div class="obs-chart-card"><h4>Active Resources</h4><canvas id="obsResourcesChart"></canvas></div>
+        </div>
+        <!-- Workers -->
+        <div id="obsWorkersSection" style="display:none">
+          <h3 style="margin:24px 0 12px;font-size:15px;font-weight:600">Workers</h3>
+          <div class="obs-kpi-row" id="obsWorkersRow"></div>
+        </div>
+        <!-- AI Report -->
+        <div class="obs-report-card" id="obsAiReportCard" style="display:none">
+          <div class="obs-report-header">
+            <h4><i class="fa fa-magic" style="color:var(--color-primary)"></i> AI Performance Report</h4>
+            <span class="obs-report-time" id="obsReportTime"></span>
+          </div>
+          <div class="obs-report-body" id="obsAiReportBody"></div>
+        </div>
+        <!-- Raw Metrics -->
+        <div class="obs-raw-card">
+          <h4>All Metrics <span id="obsRawCount" class="obs-raw-count"></span></h4>
+          <input type="text" class="obs-raw-search" id="obsRawSearch" placeholder="Search metrics..." oninput="filterObsRawMetrics()">
+          <div id="obsRawMetrics" style="max-height:500px;overflow-y:auto"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Panel -->
+    <div class="panel" id="panel-ai">
+      <div class="toolbar">
+        <h2>AI Configuration</h2>
+        <div class="toolbar-right"></div>
+      </div>
+      <div class="content">
+        <div style="display:flex;flex-direction:column;gap:20px">
+
+          <!-- LLM Configuration -->
+          <div class="settings-card" style="margin-bottom:0">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+              <div style="width:36px;height:36px;border-radius:var(--radius);background:#fef3c7;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><path d="M12 2a4 4 0 0 1 4 4c0 1.95-1.4 3.58-3.25 3.93L12 10v2"/><circle cx="12" cy="16" r="2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 6.34l1.41-1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 19.07l-1.41-1.41"/></svg>
+              </div>
+              <div>
+                <h3 style="margin-bottom:0">LLM Provider</h3>
+                <p style="font-size:12px;color:var(--color-text-muted);margin-top:2px">Configure AI provider for description generation, error analysis, daily summaries</p>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Provider</label>
+              <select class="form-input" id="aiProvider" onchange="onAiProviderChange()">
+                <option value="">None (AI disabled)</option>
+                <option value="gemini">Google Gemini</option>
+                <option value="openai">OpenAI</option>
+                <option value="groq">Groq</option>
+                <option value="claude">Anthropic Claude</option>
+                <option value="ollama">Ollama (local)</option>
+              </select>
+            </div>
+            <div class="form-group" id="aiApiKeyGroup">
+              <label>API Key</label>
+              <input type="password" class="form-input" id="aiApiKey" placeholder="Enter API key" autocomplete="new-password">
+              <p style="font-size:11px;color:var(--color-text-xmuted);margin-top:4px">Leave blank to keep existing key</p>
+            </div>
+            <div class="form-group">
+              <label>Model</label>
+              <div style="display:flex;gap:8px;align-items:flex-start">
+                <select class="form-input" id="aiModel" style="flex:1">
+                  <option value="">Select a model...</option>
+                </select>
+                <button class="btn btn-secondary" id="aiFetchModelsBtn" onclick="fetchAiModels()" style="white-space:nowrap;flex-shrink:0">Fetch Models</button>
+              </div>
+              <p style="font-size:11px;color:var(--color-text-xmuted);margin-top:4px" id="aiModelHint">Select a provider and click "Fetch Models" to load available models</p>
+            </div>
+            <div class="form-group" id="aiBaseUrlGroup">
+              <label>Base URL <span style="color:var(--color-text-xmuted);font-weight:400;text-transform:none">(optional)</span></label>
+              <input type="text" class="form-input" id="aiBaseUrl" placeholder="e.g. http://localhost:11434 for Ollama">
+              <p style="font-size:11px;color:var(--color-text-xmuted);margin-top:4px">Required for Ollama. Optional for OpenAI-compatible endpoints.</p>
+            </div>
+            <div class="form-group">
+              <label>Daily Summary Hour <span style="color:var(--color-text-xmuted);font-weight:400;text-transform:none">(0–23, empty to disable)</span></label>
+              <input type="number" class="form-input" id="aiSummaryHour" placeholder="e.g. 8" min="0" max="23" style="max-width:120px">
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn btn-primary" onclick="saveAiSettings()">Save</button>
+              <span id="aiSettingsStatus" style="font-size:12px;color:var(--color-text-muted);margin-left:4px"></span>
+            </div>
+          </div>
+
+          <!-- System Prompts -->
+          <div class="settings-card" style="margin-bottom:0">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+              <div style="width:36px;height:36px;border-radius:var(--radius);background:#e0f2fe;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <div>
+                <h3 style="margin-bottom:0">System Prompts</h3>
+                <p style="font-size:12px;color:var(--color-text-muted);margin-top:2px">Customize the instructions sent to the AI for each feature</p>
+              </div>
+            </div>
+            <div class="form-group">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                <label style="margin-bottom:0">Workflow Description</label>
+                <button class="btn btn-secondary btn-sm" onclick="resetAiPrompt('describe')">Reset to Default</button>
+              </div>
+              <textarea class="form-input" id="aiPromptDescribe" rows="3" style="font-family:monospace;font-size:12px;resize:vertical"></textarea>
+            </div>
+            <div class="form-group">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                <label style="margin-bottom:0">Workflow Documentation</label>
+                <button class="btn btn-secondary btn-sm" onclick="resetAiPrompt('document')">Reset to Default</button>
+              </div>
+              <textarea class="form-input" id="aiPromptDocument" rows="4" style="font-family:monospace;font-size:12px;resize:vertical"></textarea>
+            </div>
+            <div class="form-group">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                <label style="margin-bottom:0">Error Analysis</label>
+                <button class="btn btn-secondary btn-sm" onclick="resetAiPrompt('error')">Reset to Default</button>
+              </div>
+              <textarea class="form-input" id="aiPromptError" rows="3" style="font-family:monospace;font-size:12px;resize:vertical"></textarea>
+            </div>
+            <div class="form-group">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                <label style="margin-bottom:0">Daily Summary</label>
+                <button class="btn btn-secondary btn-sm" onclick="resetAiPrompt('summary')">Reset to Default</button>
+              </div>
+              <textarea class="form-input" id="aiPromptSummary" rows="3" style="font-family:monospace;font-size:12px;resize:vertical"></textarea>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-primary" onclick="saveAiPrompts()">Save Prompts</button>
+            </div>
+          </div>
+
+          <!-- MCP Servers -->
+          <div class="settings-card" style="margin-bottom:0">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+              <div style="width:36px;height:36px;border-radius:var(--radius);background:#f3e8ff;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1"/><circle cx="6" cy="18" r="1"/></svg>
+              </div>
+              <div>
+                <h3 style="margin-bottom:0">MCP Servers</h3>
+                <p style="font-size:12px;color:var(--color-text-muted);margin-top:2px">Connect to Model Context Protocol servers for extended AI capabilities</p>
+              </div>
+            </div>
+            <div id="mcpServerList" style="margin-bottom:12px"></div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-primary" onclick="openMcpServerModal()">+ Add MCP Server</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- MCP Server Modal -->
+    <div class="modal-overlay" id="mcpServerModal" onclick="if(event.target===this)closeModal('mcpServerModal')">
+      <div class="modal" style="width:560px">
+        <h3 id="mcpServerModalTitle">Add MCP Server</h3>
+        <input type="hidden" id="mcpServerEditId">
+        <div class="form-group">
+          <label>Name <span style="color:var(--color-danger)">*</span></label>
+          <input type="text" class="form-input" id="mcpServerName" placeholder="e.g. n8n-mcp">
+        </div>
+        <div class="form-group">
+          <label>Type</label>
+          <select class="form-input" id="mcpServerType" onchange="onMcpTypeChange()">
+            <option value="stdio">stdio (local command)</option>
+            <option value="http">HTTP (remote URL)</option>
+          </select>
+        </div>
+        <div id="mcpStdioFields">
+          <div class="form-group">
+            <label>Command <span style="color:var(--color-danger)">*</span></label>
+            <input type="text" class="form-input" id="mcpServerCommand" placeholder="e.g. npx n8n-mcp">
+          </div>
+          <div class="form-group">
+            <label>Arguments <span style="color:var(--color-text-xmuted);font-weight:400;text-transform:none">(JSON array)</span></label>
+            <input type="text" class="form-input" id="mcpServerArgs" placeholder='e.g. ["--verbose"]'>
+          </div>
+          <div class="form-group">
+            <label>Environment Variables <span style="color:var(--color-text-xmuted);font-weight:400;text-transform:none">(JSON object)</span></label>
+            <textarea class="form-input" id="mcpServerEnv" rows="3" style="font-family:monospace;font-size:12px" placeholder='e.g. {"MCP_MODE":"stdio","N8N_API_URL":"http://localhost:5678"}'></textarea>
+          </div>
+        </div>
+        <div id="mcpHttpFields" style="display:none">
+          <div class="form-group">
+            <label>URL <span style="color:var(--color-danger)">*</span></label>
+            <input type="text" class="form-input" id="mcpServerUrl" placeholder="e.g. http://localhost:3001/mcp">
+          </div>
+          <div class="form-group">
+            <label>Auth Header <span style="color:var(--color-text-xmuted);font-weight:400;text-transform:none">(optional)</span></label>
+            <input type="text" class="form-input" id="mcpServerAuth" placeholder="e.g. Bearer your-token">
+          </div>
+        </div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="mcpServerEnabled" checked> Enabled
+          </label>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn btn-secondary" onclick="closeModal('mcpServerModal')">Cancel</button>
+          <button class="btn btn-primary" onclick="saveMcpServer()">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div class="panel" id="panel-settings">
+      <div class="toolbar">
+        <h2>Settings</h2>
+        <div class="toolbar-right"></div>
+      </div>
+      <div class="content">
+        <div style="display:flex;flex-direction:column;gap:20px">
+
+          <!-- n8n Instances -->
+          <div class="settings-card" style="margin-bottom:0">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+              <div style="width:36px;height:36px;border-radius:var(--radius);background:var(--color-primary-light);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </div>
+              <div style="flex:1">
+                <h3 style="margin-bottom:0">n8n Instances</h3>
+                <p style="font-size:12px;color:var(--color-text-muted);margin-top:2px">Manage your n8n environments</p>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="openInstanceModal()"><i class="fa fa-plus"></i> Add Instance</button>
+            </div>
+            <div id="instancesList"></div>
+          </div>
+
+          <!-- Layout / Design -->
+          <div class="settings-card admin-only" style="margin-bottom:0">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+              <div style="width:36px;height:36px;border-radius:var(--radius);background:#f3e8ff;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+              </div>
+              <div>
+                <h3 style="margin-bottom:0">Layout / Design</h3>
+                <p style="font-size:12px;color:var(--color-text-muted);margin-top:2px">Customize colors and logo</p>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:24px;align-items:flex-start">
+              <!-- Left: Controls -->
+              <div style="flex:1;min-width:0">
+                <!-- Logo -->
+                <div class="form-group">
+                  <label>Logo</label>
+                  <div class="logo-upload-area" id="logoUploadArea" onclick="document.getElementById('logoFileInput').click()">
+                    <div id="logoPreviewContainer">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-xmuted)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                      <div class="upload-hint">Click to upload a logo (PNG, JPG, SVG)</div>
+                    </div>
+                  </div>
+                  <input type="file" id="logoFileInput" accept="image/png,image/jpeg,image/gif,image/svg+xml,image/webp" style="display:none" onchange="handleLogoUpload(this);updateBrandPreview()">
+                </div>
+
+                <!-- App Name -->
+                <div class="form-group">
+                  <label>App Name</label>
+                  <input type="text" class="form-input" id="brandAppName" placeholder="n8n Library Manager" oninput="updateBrandPreview()">
+                </div>
+
+                <!-- Theme -->
+                <div class="form-group">
+                  <label>Theme</label>
+                  <div style="display:flex;gap:4px;background:var(--color-bg);border-radius:var(--radius);padding:3px;border:1px solid var(--color-border-light)">
+                    <button type="button" class="theme-toggle-btn" data-theme-val="light" onclick="setThemeMode('light')">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                      Light
+                    </button>
+                    <button type="button" class="theme-toggle-btn" data-theme-val="dark" onclick="setThemeMode('dark')">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                      Dark
+                    </button>
+                    <button type="button" class="theme-toggle-btn" data-theme-val="system" onclick="setThemeMode('system')">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                      System
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Colors -->
+                <label style="font-size:13px;font-weight:600;display:block;margin-bottom:10px">Colors</label>
+                <div class="color-row">
+                  <label>Primary</label>
+                  <input type="color" id="brandPrimary" value="#ff6d5a" onchange="document.getElementById('brandPrimaryHex').value=this.value;updateBrandPreview()">
+                  <input type="text" class="form-input color-hex" id="brandPrimaryHex" value="#ff6d5a" onchange="document.getElementById('brandPrimary').value=this.value;updateBrandPreview()">
+                </div>
+                <div class="color-row">
+                  <label>Primary Hover</label>
+                  <input type="color" id="brandPrimaryHover" value="#e0523f" onchange="document.getElementById('brandPrimaryHoverHex').value=this.value;updateBrandPreview()">
+                  <input type="text" class="form-input color-hex" id="brandPrimaryHoverHex" value="#e0523f" onchange="document.getElementById('brandPrimaryHover').value=this.value;updateBrandPreview()">
+                </div>
+                <div class="color-row">
+                  <label>Background</label>
+                  <input type="color" id="brandBg" value="#f5f5f5" onchange="document.getElementById('brandBgHex').value=this.value;updateBrandPreview()">
+                  <input type="text" class="form-input color-hex" id="brandBgHex" value="#f5f5f5" onchange="document.getElementById('brandBg').value=this.value;updateBrandPreview()">
+                </div>
+                <div class="color-row">
+                  <label>Sidebar</label>
+                  <input type="color" id="brandSidebar" value="#ffffff" onchange="document.getElementById('brandSidebarHex').value=this.value;updateBrandPreview()">
+                  <input type="text" class="form-input color-hex" id="brandSidebarHex" value="#ffffff" onchange="document.getElementById('brandSidebar').value=this.value;updateBrandPreview()">
+                </div>
+                <div class="color-row">
+                  <label>Card</label>
+                  <input type="color" id="brandCard" value="#ffffff" onchange="document.getElementById('brandCardHex').value=this.value;updateBrandPreview()">
+                  <input type="text" class="form-input color-hex" id="brandCardHex" value="#ffffff" onchange="document.getElementById('brandCard').value=this.value;updateBrandPreview()">
+                </div>
+                <div class="color-row">
+                  <label>Text</label>
+                  <input type="color" id="brandText" value="#525356" onchange="document.getElementById('brandTextHex').value=this.value;updateBrandPreview()">
+                  <input type="text" class="form-input color-hex" id="brandTextHex" value="#525356" onchange="document.getElementById('brandText').value=this.value;updateBrandPreview()">
+                </div>
+                <div class="color-row" style="margin-bottom:16px">
+                  <label>Text Dark</label>
+                  <input type="color" id="brandTextDark" value="#1f2229" onchange="document.getElementById('brandTextDarkHex').value=this.value;updateBrandPreview()">
+                  <input type="text" class="form-input color-hex" id="brandTextDarkHex" value="#1f2229" onchange="document.getElementById('brandTextDark').value=this.value;updateBrandPreview()">
+                </div>
+
+                <div style="display:flex;gap:8px">
+                  <button class="btn btn-primary" onclick="saveBranding()">Save</button>
+                  <button class="btn btn-secondary" onclick="resetBranding()">Reset to Defaults</button>
+                </div>
+              </div>
+
+              <!-- Right: Live Preview -->
+              <div style="flex:1;min-width:0;position:sticky;top:20px">
+                <label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:var(--color-text-dark)">Preview</label>
+                <div id="brandPreview" style="border:1px solid var(--color-border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm)">
+                  <!-- Mini app mockup rendered by JS -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Email / SMTP -->
+          <div class="settings-card admin-only" style="margin-bottom:0">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+              <div style="width:36px;height:36px;border-radius:var(--radius);background:#e3f2fd;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1565c0" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              </div>
+              <div>
+                <h3 style="margin-bottom:0">Email (SMTP)</h3>
+                <p style="font-size:12px;color:var(--color-text-muted);margin-top:2px">Used for password reset emails</p>
+              </div>
+            </div>
+            <div style="display:flex;gap:12px">
+              <div class="form-group" style="flex:2">
+                <label>SMTP Host</label>
+                <input type="text" class="form-input" id="smtpHost" placeholder="smtp.example.com">
+              </div>
+              <div class="form-group" style="flex:0 0 80px">
+                <label>Port</label>
+                <input type="number" class="form-input" id="smtpPort" placeholder="25">
+              </div>
+            </div>
+            <div style="display:flex;gap:12px">
+              <div class="form-group" style="flex:1">
+                <label>Username <span style="color:var(--color-text-xmuted);font-weight:400;text-transform:none">(optional)</span></label>
+                <input type="text" class="form-input" id="smtpUser" placeholder="user@example.com" autocomplete="off">
+              </div>
+              <div class="form-group" style="flex:1">
+                <label>Password <span style="color:var(--color-text-xmuted);font-weight:400;text-transform:none">(optional)</span></label>
+                <input type="password" class="form-input" id="smtpPass" placeholder="••••••" autocomplete="new-password">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>From Address</label>
+              <input type="email" class="form-input" id="smtpFrom" placeholder="n8n-library@example.com">
+            </div>
+            <div class="form-group">
+              <label>Application URL</label>
+              <input type="text" class="form-input" id="appUrl" placeholder="http://localhost:5678">
+              <p style="font-size:11px;color:var(--color-text-xmuted);margin-top:4px">
+                The public URL of this library — used in password reset links
+              </p>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn btn-primary" onclick="saveSmtpSettings()">Save</button>
+              <button class="btn btn-secondary" onclick="testSmtp()">Send Test Email</button>
+              <span id="smtpStatus" style="font-size:12px;color:var(--color-text-muted);margin-left:4px"></span>
+            </div>
+          </div>
+
+          <!-- Email Templates -->
+          <div class="settings-card admin-only" style="margin-bottom:0">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+              <div style="width:36px;height:36px;border-radius:var(--radius);background:#fce7f3;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#db2777" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+              </div>
+              <div>
+                <h3 style="margin-bottom:0">Email Templates</h3>
+                <p style="font-size:12px;color:var(--color-text-muted);margin-top:2px">Customize email content — uses your Layout/Design branding</p>
+              </div>
+            </div>
+            <div class="form-group" style="max-width:300px">
+              <label>Template</label>
+              <select class="form-input" id="emailTplSelect" onchange="onEmailTplChange()">
+                <option value="">Select a template...</option>
+              </select>
+            </div>
+            <div id="emailTplEditor" style="display:none">
+              <div style="display:flex;gap:20px;align-items:flex-start">
+                <!-- Left: Editor -->
+                <div style="flex:1;min-width:0">
+                  <div class="form-group">
+                    <label>Subject</label>
+                    <input type="text" class="form-input" id="emailTplSubject" style="font-family:monospace;font-size:12px" oninput="debouncedPreviewEmailTemplate();onTplFieldInput(event)" autocomplete="off">
+                  </div>
+                  <div class="form-group">
+                    <label>Body (HTML with {{variables}})</label>
+                    <textarea class="form-input" id="emailTplBody" rows="16" style="font-family:monospace;font-size:12px;resize:vertical" oninput="debouncedPreviewEmailTemplate();onTplFieldInput(event)" autocomplete="off"></textarea>
+                  </div>
+                  <div style="margin-bottom:12px">
+                    <label style="display:block;margin-bottom:6px;font-size:12px;font-weight:600;color:var(--color-text-dark)">Available Variables <span style="font-weight:400;color:var(--color-text-muted)">(click to insert, or type <code style="font-size:11px">{{</code> for autocomplete)</span></label>
+                    <div id="emailTplVarsHint" style="background:var(--color-bg);padding:10px 12px;border-radius:var(--radius);border:1px solid var(--color-border-light);max-height:180px;overflow-y:auto"></div>
+                  </div>
+                  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <button class="btn btn-primary" onclick="saveEmailTemplate()">Save Template</button>
+                    <button class="btn btn-secondary" onclick="resetEmailTemplate()">Reset to Default</button>
+                    <span id="emailTplStatus" style="font-size:12px;color:var(--color-text-muted)"></span>
+                  </div>
+                </div>
+                <!-- Right: Live Preview -->
+                <div style="flex:1;min-width:0">
+                  <label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:var(--color-text-dark)">Preview</label>
+                  <div id="emailPreviewSubject" style="font-size:12px;color:var(--color-text-muted);margin-bottom:6px;padding:6px 10px;background:var(--color-bg);border-radius:var(--radius)"></div>
+                  <div style="border:1px solid var(--color-border);border-radius:var(--radius);overflow:hidden;background:#fff">
+                    <iframe id="emailPreviewFrame" style="width:100%;height:480px;border:none;display:block"></iframe>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Users Panel (admin only) -->
+    <div class="panel" id="panel-users">
+      <div class="toolbar">
+        <h2>User Management</h2>
+        <div class="toolbar-right">
+          <button class="btn btn-primary" onclick="openUserModal()">+ Add User</button>
+        </div>
+      </div>
+      <div class="content">
+        <div id="usersTableContainer"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ticket Create/Edit Modal -->
+  <div class="modal-overlay" id="ticketModal" onclick="if(event.target===this)closeModal('ticketModal')">
+    <div class="modal" style="width:640px">
+      <h3 id="ticketModalTitle">New Ticket</h3>
+      <input type="hidden" id="ticketEditId">
+      <div class="form-group">
+        <label>Title <span style="color:var(--color-danger)">*</span></label>
+        <input type="text" class="form-input" id="ticketTitle" placeholder="Brief summary of the issue">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <div class="quill-wrap" id="ticketDescriptionWrap">
+          <div id="ticketDescription"></div>
+        </div>
+        <div class="ticket-dropzone" id="ticketDropzone">
+          <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple onchange="handleTicketImageUpload(this)">
+          <div class="ticket-dropzone-content">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Drop images here or <em>browse</em></span>
+          </div>
+        </div>
+        <div class="ticket-attachments" id="ticketAttachments"></div>
+      </div>
+      <!-- Execution context (shown when reporting from monitoring) -->
+      <div id="ticketExecContext" style="display:none;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);padding:12px;margin-bottom:12px;font-size:13px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-weight:600;color:var(--color-text-muted)">
+          <i class="fa fa-cog"></i> Execution Context
+        </div>
+        <div id="ticketExecContextBody" style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;line-height:1.6"></div>
+      </div>
+      <div style="display:flex;gap:12px">
+        <div class="form-group" style="flex:1">
+          <label>Priority</label>
+          <select class="form-input" id="ticketPriority">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1">
+          <label>Category</label>
+          <select class="form-input" id="ticketCategory"></select>
+        </div>
+        <div class="form-group write-only" style="flex:1">
+          <label>Assign To</label>
+          <select class="form-input" id="ticketAssignee">
+            <option value="">Unassigned</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+        <button class="btn btn-secondary" onclick="closeModal('ticketModal')">Cancel</button>
+        <button class="btn btn-primary" id="ticketSaveBtn" onclick="saveTicket()">Create Ticket</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ticket Detail Modal (full-size) -->
+  <div class="preview-modal-overlay" id="ticketDetailModal" onclick="if(event.target===this)closeModal('ticketDetailModal')">
+    <div style="background:var(--color-bg-light);border-radius:var(--radius-xl);width:94vw;max-width:1100px;height:92vh;display:flex;flex-direction:column;box-shadow:var(--shadow-lg);overflow:hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 24px;border-bottom:1px solid var(--color-border);flex-shrink:0">
+        <div style="display:flex;align-items:center;gap:12px">
+          <h3 id="ticketDetailTitle" style="font-size:14px;font-weight:600;color:var(--color-text-dark)">Ticket</h3>
+          <span class="ticket-badge" id="ticketDetailStatusBadge"></span>
+          <span class="ticket-badge" id="ticketDetailPriorityBadge"></span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-danger admin-only" id="ticketDeleteBtn" onclick="deleteTicket()">Delete</button>
+          <button class="btn btn-secondary" onclick="closeModal('ticketDetailModal')">Close</button>
+        </div>
+      </div>
+      <div id="ticketDetailContent" style="flex:1;overflow:hidden"></div>
+    </div>
+  </div>
+
+  <!-- Edit Modal (full-size with preview) -->
+  <div class="preview-modal-overlay" id="editModal" onclick="if(event.target===this)closeModal('editModal')">
+    <div style="background:var(--color-bg-light);border-radius:var(--radius-xl);width:90vw;max-width:1100px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)">
+      <div class="preview-modal-header">
+        <h3 id="editModalTitle">Edit Template</h3>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary ai-gen-btn" id="editGenDocsBtn" onclick="generateWorkflowDocsFromEdit()" style="font-size:11px;display:none">&#10024; Generate Docs</button>
+          <button class="btn btn-secondary" onclick="closeModal('editModal')">Cancel</button>
+          <button class="btn btn-primary" onclick="saveTemplate()">Save</button>
+        </div>
+      </div>
+      <input type="hidden" id="editTemplateId">
+      <!-- Workflow preview -->
+      <div id="editPreviewBody" style="overflow:hidden"></div>
+      <!-- Edit fields -->
+      <div style="padding:12px 24px 16px">
+        <div class="form-group" style="margin-bottom:10px">
+          <label>Name</label>
+          <input type="text" class="form-input" id="editName">
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label>Description</label>
+          <div class="quill-wrap" id="editDescriptionWrap">
+            <div id="editDescription"></div>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Categories</label>
+          <div class="checkbox-group" id="editCategories"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Modal (full-size with preview) -->
+  <div class="preview-modal-overlay" id="importModal" onclick="if(event.target===this)closeModal('importModal')">
+    <div style="background:var(--color-bg-light);border-radius:var(--radius-xl);width:90vw;max-width:1100px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)">
+      <div class="preview-modal-header">
+        <h3 id="importModalTitle">Import to Library</h3>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary" onclick="closeModal('importModal')">Cancel</button>
+          <button class="btn btn-success" onclick="confirmImport()">Import</button>
+        </div>
+      </div>
+      <input type="hidden" id="importWorkflowData">
+      <!-- Workflow preview -->
+      <div id="importPreviewBody" style="overflow:hidden"></div>
+      <!-- Edit fields -->
+      <div style="padding:12px 24px 16px">
+        <div class="form-group" style="margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <label style="margin-bottom:0">Name</label>
+            <button class="btn btn-secondary ai-gen-btn" id="aiGenImportName" onclick="aiGenerateImportName()" style="display:none;font-size:11px;padding:2px 8px;line-height:1.6">&#10024; Generate</button>
+          </div>
+          <input type="text" class="form-input" id="importName">
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <label style="margin-bottom:0">Description</label>
+            <button class="btn btn-secondary ai-gen-btn" id="aiGenImportDesc" onclick="aiGenerateImportDescription()" style="display:none;font-size:11px;padding:2px 8px;line-height:1.6">&#10024; Generate</button>
+          </div>
+          <div class="quill-wrap" id="importDescriptionWrap">
+            <div id="importDescription"></div>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Categories</label>
+          <div class="checkbox-group" id="importCategories"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Documentation Modal -->
+  <div class="preview-modal-overlay" id="docModal" onclick="if(event.target===this)closeModal('docModal')">
+    <div style="background:var(--color-bg-light);border-radius:var(--radius-xl);width:90vw;max-width:900px;max-height:90vh;display:flex;flex-direction:column;box-shadow:var(--shadow-lg)">
+      <div class="preview-modal-header">
+        <h3 id="docModalTitle">Workflow Documentation</h3>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary" onclick="closeModal('docModal')">Close</button>
+          <button class="btn btn-primary" id="docSaveKbBtn" onclick="saveDocToKb()" style="display:none">Save to Knowledge Base</button>
+        </div>
+      </div>
+      <div id="docModalBody" style="padding:24px;overflow-y:auto;flex:1">
+        <div id="docContent" style="line-height:1.7;font-size:14px"></div>
+      </div>
+      <input type="hidden" id="docWorkflowName">
+    </div>
+  </div>
+
+  <!-- Preview Modal -->
+  <div class="preview-modal-overlay" id="previewModal" onclick="if(event.target===this)closePreview()">
+    <div class="preview-modal">
+      <div class="preview-modal-header">
+        <h3 id="previewModalTitle">Workflow Preview</h3>
+        <button class="preview-modal-close" onclick="closePreview()">Close</button>
+      </div>
+      <div class="preview-modal-body" id="previewModalBody"></div>
+    </div>
+  </div>
+
+  <!-- Category Edit Modal (full-size) -->
+  <div class="preview-modal-overlay" id="categoryModal" onclick="if(event.target===this)closeModal('categoryModal')">
+    <div style="background:var(--color-bg-light);border-radius:var(--radius-xl);width:90vw;max-width:700px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)">
+      <div class="preview-modal-header">
+        <h3 id="categoryModalTitle">Edit Category</h3>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary" onclick="closeModal('categoryModal')">Cancel</button>
+          <button class="btn btn-primary" onclick="saveCategory()">Save</button>
+        </div>
+      </div>
+      <input type="hidden" id="catEditId">
+      <div style="padding:16px 24px 20px">
+        <div class="form-group" style="margin-bottom:12px">
+          <label>Name</label>
+          <input type="text" class="form-input" id="catEditName">
+        </div>
+        <div class="form-group" style="margin-bottom:12px" id="catIconGroup">
+          <label>Icon</label>
+          <div class="emoji-picker-wrap">
+            <button type="button" class="emoji-picker-selected" id="catEditIconBtn" onclick="toggleIconPicker()">
+              <i id="catEditIconPreview" class="fa fa-folder"></i>
+            </button>
+            <input type="hidden" id="catEditIcon" value="folder">
+            <div class="emoji-picker" id="iconPicker" style="display:none">
+              <input type="text" class="emoji-search" id="iconSearch" placeholder="Search icons..." oninput="filterIcons()">
+              <div class="emoji-grid" id="iconGrid"></div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:12px;display:none" id="catSlugGroup">
+          <label>Slug</label>
+          <input type="text" class="form-input" id="catEditSlug" placeholder="auto-generated-from-name">
+        </div>
+        <div class="form-group" style="margin-bottom:12px;display:none" id="catSortGroup">
+          <label>Sort Order</label>
+          <input type="number" class="form-input" id="catEditSort" value="0" min="0" style="width:100px">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Description</label>
+          <div class="quill-wrap" id="catEditDescriptionWrap">
+            <div id="catEditDescription"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Modal -->
+  <div class="modal-overlay" id="userModal" onclick="if(event.target===this)closeModal('userModal')">
+    <div class="modal">
+      <h3 id="userModalTitle">Add User</h3>
+      <input type="hidden" id="editUserId">
+      <div class="form-group">
+        <label>Email <span style="color:var(--color-danger)">*</span></label>
+        <input type="email" class="form-input" id="newEmail" placeholder="user@example.com">
+      </div>
+      <div class="form-group">
+        <label>Display Name</label>
+        <input type="text" class="form-input" id="newUsername" placeholder="Optional display name">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" class="form-input" id="newPassword" placeholder="Password">
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select class="form-input" id="newRole">
+          <option value="viewer">Viewer — read only</option>
+          <option value="editor">Editor — create & edit templates</option>
+          <option value="admin">Admin — full access</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('userModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveUser()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Instance Modal -->
+  <div class="modal-overlay" id="instanceModal" onclick="if(event.target===this)closeModal('instanceModal')">
+    <div class="modal">
+      <h3 id="instanceModalTitle">Add Instance</h3>
+      <input type="hidden" id="instanceEditId">
+      <div class="form-group">
+        <label>Name <span style="color:var(--color-danger)">*</span></label>
+        <input type="text" class="form-input" id="instanceNameInput" placeholder="e.g. Production, Staging, Dev">
+      </div>
+      <div class="form-group">
+        <label>Environment</label>
+        <select class="form-input" id="instanceEnv">
+          <option value="production">Production</option>
+          <option value="staging">Staging</option>
+          <option value="development">Development</option>
+          <option value="testing">Testing</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Internal URL <span style="color:var(--color-danger)">*</span></label>
+        <input type="text" class="form-input" id="instanceUrl" placeholder="http://n8n-web:5678">
+        <p style="font-size:11px;color:var(--color-text-xmuted);margin-top:4px">The internal/Docker URL used by the server to connect to n8n</p>
+      </div>
+      <div class="form-group">
+        <label>API Key</label>
+        <input type="password" class="form-input" id="instanceApiKey" placeholder="n8n API key">
+      </div>
+      <div class="form-group">
+        <label>Color</label>
+        <input type="color" id="instanceColor" value="#22c55e" style="width:48px;height:32px;border:none;background:none;cursor:pointer">
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:13px;font-weight:500">
+          <input type="checkbox" id="instanceDefault"> Set as default instance
+        </label>
+      </div>
+      <div class="form-group">
+        <label>Workers <span style="font-weight:400;color:var(--color-text-muted)">(queue mode)</span></label>
+        <div id="instanceWorkersContainer"></div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="addWorkerRow()" style="margin-top:6px"><i class="fa fa-plus"></i> Add Worker</button>
+        <p style="font-size:11px;color:var(--color-text-xmuted);margin-top:4px">Worker URLs for health/metrics monitoring. Enable QUEUE_HEALTH_CHECK_ACTIVE=true and N8N_METRICS=true on workers.</p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('instanceModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveInstance()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toasts"></div>
+
+  <!-- AI Chat Slide-out Panel -->
+  <div class="ai-chat-overlay" id="aiChatOverlay" onclick="toggleAiChat()"></div>
+  <div class="ai-chat-panel" id="aiChatPanel">
+    <div class="ai-chat-panel-header">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      <h3 id="aiChatTitle">AI Chat</h3>
+      <button onclick="showAiConversationList()" title="Conversations" id="aiChatListBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
+      <button onclick="toggleMcpPanel()" title="MCP Servers" id="aiMcpToggleBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      </button>
+      <button onclick="toggleAiChat()" title="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <!-- MCP Server toggles (hidden by default) -->
+    <div class="ai-chat-mcp-panel" id="aiMcpPanel" style="display:none">
+      <div style="padding:8px 14px;font-size:11px;font-weight:600;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.04em">MCP Servers</div>
+      <div id="aiMcpToggles" style="padding:0 14px 10px"></div>
+    </div>
+    <!-- Conversation list view -->
+    <div class="ai-chat-conv-list" id="aiConvList" style="display:none">
+      <div style="padding:10px 14px;display:flex;align-items:center;gap:8px">
+        <button class="btn btn-primary btn-sm" onclick="startNewAiChat()" style="flex:1">+ New Chat</button>
+      </div>
+      <div id="aiConvListItems" style="flex:1;overflow-y:auto;padding:0 8px 8px"></div>
+    </div>
+    <!-- Chat view -->
+    <div class="ai-chat-messages" id="aiChatMessages">
+      <div class="ai-chat-msg assistant">Hello! I can help you with your n8n instance. Ask me about your workflows, executions, credentials, or anything else.</div>
+    </div>
+    <div class="ai-chat-input-area">
+      <input type="text" class="form-input" id="aiChatInput" placeholder="Ask about your workflows..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAiChat()}">
+      <button class="btn btn-primary" id="aiChatSendBtn" onclick="sendAiChat()">Send</button>
+    </div>
+  </div>
+
+
+<script src="js/app.js?v=5"></script>
+<script src="js/settings.js?v=6"></script>
+<script src="js/tickets.js?v=5"></script>
+<script src="js/library.js?v=5"></script>
+<script src="js/ai.js?v=5"></script>
+<script src="js/kb.js?v=5"></script>
+<script src="js/monitoring.js?v=7"></script>
+<script src="js/observability.js?v=6"></script>
+</body>
+</html>

@@ -1,0 +1,840 @@
+/*
+ * Custom styles for n8n's template browser
+ * Injected via EXTERNAL_FRONTEND_HOOKS_URLS
+ * Uses attribute selectors to target CSS-module hashed classes
+ */
+
+/* ============================================
+   Back to Templates Button
+   ============================================ */
+
+#n8n-custom-back-btn {
+  position: fixed !important;
+  top: 62px !important;
+  right: 16px !important;
+  z-index: 9999 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  height: 30px !important;
+  padding: 0 10px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  font-family: inherit !important;
+  line-height: 30px !important;
+  color: #fff !important;
+  background: #ff6d5a !important;
+  border: none !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+}
+
+#n8n-custom-back-btn svg {
+  flex-shrink: 0 !important;
+}
+
+/* ============================================
+   Template Search Page - Card Grid Layout
+   ============================================ */
+
+/* Make template list items into cards instead of a flat list */
+[class*="_card_1s7e9"] {
+  border: 1px solid var(--color--foreground--tint-3) !important;
+  border-radius: var(--radius--lg) !important;
+  margin-bottom: var(--spacing--xs) !important;
+  padding: var(--spacing--sm) var(--spacing--md) !important;
+  background: var(--color--background--light-3) !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
+}
+
+[class*="_card_1s7e9"]:hover {
+  border-color: var(--color--primary) !important;
+  box-shadow: 0 2px 8px rgba(68, 28, 23, 0.08) !important;
+}
+
+/* First and last card consistent radius */
+[class*="_card_1s7e9"][class*="_first_"] {
+  border-top: 1px solid var(--color--foreground--tint-3) !important;
+}
+
+[class*="_card_1s7e9"][class*="_last_"] {
+  border-bottom: 1px solid var(--color--foreground--tint-3) !important;
+}
+
+/* ============================================
+   Template Carousel Cards (Collections)
+   ============================================ */
+
+[class*="_card_pxgdc"] {
+  min-width: 260px !important;
+  height: 150px !important;
+  border-radius: var(--radius--lg) !important;
+  transition: transform 0.15s, box-shadow 0.15s !important;
+}
+
+[class*="_card_pxgdc"]:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(68, 28, 23, 0.1) !important;
+}
+
+[class*="_title_pxgdc"] {
+  font-size: var(--font-size--sm) !important;
+  line-height: var(--line-height--md) !important;
+}
+
+/* ============================================
+   Filters Sidebar
+   ============================================ */
+
+[class*="_filters_n14ka"] {
+  width: 220px !important;
+}
+
+.template-filters .el-checkbox {
+  padding: var(--spacing--3xs) 0 !important;
+  transition: color 0.15s !important;
+}
+
+.template-filters .el-checkbox:hover .el-checkbox__label {
+  color: var(--color--primary) !important;
+}
+
+.template-filters .el-checkbox__label {
+  font-size: var(--font-size--xs) !important;
+}
+
+/* Category sidebar items */
+[class*="_item_hd29n"] {
+  margin-top: var(--spacing--2xs) !important;
+}
+
+[class*="_button_hd29n"] {
+  padding: var(--spacing--3xs) var(--spacing--2xs) !important;
+  border-radius: var(--radius) !important;
+  transition: background-color 0.15s !important;
+}
+
+[class*="_button_hd29n"]:hover {
+  background-color: var(--color--background--light-1) !important;
+}
+
+/* ============================================
+   Search Header
+   ============================================ */
+
+[class*="_header_n14ka"] {
+  margin-bottom: var(--spacing--sm) !important;
+}
+
+/* ============================================
+   Template Detail View - Redesign
+   ============================================ */
+
+/* Wrapper */
+[class*="_template_cwiqq"][class*="_fullWidth_"] {
+  padding: 0 !important;
+}
+
+/* Workflow preview area */
+[class*="_previewWrapper_1t3tp"] {
+  border-bottom: 1px solid var(--color--foreground--tint-3, #e0e0e0) !important;
+}
+
+[class*="_image_1t3tp"] {
+  height: 420px !important;
+  border: none !important;
+}
+
+/* Content container below preview */
+[class*="_contentContainer_1t3tp"] {
+  margin-top: 0 !important;
+  padding: 24px 48px !important;
+  max-width: 1200px !important;
+}
+
+/* Content row: make single column when our box replaces it */
+[class*="_content_1t3tp"]:not([class*="_contentContainer"]) {
+  display: block !important;
+}
+
+/* ============================================
+   Unified Info Box (injected)
+   ============================================ */
+
+#n8n-custom-info-box {
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--color--foreground--tint-3, #e0e0e0);
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  overflow: hidden;
+}
+
+/* Header: title + meta + use button */
+.ncib-header {
+  padding: 24px 28px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.ncib-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.ncib-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #333;
+  margin: 0;
+  line-height: 1.3;
+  flex: 1;
+  min-width: 0;
+}
+
+.ncib-use-btn {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 36px;
+  padding: 0 20px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #fff;
+  background: #ff6d5a;
+  border: none;
+  border-radius: 8px;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ncib-use-btn:hover {
+  background: #e85d4a;
+  text-decoration: none;
+  color: #fff;
+}
+
+.ncib-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+
+.ncib-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: #777;
+}
+
+.ncib-meta-item .fa {
+  font-size: 13px;
+  color: #aaa;
+}
+
+/* Section: description + nodes */
+.ncib-section {
+  padding: 20px 28px;
+  border-bottom: 1px solid #eee;
+}
+
+.ncib-section:last-child {
+  border-bottom: none;
+}
+
+.ncib-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* Description text */
+.ncib-description {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #555;
+}
+
+.ncib-description strong {
+  color: #333;
+}
+
+.ncib-description a {
+  color: #ff6d5a;
+  text-decoration: none;
+}
+
+.ncib-description a:hover {
+  text-decoration: underline;
+}
+
+.ncib-description br + br {
+  display: block;
+  content: "";
+  margin-top: 8px;
+}
+
+/* Nodes grid */
+.ncib-nodes-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ncib-node-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 8px;
+  background: #f7f7f8;
+  border: 1px solid #e8e8ea;
+  border-radius: 8px;
+  transition: border-color 0.15s;
+}
+
+.ncib-node-chip:hover {
+  border-color: #ff6d5a;
+}
+
+.ncib-node-icon {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ncib-node-icon img.n8n-custom-node-icon-img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.ncib-node-icon .fa {
+  font-size: 16px;
+  color: #666;
+}
+
+.ncib-node-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #444;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+/* ============================================
+   Node Icons in Template Cards
+   ============================================ */
+
+/* Node icon circles */
+[class*="_button_1uohu"] {
+  border-radius: 50% !important;
+  transition: transform 0.15s !important;
+}
+
+[class*="_card_1s7e9"]:hover [class*="_button_1uohu"] {
+  transform: scale(1.05) !important;
+}
+
+/* ============================================
+   Carousel Navigation Buttons
+   ============================================ */
+
+[class*="_button_1m7ae"] {
+  border-radius: 50% !important;
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: background-color 0.15s, box-shadow 0.15s !important;
+}
+
+[class*="_button_1m7ae"]:hover {
+  background-color: var(--color--background--light-1) !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08) !important;
+}
+
+/* ============================================
+   General Polish
+   ============================================ */
+
+/* Smoother scrollbar in template list */
+[class*="_search_n14ka"] {
+  scrollbar-width: thin !important;
+}
+
+/* "Use workflow" button on hover - more prominent */
+[class*="_buttonContainer_1s7e9"] {
+  display: none;
+}
+
+[class*="_card_1s7e9"]:hover [class*="_buttonContainer_1s7e9"] {
+  display: block !important;
+}
+
+/* ============================================
+   Support Ticket FAB + Modal
+   ============================================ */
+
+#n8n-support-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 20px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #ff6d5a;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  transition: background 0.15s, box-shadow 0.15s;
+  box-shadow: 0 2px 8px rgba(255, 109, 90, 0.25);
+}
+
+#n8n-support-btn:hover {
+  background: #e85d4a;
+  box-shadow: 0 4px 12px rgba(255, 109, 90, 0.35);
+}
+
+#n8n-support-btn svg {
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+/* Overlay */
+#n8n-ticket-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: ntm-fadeIn 0.15s ease;
+}
+
+@keyframes ntm-fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Modal */
+#n8n-ticket-modal {
+  background: #fff;
+  border-radius: 14px;
+  width: 560px;
+  max-width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+  animation: ntm-slideUp 0.2s ease;
+}
+
+@keyframes ntm-slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.ntm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.ntm-header h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #333;
+}
+
+.ntm-close {
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: #999;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.ntm-close:hover {
+  color: #333;
+}
+
+.ntm-body {
+  padding: 20px 24px;
+}
+
+.ntm-user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #f0f7ff;
+  border: 1px solid #d0e3f7;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 14px;
+}
+
+.ntm-user-info svg {
+  color: #5b9bd5;
+  flex-shrink: 0;
+}
+
+.ntm-user-info strong {
+  color: #333;
+}
+
+.ntm-row {
+  display: flex;
+  gap: 12px;
+}
+
+.ntm-field {
+  margin-bottom: 14px;
+  flex: 1;
+}
+
+.ntm-half {
+  flex: 1;
+  min-width: 0;
+}
+
+.ntm-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 5px;
+  letter-spacing: 0.2px;
+}
+
+.ntm-field input,
+.ntm-field select,
+.ntm-field textarea {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fafafa;
+  color: #333;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+
+.ntm-field input:focus,
+.ntm-field select:focus,
+.ntm-field textarea:focus {
+  border-color: #ff6d5a;
+  box-shadow: 0 0 0 3px rgba(255, 109, 90, 0.1);
+  background: #fff;
+}
+
+.ntm-field textarea {
+  resize: vertical;
+  min-height: 100px;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-bottom: none !important;
+}
+
+/* Quill editor wrap */
+.ntm-quill-wrap {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.ntm-quill-wrap .ql-toolbar {
+  background: #f5f5f5;
+  border: none;
+  border-bottom: 1px solid #ddd;
+}
+.ntm-quill-wrap .ql-container {
+  border: none;
+  font-size: 13px;
+  font-family: inherit;
+}
+.ntm-quill-wrap .ql-editor {
+  min-height: 150px;
+  max-height: 300px;
+  overflow-y: auto;
+  line-height: 1.6;
+  color: #333;
+}
+.ntm-quill-wrap .ql-editor.ql-blank::before {
+  color: #999;
+  font-style: normal;
+}
+.ntm-quill-wrap .ql-editor pre.ql-syntax {
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  overflow-x: auto;
+}
+.ntm-quill-wrap .ql-editor blockquote {
+  border-left: 3px solid #ff6d5a;
+  padding-left: 12px;
+  color: #888;
+}
+.ntm-quill-wrap .ql-editor a { color: #ff6d5a; }
+.ntm-quill-wrap .ql-editor img { max-width: 100%; border-radius: 6px; }
+
+/* Dropzone */
+.ntm-dropzone {
+  position: relative;
+  border: 1px dashed #ccc;
+  border-radius: 8px;
+  margin-top: 8px;
+  padding: 14px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  background: #fafafa;
+}
+
+.ntm-dropzone:hover,
+.ntm-dropzone.ntm-dropzone-active {
+  border-color: #ff6d5a;
+  background: #fff5f4;
+}
+
+.ntm-dropzone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.ntm-dropzone-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+  color: #999;
+}
+
+.ntm-dropzone-content svg {
+  color: #bbb;
+}
+
+.ntm-dropzone-content span {
+  font-size: 12px;
+  color: #999;
+}
+
+.ntm-dropzone-content em {
+  font-style: normal;
+  color: #ff6d5a;
+  font-weight: 600;
+}
+
+/* Attachments area */
+.ntm-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ntm-attachments:empty {
+  display: none;
+}
+
+.ntm-attachment {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #f7f7f8;
+  border: 1px solid #e8e8ea;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #555;
+  max-width: 240px;
+}
+
+.ntm-attachment.ntm-uploading {
+  opacity: 0.6;
+}
+
+.ntm-att-thumb {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.ntm-att-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.ntm-att-remove {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.ntm-att-remove:hover {
+  color: #e53935;
+}
+
+.ntm-att-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #ddd;
+  border-top-color: #ff6d5a;
+  border-radius: 50%;
+  animation: ntm-spin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes ntm-spin {
+  to { transform: rotate(360deg); }
+}
+
+.ntm-field select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23999' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+.ntm-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px 20px;
+  border-top: 1px solid #eee;
+}
+
+.ntm-btn {
+  padding: 9px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.ntm-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ntm-btn-cancel {
+  background: #f0f0f0;
+  color: #555;
+}
+
+.ntm-btn-cancel:hover {
+  background: #e5e5e5;
+}
+
+.ntm-btn-submit {
+  background: #ff6d5a;
+  color: #fff;
+}
+
+.ntm-btn-submit:hover {
+  background: #e85d4a;
+}
+
+/* Success state */
+.ntm-success {
+  text-align: center;
+  padding: 40px 32px;
+}
+
+.ntm-success-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #e8f5e9;
+  color: #43a047;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 56px;
+  margin: 0 auto 16px;
+}
+
+.ntm-success h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 10px;
+}
+
+.ntm-success p {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  #n8n-ticket-modal {
+    width: 100%;
+    border-radius: 14px 14px 0 0;
+    max-height: 95vh;
+  }
+
+  .ntm-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+}

@@ -1,0 +1,65 @@
+{
+  "name": "Daily sales report via email",
+  "description": "Fetches daily sales data from a Google Sheet every morning and sends a summary email via Gmail.",
+  "categories": ["Sales", "Communication"],
+  "workflow": {
+    "nodes": [
+      {
+        "name": "Every morning at 8am",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1,
+        "position": [250, 300],
+        "parameters": {
+          "rule": {
+            "interval": [{ "field": "cronExpression", "expression": "0 8 * * *" }]
+          }
+        }
+      },
+      {
+        "name": "Get Sales Data",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4,
+        "position": [500, 300],
+        "parameters": {
+          "operation": "read",
+          "sheetId": "your-sheet-id",
+          "range": "Sales!A:D"
+        }
+      },
+      {
+        "name": "Calculate Totals",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [750, 300],
+        "parameters": {
+          "jsCode": "const items = $input.all();\nconst total = items.reduce((sum, item) => sum + (item.json.amount || 0), 0);\nreturn [{ json: { total, count: items.length, date: new Date().toISOString().split('T')[0] } }];"
+        }
+      },
+      {
+        "name": "Send Email",
+        "type": "n8n-nodes-base.gmail",
+        "typeVersion": 2,
+        "position": [1000, 300],
+        "parameters": {
+          "sendTo": "team@example.com",
+          "subject": "=Daily Sales Report - {{ $json.date }}",
+          "message": "=Hi team,\n\nHere is your daily sales summary:\n- Orders: {{ $json.count }}\n- Total Revenue: ${{ $json.total }}\n\nBest,\nn8n Bot"
+        }
+      }
+    ],
+    "connections": {
+      "Every morning at 8am": {
+        "main": [[{ "node": "Get Sales Data", "type": "main", "index": 0 }]]
+      },
+      "Get Sales Data": {
+        "main": [[{ "node": "Calculate Totals", "type": "main", "index": 0 }]]
+      },
+      "Calculate Totals": {
+        "main": [[{ "node": "Send Email", "type": "main", "index": 0 }]]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    }
+  }
+}
