@@ -504,6 +504,58 @@ async function openTicketDetail(id) {
       m += `<div class="ticket-detail-desc">${md(ticket.description)}</div>`;
     }
 
+    // Mobile-only compact detail fields (hidden on desktop)
+    m += '<div class="ticket-mobile-details">';
+    m += '<div class="tmd-row">';
+    m += '<div class="tmd-field"><label>Status</label>';
+    if (isStaff) {
+      m += `<select class="form-input" onchange="updateTicketField(${ticket.id},'status',this.value)">
+        ${['open','in_progress','waiting','resolved','closed'].map(s =>
+          `<option value="${s}" ${s === ticket.status ? 'selected' : ''}>${s.replace(/_/g,' ')}</option>`
+        ).join('')}</select>`;
+    } else {
+      m += `<span class="ticket-badge badge-${ticket.status}">${esc(statusLabel)}</span>`;
+    }
+    m += '</div>';
+    m += '<div class="tmd-field"><label>Priority</label>';
+    if (isStaff) {
+      m += `<select class="form-input" onchange="updateTicketField(${ticket.id},'priority',this.value)">
+        ${['low','medium','high','critical'].map(p =>
+          `<option value="${p}" ${p === ticket.priority ? 'selected' : ''}>${p}</option>`
+        ).join('')}</select>`;
+    } else {
+      m += `<span class="ticket-badge badge-${ticket.priority}">${esc(ticket.priority)}</span>`;
+    }
+    m += '</div>';
+    m += '</div>';
+    m += '<div class="tmd-row">';
+    m += '<div class="tmd-field"><label>Category</label>';
+    if (isStaff) {
+      m += `<select class="form-input" onchange="updateTicketField(${ticket.id},'category_id',this.value)">
+        <option value="">None</option>
+        ${ticketCategories.map(c => `<option value="${c.id}" ${c.id === ticket.category_id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
+      </select>`;
+    } else {
+      m += `<span class="detail-value">${esc(ticket.category_name || '—')}</span>`;
+    }
+    m += '</div>';
+    m += '<div class="tmd-field"><label>Assignee</label>';
+    if (isStaff) {
+      m += `<select class="form-input" onchange="updateTicketField(${ticket.id},'assigned_to',this.value)">
+        <option value="">Unassigned</option>
+        ${assignableUsers.map(u => `<option value="${u.id}" ${u.id === ticket.assigned_to ? 'selected' : ''}>${esc(u.username)}</option>`).join('')}
+      </select>`;
+    } else {
+      m += `<span class="detail-value">${esc(ticket.assignee_name || 'Unassigned')}</span>`;
+    }
+    m += '</div>';
+    m += '</div>';
+    m += `<div class="tmd-meta">
+      <span>By ${esc(ticket.creator_name)}</span>
+      <span>${new Date(ticket.created_at).toLocaleDateString()}</span>
+    </div>`;
+    m += '</div>';
+
     // Tabs: Comments | Activity
     m += `<div class="ticket-tabs">
       <button class="ticket-tab active" onclick="switchTicketTab('comments')">Comments<span class="ticket-tab-count">${ticket.comments.length}</span></button>

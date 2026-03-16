@@ -2047,24 +2047,15 @@
       height: auto !important;
       min-height: auto !important;
     }
-    .ticket-detail-main { overflow-y: visible; }
-    .ticket-detail-sidebar {
-      width: 100%;
-      border-left: none;
-      border-top: none;
-      border-bottom: 1px solid var(--color-border-light);
-      order: -1;
+    .ticket-detail-main {
+      overflow-y: visible;
+      padding: 16px !important;
     }
+    .ticket-detail-sidebar { display: none; }
+    .ticket-mobile-details { display: block !important; }
   }
 
   @media (max-width: 640px) {
-    .ticket-detail { flex-direction: column; height: auto; min-height: auto; }
-    .ticket-detail-main { overflow-y: visible; }
-    .ticket-detail-sidebar {
-      width: 100%;
-      border-left: none;
-      border-top: 1px solid var(--color-border-light);
-    }
     .modal { width: 96vw !important; max-height: 92vh; }
     .login-card { width: 92vw; padding: 28px 24px; }
 
@@ -3081,6 +3072,34 @@
     word-wrap: break-word;
   }
   .ticket-detail-desc:empty { display: none; }
+
+  /* Mobile ticket detail fields — hidden on desktop, shown on ≤850px */
+  .ticket-mobile-details { display: none; }
+  .ticket-mobile-details .tmd-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .ticket-mobile-details .tmd-field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-muted);
+    margin-bottom: 4px;
+  }
+  .ticket-mobile-details .tmd-field .form-input { font-size: 13px; width: 100%; }
+  .ticket-mobile-details .tmd-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--color-border-light);
+  }
   .ticket-detail-desc img,
   .ticket-comment .comment-text img,
   .kb-reader-body img {
