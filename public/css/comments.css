@@ -1,0 +1,214 @@
+/* comments.css — Comments and activity tabs */
+  /* Comments & Activity tabs */
+  .ticket-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--color-border-light);
+    margin-bottom: 20px;
+  }
+  .ticket-tab {
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.15s, border-color 0.15s;
+    font-family: var(--font);
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+  .ticket-tab:hover { color: var(--color-text-dark); }
+  .ticket-tab.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+  }
+  .ticket-tab-count {
+    display: inline-block;
+    background: var(--color-bg);
+    color: var(--color-text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 10px;
+    margin-left: 6px;
+  }
+  .ticket-tab-panel { display: none; }
+  .ticket-tab-panel.active { display: block; }
+
+  .ticket-comment {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .ticket-comment .comment-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .ticket-comment .comment-body {
+    flex: 1;
+    min-width: 0;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-lg);
+    padding: 12px 16px;
+  }
+  .ticket-comment .comment-header {
+    font-size: 12px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ticket-comment .comment-header strong { color: var(--color-text-dark); }
+  .ticket-comment .comment-header .comment-time { color: var(--color-text-xmuted); font-size: 11px; }
+  .ticket-comment .comment-text {
+    font-size: 13px;
+    color: var(--color-text);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .ticket-comment.internal .comment-body {
+    background: #fffde7;
+    border-color: #fff0b3;
+  }
+
+  .comment-input-wrap {
+    margin-top: 20px;
+    border: 1px solid var(--color-input-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .comment-input-wrap:focus-within {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(255,109,90,0.15);
+  }
+  .comment-input-wrap .editor-toolbar {
+    border: none;
+    border-bottom: 1px solid var(--color-border-light);
+    border-radius: 0;
+  }
+  .comment-input-wrap textarea {
+    width: 100%;
+    border: none;
+    outline: none;
+    padding: 12px 14px;
+    font-size: 13px;
+    font-family: var(--font);
+    color: var(--color-text);
+    background: var(--color-input-bg);
+    min-height: 80px;
+    resize: vertical;
+  }
+  .comment-input-wrap textarea::placeholder { color: var(--color-text-xmuted); }
+  .comment-actions {
+    display: flex;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--color-bg);
+    border-top: 1px solid var(--color-border-light);
+    justify-content: flex-end;
+  }
+
+  .activity-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 8px 0;
+    font-size: 12px;
+    color: var(--color-text-muted);
+    border-left: 2px solid var(--color-border-light);
+    padding-left: 14px;
+    margin-left: 6px;
+  }
+  .activity-item strong { color: var(--color-text); }
+  .activity-item .activity-time {
+    margin-left: auto;
+    white-space: nowrap;
+    color: var(--color-text-xmuted);
+    font-size: 11px;
+  }
+
+  .ticket-nav-badge {
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-left: auto;
+  }
+  .mobile-ticket-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    line-height: 16px;
+    text-align: center;
+    border-radius: 8px;
+    padding: 0 4px;
+    box-sizing: border-box;
+  }
+
+  .ticket-filters {
+    display: flex; flex-direction: column; gap: 8px; padding: 0 16px 14px;
+  }
+  .ticket-filters .custom-select {
+    width: 100%;
+  }
+
+  .ticket-pagination {
+    display: flex; justify-content: center; gap: 4px; padding: 16px 0;
+  }
+  .ticket-pagination button {
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-light);
+    color: var(--color-text);
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-family: var(--font);
+    transition: all 0.15s;
+    line-height: 1.2;
+  }
+  .ticket-pagination button:hover {
+    background: var(--color-bg);
+    border-color: var(--color-text-xmuted);
+  }
+  .ticket-pagination button.active {
+    background: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 1px var(--color-primary);
+  }
+
+  #ticketStatsContainer {
+    display: flex; flex-direction: column; gap: 12px;
+  }
+
+  .my-tickets-toggle {
+    display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-text); cursor: pointer; white-space: nowrap;
+  }
+  .my-tickets-toggle input { cursor: pointer; }
+
