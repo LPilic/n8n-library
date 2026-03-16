@@ -3115,6 +3115,19 @@
     margin-bottom: 4px;
   }
   .ticket-mobile-details .tmd-field .form-input { font-size: 13px; width: 100%; }
+  .ticket-mobile-exec {
+    padding: 12px 0;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+  .ticket-mobile-exec .sidebar-section-title { margin-top: 16px; }
+  .ticket-mobile-exec .sidebar-section-title:first-child { margin-top: 0; }
+  .ticket-mobile-exec .detail-field { margin-bottom: 10px; }
+  .ticket-mobile-exec .detail-field label {
+    display: block; font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--color-text-muted); margin-bottom: 4px;
+  }
+  .ticket-mobile-exec .detail-value { font-size: 13px; }
   .ticket-mobile-details .tmd-meta {
     display: flex;
     gap: 16px;

@@ -464,12 +464,13 @@ async function openTicketDetail(id) {
     sb += `<div class="detail-field"><label>Created</label><span class="detail-value" style="font-size:12px;color:var(--color-text-muted)">${new Date(ticket.created_at).toLocaleString()}</span></div>`;
     sb += `<div class="detail-field"><label>Updated</label><span class="detail-value" style="font-size:12px;color:var(--color-text-muted)">${new Date(ticket.updated_at).toLocaleString()}</span></div>`;
 
-    // Linked Executions
+    // Linked Executions (shared between sidebar and mobile inline)
+    let execHtml = '';
     if (ticket.executions && ticket.executions.length > 0) {
-      sb += '<div class="sidebar-section-title" style="margin-top:24px">Linked Executions</div>';
+      execHtml += '<div class="sidebar-section-title" style="margin-top:24px">Linked Executions</div>';
       for (const ex of ticket.executions) {
         const exStatus = ex.status || 'unknown';
-        sb += `<div class="linked-exec-item" onclick="switchPanel('monitoring');setTimeout(function(){loadExecutionDetail('${esc(ex.execution_id)}')},300)">
+        execHtml += `<div class="linked-exec-item" onclick="switchPanel('monitoring');setTimeout(function(){loadExecutionDetail('${esc(ex.execution_id)}')},300)">
           <span class="ticket-badge badge-${exStatus}" style="font-size:10px">${esc(exStatus)}</span>
           <span class="linked-exec-wf">${esc(ex.workflow_name || 'Execution')} #${esc(ex.execution_id)}</span>
           ${isStaff ? `<button class="btn" style="padding:2px 6px;font-size:10px" onclick="event.stopPropagation();unlinkExecution(${ticket.id},'${esc(ex.execution_id)}')" title="Unlink">&times;</button>` : ''}
@@ -477,31 +478,32 @@ async function openTicketDetail(id) {
       }
     }
 
-    // Execution Context (from monitoring → ticket creation)
+    // Execution Context (shared between sidebar and mobile inline)
     if (ticket.execution_data) {
       const ed = ticket.execution_data;
-      sb += '<div class="sidebar-section-title" style="margin-top:24px">Execution Context</div>';
+      execHtml += '<div class="sidebar-section-title" style="margin-top:24px">Execution Context</div>';
       if (ed.workflow_name) {
-        sb += `<div class="detail-field"><label>Workflow</label><span class="detail-value">${esc(ed.workflow_name)}</span></div>`;
+        execHtml += `<div class="detail-field"><label>Workflow</label><span class="detail-value">${esc(ed.workflow_name)}</span></div>`;
       }
       if (ed.execution_id) {
-        sb += `<div class="detail-field"><label>Execution ID</label><span class="detail-value" style="cursor:pointer;color:var(--color-primary)" onclick="switchPanel('monitoring');setTimeout(function(){loadExecutionDetail('${esc(ed.execution_id)}')},300)">${esc(ed.execution_id)}</span></div>`;
+        execHtml += `<div class="detail-field"><label>Execution ID</label><span class="detail-value" style="cursor:pointer;color:var(--color-primary)" onclick="switchPanel('monitoring');setTimeout(function(){loadExecutionDetail('${esc(ed.execution_id)}')},300)">${esc(ed.execution_id)}</span></div>`;
       }
       if (ed.execution_status) {
         const estClass = ed.execution_status === 'error' ? 'badge-open' : ed.execution_status === 'success' ? 'badge-resolved' : 'badge-waiting';
-        sb += `<div class="detail-field"><label>Status</label><span class="ticket-badge ${estClass}" style="font-size:11px">${esc(ed.execution_status)}</span></div>`;
+        execHtml += `<div class="detail-field"><label>Status</label><span class="ticket-badge ${estClass}" style="font-size:11px">${esc(ed.execution_status)}</span></div>`;
       }
       if (ed.started_at) {
-        sb += `<div class="detail-field"><label>Time</label><span class="detail-value" style="font-size:12px;color:var(--color-text-muted)">${new Date(ed.started_at).toLocaleString()}</span></div>`;
+        execHtml += `<div class="detail-field"><label>Time</label><span class="detail-value" style="font-size:12px;color:var(--color-text-muted)">${new Date(ed.started_at).toLocaleString()}</span></div>`;
       }
       if (ed.failed_node) {
-        sb += `<div class="detail-field"><label>Failed Node</label><span class="detail-value" style="color:var(--color-error)">${esc(ed.failed_node)}</span></div>`;
+        execHtml += `<div class="detail-field"><label>Failed Node</label><span class="detail-value" style="color:var(--color-error)">${esc(ed.failed_node)}</span></div>`;
       }
       if (ed.error_message) {
-        sb += `<div class="detail-field"><label>Error</label><span class="detail-value" style="font-size:12px;word-break:break-word">${esc(ed.error_message)}</span></div>`;
+        execHtml += `<div class="detail-field"><label>Error</label><span class="detail-value" style="font-size:12px;word-break:break-word">${esc(ed.error_message)}</span></div>`;
       }
     }
 
+    sb += execHtml;
     sb += '</div>';
 
     // --- Tabs: Comments | Activity (shared between desktop modal and mobile inline) ---
@@ -626,6 +628,7 @@ async function openTicketDetail(id) {
               <span>${new Date(ticket.created_at).toLocaleDateString()}</span>
             </div>
           </div>
+          ${execHtml ? `<div class="ticket-mobile-exec">${execHtml}</div>` : ''}
           ${descHtml}
           ${tabs}
         </div>`;
