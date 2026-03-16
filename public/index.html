@@ -1129,19 +1129,21 @@
 
   <!-- Ticket Detail Modal (full-size) -->
   <div class="preview-modal-overlay" id="ticketDetailModal" onclick="if(event.target===this)closeModal('ticketDetailModal')">
-    <div style="background:var(--color-bg-light);border-radius:var(--radius-xl);width:94vw;max-width:1100px;height:92vh;display:flex;flex-direction:column;box-shadow:var(--shadow-lg);overflow:hidden">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 24px;border-bottom:1px solid var(--color-border);flex-shrink:0">
-        <div style="display:flex;align-items:center;gap:12px">
-          <h3 id="ticketDetailTitle" style="font-size:14px;font-weight:600;color:var(--color-text-dark)">Ticket</h3>
+    <div class="td-modal">
+      <div class="td-header">
+        <div class="td-header-top">
+          <h3 id="ticketDetailTitle" class="td-title">Ticket</h3>
+          <div class="td-header-actions">
+            <button class="btn btn-danger admin-only" id="ticketDeleteBtn" onclick="deleteTicket()">Delete</button>
+            <button class="btn btn-secondary" onclick="closeModal('ticketDetailModal')">Close</button>
+          </div>
+        </div>
+        <div class="td-header-badges">
           <span class="ticket-badge" id="ticketDetailStatusBadge"></span>
           <span class="ticket-badge" id="ticketDetailPriorityBadge"></span>
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn btn-danger admin-only" id="ticketDeleteBtn" onclick="deleteTicket()">Delete</button>
-          <button class="btn btn-secondary" onclick="closeModal('ticketDetailModal')">Close</button>
-        </div>
       </div>
-      <div id="ticketDetailContent" style="flex:1;overflow:hidden"></div>
+      <div id="ticketDetailContent" class="td-content"></div>
     </div>
   </div>
 
