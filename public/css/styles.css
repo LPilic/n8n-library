@@ -212,6 +212,25 @@
     justify-content: center;
   }
   .sidebar.collapsed .sidebar-header h1 { display: none; }
+  .sidebar.collapsed .instance-env-badge { display: none; }
+  .sidebar.collapsed .instance-selector { margin: 0 4px 4px; }
+  .sidebar.collapsed .instance-trigger {
+    justify-content: center;
+    padding: 8px;
+    border-color: transparent;
+    background: transparent;
+  }
+  .sidebar.collapsed .instance-trigger:hover { background: var(--color-bg-hover); border-color: var(--color-border-light); }
+  .sidebar.collapsed .instance-name { display: none; }
+  .sidebar.collapsed .instance-trigger .cs-arrow { display: none; }
+  .sidebar.collapsed .instance-env-dot { width: 12px; height: 12px; }
+  .sidebar.collapsed .instance-menu {
+    left: 100%;
+    top: 0;
+    right: auto;
+    min-width: 200px;
+    margin-left: 4px;
+  }
   .sidebar.collapsed .sidebar-toggle { margin: 0; }
 
   .sidebar-section-label {
