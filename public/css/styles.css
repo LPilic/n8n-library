@@ -2036,7 +2036,7 @@
       height: 100vh !important;
       border-radius: 0 !important;
     }
-    .td-header { padding: 10px 16px; }
+    .td-header { padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px; }
     .td-title { font-size: 14px; }
     .td-content { -webkit-overflow-scrolling: touch; }
     .ticket-detail {
