@@ -12,6 +12,14 @@ function kpiClick(field, value) {
   loadTicketStats();
 }
 
+function restoreTicketListView() {
+  const ticketPanel = document.getElementById('panel-tickets');
+  const panelSidebar = ticketPanel.querySelector('.ticket-panel-sidebar');
+  const panelToolbar = ticketPanel.querySelector('.toolbar');
+  if (panelSidebar) panelSidebar.style.display = '';
+  if (panelToolbar) panelToolbar.style.display = '';
+}
+
 let _ticketSearchTimer;
 function debouncedLoadTickets() {
   clearTimeout(_ticketSearchTimer);
@@ -561,11 +569,17 @@ async function openTicketDetail(id) {
 
     if (isMobile) {
       // Inline view (like KB reader) — replace ticket list content
+      // Hide sidebar KPI cards and toolbar on mobile detail view
+      const ticketPanel = document.getElementById('panel-tickets');
+      const panelSidebar = ticketPanel.querySelector('.ticket-panel-sidebar');
+      const panelToolbar = ticketPanel.querySelector('.toolbar');
+      if (panelSidebar) panelSidebar.style.display = 'none';
+      if (panelToolbar) panelToolbar.style.display = 'none';
       const container = document.getElementById('ticketsContent');
       const deleteBtn = (currentUser && currentUser.role === 'admin')
         ? `<button class="btn btn-danger btn-sm" onclick="deleteTicket()" style="margin-left:auto">Delete</button>` : '';
       container.innerHTML = `
-        <button class="kb-reader-back" onclick="loadTickets()">
+        <button class="kb-reader-back" onclick="restoreTicketListView();loadTickets()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
           Back to tickets
         </button>
@@ -706,7 +720,11 @@ async function deleteTicket() {
       return toast(data.error || 'Delete failed', 'error');
     }
     toast('Ticket deleted', 'success');
-    if (window.innerWidth > 850) closeModal('ticketDetailModal');
+    if (window.innerWidth <= 850) {
+      restoreTicketListView();
+    } else {
+      closeModal('ticketDetailModal');
+    }
     loadTickets();
     loadTicketStats();
   } catch (e) {
