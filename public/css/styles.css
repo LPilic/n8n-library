@@ -2051,7 +2051,9 @@
     .ticket-detail-sidebar {
       width: 100%;
       border-left: none;
-      border-top: 1px solid var(--color-border-light);
+      border-top: none;
+      border-bottom: 1px solid var(--color-border-light);
+      order: -1;
     }
   }
 
