@@ -1903,7 +1903,8 @@
 
   @media (max-width: 1024px) {
     .sidebar { width: 200px; }
-    .ticket-panel-body { flex-direction: column; }
+    .ticket-panel-body { flex-direction: column; height: auto; }
+    .ticket-panel-main { flex: 1 1 auto; min-height: 0; overflow-y: visible; }
     .ticket-panel-sidebar {
       width: 100%;
       flex-direction: row;
@@ -2005,6 +2006,9 @@
       transition: background 0.1s;
     }
     .mobile-more-menu button:hover { background: var(--color-card-hover); }
+    .mobile-more-user { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--color-border-light); margin-bottom: 4px; }
+    .mobile-more-user .user-badge-avatar { width: 28px; height: 28px; font-size: 12px; flex-shrink: 0; }
+    .mobile-more-user .user-badge-role { font-size: 11px; color: var(--color-text-muted); }
     .mobile-more-menu .mobile-more-logout { color: var(--color-danger); border-top: 1px solid var(--color-border-light); margin-top: 4px; padding-top: 12px; }
 
     /* Offset main content so it doesn't sit behind the fixed bottom nav */

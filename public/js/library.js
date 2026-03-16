@@ -434,17 +434,17 @@ async function openPreview(id, source) {
         libraryWorkflowCache[id] = wf;
       } catch { return; }
     }
-    wfData = { nodes: wf.nodes || [], connections: wf.connections || {} };
+    wfData = { nodes: wf.nodes || [], connections: wf.connections || {}, settings: wf.settings || {}, pinData: wf.pinData || {} };
     title = wf.name || `Template #${id}`;
   } else if (source === 'monitoring') {
     const wf = (typeof monWorkflowCache !== 'undefined' ? monWorkflowCache : []).find(w => w.id === id || w.id === String(id));
     if (!wf) return;
-    wfData = { nodes: wf.nodes || [], connections: wf.connections || {} };
+    wfData = { nodes: wf.nodes || [], connections: wf.connections || {}, settings: wf.settings || {}, pinData: wf.pinData || {} };
     title = wf.name || `Workflow ${id}`;
   } else {
     const wf = n8nWorkflowsCache.find(w => w.id === id || w.id === String(id));
     if (!wf) return;
-    wfData = { nodes: wf.nodes || [], connections: wf.connections || {} };
+    wfData = { nodes: wf.nodes || [], connections: wf.connections || {}, settings: wf.settings || {}, pinData: wf.pinData || {} };
     title = wf.name || `Workflow ${id}`;
   }
   document.getElementById('previewModalTitle').textContent = title;

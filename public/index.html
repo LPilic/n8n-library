@@ -178,6 +178,10 @@
       <span>Tickets</span>
       <span class="mobile-ticket-badge" id="mobileTicketBadge" style="display:none">0</span>
     </button>
+    <button onclick="toggleAiChat()" title="AI Chat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      <span>AI</span>
+    </button>
     <button id="mobileMoreBtn" onclick="toggleMobileMore()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
       <span>More</span>
@@ -213,6 +217,11 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       Users
     </button>
+    <div class="mobile-more-user" id="mobileUserBadge" style="display:none">
+      <div class="user-badge-avatar" id="mobileUserAvatar"></div>
+      <span id="mobileUserName" style="font-weight:600"></span>
+      <span class="user-badge-role" id="mobileUserRole"></span>
+    </div>
     <button onclick="doLogout();toggleMobileMore()" class="mobile-more-logout">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       Logout

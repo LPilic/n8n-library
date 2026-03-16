@@ -75,9 +75,20 @@ function showApp() {
 
   // User badge
   document.getElementById('userBadge').style.display = '';
-  document.getElementById('userAvatar').textContent = (currentUser.username || currentUser.email).charAt(0).toUpperCase();
-  document.getElementById('userDisplayName').textContent = currentUser.username || currentUser.email;
+  const initials = (currentUser.username || currentUser.email).charAt(0).toUpperCase();
+  const displayName = currentUser.username || currentUser.email;
+  document.getElementById('userAvatar').textContent = initials;
+  document.getElementById('userDisplayName').textContent = displayName;
   document.getElementById('userRoleBadge').textContent = currentUser.role;
+
+  // Mobile user badge
+  const mub = document.getElementById('mobileUserBadge');
+  if (mub) {
+    mub.style.display = '';
+    document.getElementById('mobileUserAvatar').textContent = initials;
+    document.getElementById('mobileUserName').textContent = displayName;
+    document.getElementById('mobileUserRole').textContent = currentUser.role;
+  }
 
   // Init app
   loadSettings();
