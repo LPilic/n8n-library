@@ -205,8 +205,15 @@ const { createMcpServer } = require('./lib/mcp-server');
     const { StreamableHTTPServerTransport } = await import('@modelcontextprotocol/sdk/server/streamableHttp.js');
     const transports = {};
 
-    // MCP endpoint — requires API key auth
+    // MCP endpoint — requires API key auth + must be enabled
     app.all('/mcp', async (req, res) => {
+      // Check if MCP server is enabled
+      try {
+        const { rows } = await pool.query("SELECT value FROM settings WHERE key = 'mcp_server_enabled'");
+        if (rows.length && rows[0].value === 'false') {
+          return res.status(503).json({ error: 'MCP server is disabled' });
+        }
+      } catch {}
       if (!req.user) return res.status(401).json({ error: 'API key required' });
 
       const sessionId = req.headers['mcp-session-id'];

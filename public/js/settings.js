@@ -125,7 +125,7 @@ function loadSettings() {
   loadBranding();
   loadInstances();
   loadApiKeys();
-  if (currentUser && currentUser.role === 'admin') { loadSmtpSettings(); loadEmailTemplates(); }
+  if (currentUser && currentUser.role === 'admin') { loadSmtpSettings(); loadEmailTemplates(); loadMcpServerStatus(); }
 }
 
 // --- n8n Instance Management ---
@@ -962,6 +962,69 @@ async function deleteApiKey(id, name) {
     loadApiKeys();
   } catch (e) {
     toast('Failed to delete API key', 'error');
+  }
+}
+
+// --- MCP Server Management ---
+
+async function loadMcpServerStatus() {
+  try {
+    var res = await fetch(API + '/api/settings/mcp-server');
+    if (!res.ok) return;
+    var data = await res.json();
+    document.getElementById('mcpServerEnabled').checked = data.enabled;
+    document.getElementById('mcpServerInfo').style.display = data.enabled ? '' : 'none';
+    if (data.enabled) loadMcpServerTools();
+  } catch (e) {
+    console.error('Failed to load MCP server status:', e);
+  }
+}
+
+async function toggleMcpServer(enabled) {
+  try {
+    await fetch(API + '/api/settings/mcp-server', {
+      method: 'PUT', headers: CSRF_HEADERS,
+      body: JSON.stringify({ enabled: enabled })
+    });
+    document.getElementById('mcpServerInfo').style.display = enabled ? '' : 'none';
+    if (enabled) loadMcpServerTools();
+    toast('MCP server ' + (enabled ? 'enabled' : 'disabled'), 'success');
+  } catch (e) {
+    toast('Failed to toggle MCP server', 'error');
+  }
+}
+
+async function loadMcpServerTools() {
+  try {
+    var res = await fetch(API + '/api/settings/mcp-server-tools');
+    if (!res.ok) return;
+    var data = await res.json();
+    var container = document.getElementById('mcpServerToolsList');
+    if (!container || !data.tools || !data.tools.length) return;
+    var html = '<div style="margin-top:10px"><strong style="font-size:12px;color:var(--color-text)">Tools</strong></div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-top:8px">';
+    for (var i = 0; i < data.tools.length; i++) {
+      var t = data.tools[i];
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--color-bg-light);border:1px solid var(--color-border-light);border-radius:var(--radius)">';
+      html += '<span style="font-size:12px;color:var(--color-text)">' + esc(t.name) + '</span>';
+      html += '<label class="toggle-switch" style="margin:0"><input type="checkbox" ' + (t.enabled ? 'checked' : '') + ' onchange="toggleMcpTool(\'' + esc(t.name) + '\',this.checked)"><span class="toggle-slider"></span></label>';
+      html += '</div>';
+    }
+    html += '</div>';
+    container.innerHTML = html;
+  } catch (e) {
+    console.error('Failed to load MCP tools:', e);
+  }
+}
+
+async function toggleMcpTool(name, enabled) {
+  try {
+    await fetch(API + '/api/settings/mcp-server-tools', {
+      method: 'PUT', headers: CSRF_HEADERS,
+      body: JSON.stringify({ tool: name, enabled: enabled })
+    });
+  } catch (e) {
+    toast('Failed to update tool', 'error');
   }
 }
 

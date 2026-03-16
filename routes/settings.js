@@ -319,4 +319,69 @@ router.put('/api/settings/ai-prompts', requireRole('admin'), async (req, res) =>
   }
 });
 
+// --- MCP Server toggle ---
+
+router.get('/api/settings/mcp-server', requireRole('admin'), async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT value FROM settings WHERE key = 'mcp_server_enabled'");
+    res.json({ enabled: !rows.length || rows[0].value !== 'false' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.put('/api/settings/mcp-server', requireRole('admin'), async (req, res) => {
+  try {
+    const enabled = req.body.enabled !== false;
+    await pool.query(
+      `INSERT INTO settings (key, value) VALUES ('mcp_server_enabled', $1)
+       ON CONFLICT (key) DO UPDATE SET value = $1`,
+      [String(enabled)]
+    );
+    res.json({ enabled, message: 'MCP server ' + (enabled ? 'enabled' : 'disabled') });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// --- MCP Server tools ---
+
+const MCP_TOOLS = [
+  'search_templates', 'get_template', 'list_tickets', 'get_ticket',
+  'create_ticket', 'search_kb_articles', 'get_kb_article', 'get_stats', 'list_users'
+];
+
+router.get('/api/settings/mcp-server-tools', requireRole('admin'), async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT value FROM settings WHERE key = 'mcp_disabled_tools'");
+    const disabled = rows.length ? JSON.parse(rows[0].value) : [];
+    const tools = MCP_TOOLS.map(name => ({ name, enabled: !disabled.includes(name) }));
+    res.json({ tools });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.put('/api/settings/mcp-server-tools', requireRole('admin'), async (req, res) => {
+  try {
+    const { tool, enabled } = req.body;
+    if (!MCP_TOOLS.includes(tool)) return res.status(400).json({ error: 'Unknown tool' });
+    const { rows } = await pool.query("SELECT value FROM settings WHERE key = 'mcp_disabled_tools'");
+    let disabled = rows.length ? JSON.parse(rows[0].value) : [];
+    if (enabled) {
+      disabled = disabled.filter(t => t !== tool);
+    } else {
+      if (!disabled.includes(tool)) disabled.push(tool);
+    }
+    await pool.query(
+      `INSERT INTO settings (key, value) VALUES ('mcp_disabled_tools', $1)
+       ON CONFLICT (key) DO UPDATE SET value = $1`,
+      [JSON.stringify(disabled)]
+    );
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;
