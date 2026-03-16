@@ -1131,17 +1131,14 @@
   <div class="preview-modal-overlay" id="ticketDetailModal" onclick="if(event.target===this)closeModal('ticketDetailModal')">
     <div class="td-modal">
       <div class="td-header">
-        <div class="td-header-top">
-          <h3 id="ticketDetailTitle" class="td-title">Ticket</h3>
-          <div class="td-header-actions">
-            <button class="btn btn-danger admin-only" id="ticketDeleteBtn" onclick="deleteTicket()">Delete</button>
-            <button class="btn btn-secondary" onclick="closeModal('ticketDetailModal')">Close</button>
-          </div>
-        </div>
-        <div class="td-header-badges">
+        <div class="td-header-row">
           <span class="ticket-badge" id="ticketDetailStatusBadge"></span>
           <span class="ticket-badge" id="ticketDetailPriorityBadge"></span>
+          <div class="td-header-spacer"></div>
+          <button class="btn btn-danger btn-sm admin-only" id="ticketDeleteBtn" onclick="deleteTicket()">Delete</button>
+          <button class="td-close" onclick="closeModal('ticketDetailModal')" title="Close">&times;</button>
         </div>
+        <h3 id="ticketDetailTitle" class="td-title">Ticket</h3>
       </div>
       <div id="ticketDetailContent" class="td-content"></div>
     </div>
