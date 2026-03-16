@@ -496,81 +496,20 @@ async function openTicketDetail(id) {
 
     sb += '</div>';
 
-    // --- Main ---
-    let m = '<div class="ticket-detail-main">';
-
-    // Description
-    if (ticket.description) {
-      m += `<div class="ticket-detail-desc">${md(ticket.description)}</div>`;
-    }
-
-    // Mobile-only compact detail fields (hidden on desktop)
-    m += '<div class="ticket-mobile-details">';
-    m += '<div class="tmd-row">';
-    m += '<div class="tmd-field"><label>Status</label>';
-    if (isStaff) {
-      m += `<select class="form-input" onchange="updateTicketField(${ticket.id},'status',this.value)">
-        ${['open','in_progress','waiting','resolved','closed'].map(s =>
-          `<option value="${s}" ${s === ticket.status ? 'selected' : ''}>${s.replace(/_/g,' ')}</option>`
-        ).join('')}</select>`;
-    } else {
-      m += `<span class="ticket-badge badge-${ticket.status}">${esc(statusLabel)}</span>`;
-    }
-    m += '</div>';
-    m += '<div class="tmd-field"><label>Priority</label>';
-    if (isStaff) {
-      m += `<select class="form-input" onchange="updateTicketField(${ticket.id},'priority',this.value)">
-        ${['low','medium','high','critical'].map(p =>
-          `<option value="${p}" ${p === ticket.priority ? 'selected' : ''}>${p}</option>`
-        ).join('')}</select>`;
-    } else {
-      m += `<span class="ticket-badge badge-${ticket.priority}">${esc(ticket.priority)}</span>`;
-    }
-    m += '</div>';
-    m += '</div>';
-    m += '<div class="tmd-row">';
-    m += '<div class="tmd-field"><label>Category</label>';
-    if (isStaff) {
-      m += `<select class="form-input" onchange="updateTicketField(${ticket.id},'category_id',this.value)">
-        <option value="">None</option>
-        ${ticketCategories.map(c => `<option value="${c.id}" ${c.id === ticket.category_id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
-      </select>`;
-    } else {
-      m += `<span class="detail-value">${esc(ticket.category_name || '—')}</span>`;
-    }
-    m += '</div>';
-    m += '<div class="tmd-field"><label>Assignee</label>';
-    if (isStaff) {
-      m += `<select class="form-input" onchange="updateTicketField(${ticket.id},'assigned_to',this.value)">
-        <option value="">Unassigned</option>
-        ${assignableUsers.map(u => `<option value="${u.id}" ${u.id === ticket.assigned_to ? 'selected' : ''}>${esc(u.username)}</option>`).join('')}
-      </select>`;
-    } else {
-      m += `<span class="detail-value">${esc(ticket.assignee_name || 'Unassigned')}</span>`;
-    }
-    m += '</div>';
-    m += '</div>';
-    m += `<div class="tmd-meta">
-      <span>By ${esc(ticket.creator_name)}</span>
-      <span>${new Date(ticket.created_at).toLocaleDateString()}</span>
-    </div>`;
-    m += '</div>';
-
-    // Tabs: Comments | Activity
-    m += `<div class="ticket-tabs">
+    // --- Tabs: Comments | Activity (shared between desktop modal and mobile inline) ---
+    let tabs = `<div class="ticket-tabs">
       <button class="ticket-tab active" onclick="switchTicketTab('comments')">Comments<span class="ticket-tab-count">${ticket.comments.length}</span></button>
       <button class="ticket-tab" onclick="switchTicketTab('activity')">Activity<span class="ticket-tab-count">${ticket.activity.length}</span></button>
     </div>`;
 
-    // Comments tab
-    m += '<div class="ticket-tab-panel active" id="ticketTabComments">';
+    tabs += '<div class="ticket-tab-panel active" id="ticketTabComments">';
     if (ticket.comments.length === 0) {
-      m += '<div style="text-align:center;color:var(--color-text-xmuted);padding:24px 0;font-size:13px">No comments yet</div>';
+      tabs += '<div style="text-align:center;color:var(--color-text-xmuted);padding:24px 0;font-size:13px">No comments yet</div>';
     }
     for (const c of ticket.comments) {
       const initial = (c.username || '?')[0].toUpperCase();
       const isInternal = c.is_internal ? ' internal' : '';
-      m += `<div class="ticket-comment${isInternal}">
+      tabs += `<div class="ticket-comment${isInternal}">
         <div class="comment-avatar">${initial}</div>
         <div class="comment-body">
           <div class="comment-header">
@@ -583,8 +522,7 @@ async function openTicketDetail(id) {
       </div>`;
     }
 
-    // Comment input with editor
-    m += `<div class="comment-input-wrap">
+    tabs += `<div class="comment-input-wrap">
       <div class="quill-wrap quill-sm" id="newCommentWrap">
         <div id="newComment"></div>
       </div>
@@ -593,12 +531,11 @@ async function openTicketDetail(id) {
         <button class="btn btn-primary" onclick="addComment(${ticket.id})">Comment</button>
       </div>
     </div>`;
-    m += '</div>';
+    tabs += '</div>';
 
-    // Activity tab
-    m += '<div class="ticket-tab-panel" id="ticketTabActivity">';
+    tabs += '<div class="ticket-tab-panel" id="ticketTabActivity">';
     if (ticket.activity.length === 0) {
-      m += '<div style="text-align:center;color:var(--color-text-xmuted);padding:24px 0;font-size:13px">No activity</div>';
+      tabs += '<div style="text-align:center;color:var(--color-text-xmuted);padding:24px 0;font-size:13px">No activity</div>';
     }
     for (const a of ticket.activity) {
       let desc = '';
@@ -612,18 +549,83 @@ async function openTicketDetail(id) {
       else if (a.action === 'description_changed') desc = 'updated description';
       else desc = a.action;
 
-      m += `<div class="activity-item"><strong>${esc(a.username)}</strong> ${desc} <span class="activity-time">${timeAgo(a.created_at)}</span></div>`;
+      tabs += `<div class="activity-item"><strong>${esc(a.username)}</strong> ${desc} <span class="activity-time">${timeAgo(a.created_at)}</span></div>`;
     }
-    m += '</div>';
-    m += '</div>';
+    tabs += '</div>';
 
-    document.getElementById('ticketDetailContent').innerHTML =
-      `<div class="ticket-detail">${m}${sb}</div>`;
+    // --- Desktop main panel (wraps description + tabs) ---
+    const descHtml = ticket.description ? `<div class="ticket-detail-desc">${md(ticket.description)}</div>` : '';
+    let m = `<div class="ticket-detail-main">${descHtml}${tabs}</div>`;
 
-    // Init editor for comment box
-    initEditor('newComment', { level: 'mini', placeholder: 'Write a comment...' });
+    const isMobile = window.innerWidth <= 850;
 
-    openModal('ticketDetailModal');
+    if (isMobile) {
+      // Inline view (like KB reader) — replace ticket list content
+      const container = document.getElementById('ticketsContent');
+      const deleteBtn = (currentUser && currentUser.role === 'admin')
+        ? `<button class="btn btn-danger btn-sm" onclick="deleteTicket()" style="margin-left:auto">Delete</button>` : '';
+      container.innerHTML = `
+        <button class="kb-reader-back" onclick="loadTickets()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+          Back to tickets
+        </button>
+        <div class="kb-reader-card">
+          <div class="kb-reader-header">
+            <div class="kb-reader-title">#${ticket.id} — ${esc(ticket.title)}</div>
+            <div class="kb-reader-meta">
+              <span class="ticket-badge badge-${ticket.status}">${esc(statusLabel)}</span>
+              <span class="ticket-badge badge-${ticket.priority}">${esc(ticket.priority)}</span>
+              ${deleteBtn}
+            </div>
+          </div>
+          <div class="ticket-mobile-details">
+            <div class="tmd-row">
+              <div class="tmd-field"><label>Status</label>${isStaff
+                ? `<select class="form-input" onchange="updateTicketField(${ticket.id},'status',this.value)">
+                    ${['open','in_progress','waiting','resolved','closed'].map(s =>
+                      `<option value="${s}" ${s === ticket.status ? 'selected' : ''}>${s.replace(/_/g,' ')}</option>`
+                    ).join('')}</select>`
+                : `<span class="ticket-badge badge-${ticket.status}">${esc(statusLabel)}</span>`}</div>
+              <div class="tmd-field"><label>Priority</label>${isStaff
+                ? `<select class="form-input" onchange="updateTicketField(${ticket.id},'priority',this.value)">
+                    ${['low','medium','high','critical'].map(p =>
+                      `<option value="${p}" ${p === ticket.priority ? 'selected' : ''}>${p}</option>`
+                    ).join('')}</select>`
+                : `<span class="ticket-badge badge-${ticket.priority}">${esc(ticket.priority)}</span>`}</div>
+            </div>
+            <div class="tmd-row">
+              <div class="tmd-field"><label>Category</label>${isStaff
+                ? `<select class="form-input" onchange="updateTicketField(${ticket.id},'category_id',this.value)">
+                    <option value="">None</option>
+                    ${ticketCategories.map(c => `<option value="${c.id}" ${c.id === ticket.category_id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
+                  </select>`
+                : `<span class="detail-value">${esc(ticket.category_name || '—')}</span>`}</div>
+              <div class="tmd-field"><label>Assignee</label>${isStaff
+                ? `<select class="form-input" onchange="updateTicketField(${ticket.id},'assigned_to',this.value)">
+                    <option value="">Unassigned</option>
+                    ${assignableUsers.map(u => `<option value="${u.id}" ${u.id === ticket.assigned_to ? 'selected' : ''}>${esc(u.username)}</option>`).join('')}
+                  </select>`
+                : `<span class="detail-value">${esc(ticket.assignee_name || 'Unassigned')}</span>`}</div>
+            </div>
+            <div class="tmd-meta">
+              <span>By ${esc(ticket.creator_name)}</span>
+              <span>${new Date(ticket.created_at).toLocaleDateString()}</span>
+            </div>
+          </div>
+          ${descHtml}
+          ${tabs}
+        </div>`;
+
+      initEditor('newComment', { level: 'mini', placeholder: 'Write a comment...' });
+      container.scrollTop = 0;
+    } else {
+      // Desktop — use modal
+      document.getElementById('ticketDetailContent').innerHTML =
+        `<div class="ticket-detail">${m}${sb}</div>`;
+
+      initEditor('newComment', { level: 'mini', placeholder: 'Write a comment...' });
+      openModal('ticketDetailModal');
+    }
   } catch (e) {
     toast('Error loading ticket: ' + e.message, 'error');
   }
@@ -704,7 +706,7 @@ async function deleteTicket() {
       return toast(data.error || 'Delete failed', 'error');
     }
     toast('Ticket deleted', 'success');
-    closeModal('ticketDetailModal');
+    if (window.innerWidth > 850) closeModal('ticketDetailModal');
     loadTickets();
     loadTicketStats();
   } catch (e) {
