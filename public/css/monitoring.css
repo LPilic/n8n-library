@@ -798,5 +798,34 @@
     .mon-kpi-row { grid-template-columns: repeat(2, 1fr); }
     .mon-charts-row { grid-template-columns: 1fr; }
     .mon-wf-grid { grid-template-columns: 1fr; }
+
+    /* Monitoring toolbar: stack filters and refresh controls */
+    #panel-monitoring .toolbar-right {
+      width: 100%;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    #panel-monitoring .toolbar-right select {
+      min-width: 0 !important;
+      flex: 1;
+    }
+
+    /* Execution detail header & actions */
+    .mon-detail-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .mon-detail-actions {
+      margin-left: 0;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+    .mon-detail-actions .btn {
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      font-size: 12px;
+      padding: 7px 10px;
+    }
   }
 
