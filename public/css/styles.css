@@ -2025,8 +2025,9 @@
     .cat-list { grid-template-columns: repeat(2, 1fr); gap: 12px; }
     .users-card { max-width: none; }
 
-    /* Hide workflow preview on mobile — n8n-demo doesn't render well */
-    .node-flow { display: none !important; }
+    /* Disable workflow preview modal trigger on mobile */
+    .node-flow { pointer-events: none; }
+    .node-flow-preview { display: none; }
 
     /* Ticket detail modal — full screen scrollable on mobile */
     #ticketDetailModal > div {
@@ -2035,17 +2036,16 @@
       height: 100vh !important;
       max-height: 100vh !important;
       border-radius: 0 !important;
-      display: flex;
-      flex-direction: column;
+      overflow: hidden !important;
     }
-    #ticketDetailModal #ticketDetailContent {
-      flex: 1;
+    #ticketDetailContent {
       overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
     }
     .ticket-detail {
       flex-direction: column;
-      height: auto;
-      min-height: auto;
+      height: auto !important;
+      min-height: auto !important;
     }
     .ticket-detail-main { overflow-y: visible; }
     .ticket-detail-sidebar {
