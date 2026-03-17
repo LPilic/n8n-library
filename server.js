@@ -183,6 +183,7 @@ app.use(require('./routes/mcp-routes'));
 app.use(require('./routes/api-keys'));
 app.use(require('./routes/notifications'));
 app.use(require('./routes/search'));
+app.use(require('./routes/audit'));
 
 // --- API Documentation (Swagger) ---
 
@@ -272,7 +273,7 @@ reconnectAllMcp();
 
 // --- Client-side routing catch-all ---
 // Serve index.html for panel routes so direct navigation and refresh work
-const CLIENT_ROUTES = ['dashboard','library','n8n','categories','tickets','kb','monitoring','observability','ai','settings','users'];
+const CLIENT_ROUTES = ['dashboard','library','n8n','categories','tickets','kb','monitoring','observability','ai','settings','users','audit'];
 app.get('*', (req, res, next) => {
   const segment = req.path.split('/')[1];
   if (CLIENT_ROUTES.includes(segment)) {

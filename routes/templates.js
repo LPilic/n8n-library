@@ -2,6 +2,7 @@ const express = require('express');
 const pool = require('../db');
 const { buildTemplateItem, isPrivateUrl } = require('../lib/helpers');
 const { requireRole } = require('../lib/middleware');
+const { auditLog } = require('../lib/audit');
 
 const router = express.Router();
 
@@ -250,6 +251,7 @@ router.post('/api/templates', requireRole('admin', 'editor'), async (req, res) =
     }
 
     await client.query('COMMIT');
+    auditLog(req.user, 'created', 'template', templateId, name);
     res.status(201).json({ id: templateId, message: 'Template created' });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -286,6 +288,7 @@ router.put('/api/templates/:id', requireRole('admin', 'editor'), async (req, res
       }
     }
     await client.query('COMMIT');
+    auditLog(req.user, 'updated', 'template', req.params.id, name || '');
     res.json({ message: 'Template updated' });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -299,6 +302,7 @@ router.put('/api/templates/:id', requireRole('admin', 'editor'), async (req, res
 router.delete('/api/templates/:id', requireRole('admin'), async (req, res) => {
   const { rowCount } = await pool.query('DELETE FROM templates WHERE id = $1', [req.params.id]);
   if (rowCount === 0) return res.status(404).json({ error: 'Template not found' });
+  auditLog(req.user, 'deleted', 'template', req.params.id);
   res.json({ message: 'Template deleted' });
 });
 

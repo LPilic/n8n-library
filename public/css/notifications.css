@@ -34,9 +34,7 @@
 }
 
 .notif-dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
+  position: fixed;
   width: 360px;
   max-height: 480px;
   background: var(--color-card);
@@ -124,12 +122,6 @@
 
 @media (max-width: 850px) {
   .notif-dropdown {
-    position: fixed;
-    top: auto;
-    bottom: calc(56px + env(safe-area-inset-bottom, 0px));
-    right: 8px;
-    left: 8px;
-    width: auto;
     max-height: 60vh;
   }
 }

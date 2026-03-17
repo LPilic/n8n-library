@@ -8,6 +8,7 @@ const { requireAuth, requireRole, ticketLimiter } = require('../lib/middleware')
 const { sendTicketNotification } = require('../lib/email');
 const { verifyN8nUser } = require('../lib/n8n-api');
 const { createNotification } = require('./notifications');
+const { auditLog } = require('../lib/audit');
 
 const router = express.Router();
 
@@ -301,6 +302,7 @@ router.post('/api/tickets', requireAuth, ticketLimiter, async (req, res) => {
       [ticket.id, req.user.id, 'created', `Created ticket with priority ${prio}`]
     );
     sendTicketNotification('new_ticket', ticket, { creatorName: req.user.username });
+    auditLog(req.user, 'created', 'ticket', ticket.id, ticket.title);
 
     if (assigned_to) {
       const { rows: aRows } = await pool.query('SELECT email FROM users WHERE id=$1', [assigned_to]);
@@ -401,6 +403,7 @@ router.put('/api/tickets/:id', requireRole('admin', 'editor'), async (req, res) 
     }
 
     const { rows: updated } = await pool.query('SELECT * FROM tickets WHERE id=$1', [req.params.id]);
+    auditLog(req.user, 'updated', 'ticket', req.params.id, activities.map(a => a.action).join(', '));
     res.json(updated[0]);
   } catch (err) {
     console.error('Update ticket error:', err.message);
@@ -413,6 +416,7 @@ router.delete('/api/tickets/:id', requireRole('admin'), async (req, res) => {
   try {
     const { rowCount } = await pool.query('DELETE FROM tickets WHERE id=$1', [req.params.id]);
     if (rowCount === 0) return res.status(404).json({ error: 'Ticket not found' });
+    auditLog(req.user, 'deleted', 'ticket', req.params.id);
     res.json({ message: 'Ticket deleted' });
   } catch (err) {
     console.error('Delete ticket error:', err.message);

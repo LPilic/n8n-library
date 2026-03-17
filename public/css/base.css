@@ -1897,3 +1897,21 @@
     overflow-y: auto;
   }
 
+  /* Audit type badges */
+  .audit-type-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: capitalize;
+    background: var(--color-bg);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
+  }
+  .audit-type-ticket { background: #e3f2fd; color: #1565c0; border-color: #bbdefb; }
+  .audit-type-article { background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; }
+  .audit-type-template { background: #fff3e0; color: #e65100; border-color: #ffe0b2; }
+  .audit-type-user { background: #f3e5f5; color: #7b1fa2; border-color: #e1bee7; }
+  .audit-type-setting { background: #fce4ec; color: #c62828; border-color: #f8bbd0; }
+

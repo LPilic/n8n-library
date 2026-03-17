@@ -64,7 +64,31 @@ function toggleNotifDropdown() {
   if (!dd) return;
   notifOpen = !notifOpen;
   dd.style.display = notifOpen ? '' : 'none';
-  if (notifOpen) renderNotifDropdown();
+  if (notifOpen) {
+    renderNotifDropdown();
+    positionNotifDropdown();
+  }
+}
+
+function positionNotifDropdown() {
+  var btn = document.getElementById('notifBtn') || document.getElementById('notifBtnMobile');
+  var dd = document.getElementById('notifDropdown');
+  if (!btn || !dd) return;
+  var rect = btn.getBoundingClientRect();
+  var isMobile = window.innerWidth <= 850;
+  if (isMobile) {
+    dd.style.left = '8px';
+    dd.style.right = '8px';
+    dd.style.width = 'auto';
+    dd.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
+    dd.style.top = 'auto';
+  } else {
+    dd.style.left = rect.left + 'px';
+    dd.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
+    dd.style.top = 'auto';
+    dd.style.width = '360px';
+    dd.style.right = 'auto';
+  }
 }
 
 function renderNotifDropdown() {

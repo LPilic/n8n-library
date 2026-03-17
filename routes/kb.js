@@ -5,6 +5,7 @@ const fs = require('fs');
 const pool = require('../db');
 const { slugify, uniqueSlug } = require('../lib/helpers');
 const { requireAuth, requireRole } = require('../lib/middleware');
+const { auditLog } = require('../lib/audit');
 
 const router = express.Router();
 
@@ -225,6 +226,7 @@ router.post('/api/kb/articles', requireRole('admin', 'editor'), async (req, res)
       [article.id, article.title, article.body, req.session.user.id, 'Initial version']
     );
 
+    auditLog(req.user, 'created', 'article', article.id, article.title);
     res.status(201).json(article);
   } catch (err) {
     console.error('KB create article error:', err.message);
@@ -274,6 +276,7 @@ router.put('/api/kb/articles/:id', requireRole('admin', 'editor'), async (req, r
       }
     }
 
+    auditLog(req.user, 'updated', 'article', req.params.id, title || '');
     res.json(rows[0]);
   } catch (err) {
     console.error('KB update article error:', err.message);
@@ -291,6 +294,7 @@ router.delete('/api/kb/articles/:id', requireRole('admin'), async (req, res) => 
     }
     const { rowCount } = await pool.query('DELETE FROM kb_articles WHERE id=$1', [req.params.id]);
     if (!rowCount) return res.status(404).json({ error: 'Not found' });
+    auditLog(req.user, 'deleted', 'article', req.params.id);
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: 'Internal server error' }); }
 });

@@ -531,7 +531,7 @@ function updateConnectionStatus() {
 
 
 // --- Navigation ---
-const MORE_PANELS = ['kb', 'monitoring', 'observability', 'ai', 'categories', 'settings', 'users'];
+const MORE_PANELS = ['kb', 'monitoring', 'observability', 'ai', 'categories', 'settings', 'users', 'audit'];
 
 function toggleSidebar() {
   var sb = document.getElementById('appSidebar');
@@ -591,10 +591,11 @@ function switchPanel(name, skipPush) {
   if (name === 'observability') { loadObservability(); startObsAutoRefresh(); }
   else { stopObsAutoRefresh(); }
   if (name === 'ai') { loadAiSettings(); loadAiPrompts(); loadMcpServers(); }
+  if (name === 'audit') { loadAuditLog(); }
 }
 
 // --- Client-side routing ---
-const VALID_PANELS = ['dashboard','library','n8n','categories','tickets','kb','monitoring','observability','ai','settings','users'];
+const VALID_PANELS = ['dashboard','library','n8n','categories','tickets','kb','monitoring','observability','ai','settings','users','audit'];
 
 function handleRouteFromUrl() {
   const path = window.location.pathname.replace(/^\/+|\/+$/g, '');

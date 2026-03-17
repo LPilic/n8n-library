@@ -5,6 +5,7 @@ const pool = require('../db');
 const { escHtml, validatePassword } = require('../lib/helpers');
 const { requireAuth, requireRole, authLimiter, forgotLimiter } = require('../lib/middleware');
 const { renderEmail, getMailTransport, getSmtpFrom, APP_URL, SMTP_FROM } = require('../lib/email');
+const { auditLog } = require('../lib/audit');
 
 const router = express.Router();
 
@@ -146,6 +147,7 @@ router.post('/api/users', requireRole('admin'), async (req, res) => {
       'INSERT INTO users (username, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, username, email, role',
       [username || email.split('@')[0], email.toLowerCase().trim(), hash, role || 'viewer']
     );
+    auditLog(req.user, 'created', 'user', rows[0].id, `${rows[0].username} (${rows[0].role})`);
     res.status(201).json(rows[0]);
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ error: 'Email already exists' });
@@ -184,6 +186,7 @@ router.delete('/api/users/:id', requireRole('admin'), async (req, res) => {
     if (req.user.id === parseInt(req.params.id)) return res.status(400).json({ error: 'Cannot delete yourself' });
     const { rowCount } = await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
     if (rowCount === 0) return res.status(404).json({ error: 'User not found' });
+    auditLog(req.user, 'deleted', 'user', req.params.id);
     res.json({ message: 'User deleted' });
   } catch (err) {
     console.error('Delete user error:', err.message);
