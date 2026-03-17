@@ -92,16 +92,12 @@ function showApp() {
 
   // Init app
   loadSettings();
-  loadDashboard();
   updateOpenTicketBadge();
   checkAiStatus();
 
-  // Check for ticket deep link
-  const ticketParam = new URLSearchParams(window.location.search).get('ticket');
-  if (ticketParam) {
-    switchPanel('tickets');
-    setTimeout(() => openTicketDetail(parseInt(ticketParam)), 300);
-    window.history.replaceState({}, '', window.location.pathname);
+  // Route from URL or fall back to dashboard
+  if (!handleRouteFromUrl()) {
+    loadDashboard();
   }
 }
 
@@ -561,7 +557,7 @@ function toggleSidebar() {
   } catch(e) {}
 })();
 
-function switchPanel(name) {
+function switchPanel(name, skipPush) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelectorAll('.mobile-nav button').forEach(b => {
@@ -574,6 +570,12 @@ function switchPanel(name) {
   // Highlight "More" button if the active panel is in the overflow menu
   const moreBtn = document.getElementById('mobileMoreBtn');
   if (moreBtn && MORE_PANELS.includes(name)) moreBtn.classList.add('more-active');
+
+  // Push URL state
+  if (!skipPush) {
+    const url = name === 'dashboard' ? '/' : '/' + name;
+    history.pushState({ panel: name }, '', url);
+  }
 
   if (name === 'dashboard') loadDashboard();
   if (name === 'library') loadLibrary();
@@ -588,6 +590,58 @@ function switchPanel(name) {
   else { stopObsAutoRefresh(); }
   if (name === 'ai') { loadAiSettings(); loadAiPrompts(); loadMcpServers(); }
 }
+
+// --- Client-side routing ---
+const VALID_PANELS = ['dashboard','library','n8n','categories','tickets','kb','monitoring','observability','ai','settings','users'];
+
+function handleRouteFromUrl() {
+  const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
+  const params = new URLSearchParams(window.location.search);
+
+  // Legacy ?ticket=ID deep link
+  const ticketParam = params.get('ticket');
+  if (ticketParam) {
+    switchPanel('tickets', true);
+    history.replaceState({ panel: 'tickets' }, '', '/tickets');
+    setTimeout(() => openTicketDetail(parseInt(ticketParam)), 300);
+    return true;
+  }
+
+  // Legacy ?reset=TOKEN
+  if (params.get('reset')) return false;
+
+  // Panel routes: /tickets, /kb, /monitoring, etc.
+  const segments = path.split('/');
+  const panel = segments[0];
+  const detailId = segments[1];
+
+  if (panel && VALID_PANELS.includes(panel)) {
+    switchPanel(panel, true);
+    history.replaceState({ panel }, '', '/' + path);
+
+    // Deep links: /tickets/123, /kb/456
+    if (detailId) {
+      if (panel === 'tickets') {
+        setTimeout(() => openTicketDetail(parseInt(detailId)), 300);
+      } else if (panel === 'kb') {
+        setTimeout(() => viewKbArticle(detailId), 300);
+      } else if (panel === 'monitoring') {
+        setTimeout(() => loadExecutionDetail(detailId), 300);
+      }
+    }
+    return true;
+  }
+
+  return false;
+}
+
+window.addEventListener('popstate', function(e) {
+  if (!currentUser) return;
+  const panel = (e.state && e.state.panel) || 'dashboard';
+  if (VALID_PANELS.includes(panel)) {
+    switchPanel(panel, true);
+  }
+});
 
 function toggleMobileMore() {
   const menu = document.getElementById('mobileMoreMenu');
@@ -877,6 +931,8 @@ function openModal(id) {
 }
 function closeModal(id) {
   document.getElementById(id).classList.remove('active');
+  // Restore panel-level URL when closing detail modals
+  if (id === 'ticketDetailModal') history.replaceState({ panel: 'tickets' }, '', '/tickets');
   if (id === 'editModal') {
     const p = document.getElementById('editPreviewBody');
     if (p) p.innerHTML = '';

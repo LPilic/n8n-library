@@ -81,6 +81,10 @@ const debouncedLoadKbArticles = debounce(() => loadKbArticles(), 300);
 async function loadKbArticles(page) {
   currentKbPage = page || 1;
   currentKbArticle = null;
+  // Restore panel-level URL when returning to article list
+  if (window.location.pathname.startsWith('/kb/')) {
+    history.replaceState({ panel: 'kb' }, '', '/kb');
+  }
   const q = document.getElementById('kbSearch')?.value || '';
   const category = document.getElementById('kbFilterCategory')?.value || '';
   const status = document.getElementById('kbFilterStatus')?.value || '';
@@ -155,6 +159,8 @@ async function viewKbArticle(idOrSlug) {
     if (!res.ok) throw new Error('Not found');
     const article = await res.json();
     currentKbArticle = article;
+    // Update URL for deep linking
+    history.replaceState({ panel: 'kb', detail: article.slug || article.id }, '', '/kb/' + (article.slug || article.id));
     renderKbArticleReader(article);
   } catch (err) {
     toast('Article not found', 'error');

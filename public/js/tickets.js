@@ -392,6 +392,9 @@ async function openTicketDetail(id) {
     const ticket = await res.json();
     currentTicketDetail = ticket;
 
+    // Update URL for deep linking
+    history.replaceState({ panel: 'tickets', detail: id }, '', '/tickets/' + id);
+
     await Promise.all([loadTicketCategories(), loadAssignableUsers()]);
 
     const isStaff = currentUser && ['admin', 'editor'].includes(currentUser.role);

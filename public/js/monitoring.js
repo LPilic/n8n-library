@@ -604,6 +604,8 @@ async function loadExecutionDetail(id) {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     var ex = await res.json();
     currentExecDetail = ex;
+    // Update URL for deep linking
+    history.replaceState({ panel: 'monitoring', detail: id }, '', '/monitoring/' + id);
     var wfName = ex.workflowName || (ex.workflowData ? ex.workflowData.name : 'Unknown');
     var wfId = ex.workflowId || '';
     var statusClass = ex.status || 'unknown';

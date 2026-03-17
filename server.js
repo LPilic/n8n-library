@@ -268,6 +268,17 @@ getAiConfig().catch(() => {});
 scheduleDailySummaryCron();
 reconnectAllMcp();
 
+// --- Client-side routing catch-all ---
+// Serve index.html for panel routes so direct navigation and refresh work
+const CLIENT_ROUTES = ['dashboard','library','n8n','categories','tickets','kb','monitoring','observability','ai','settings','users'];
+app.get('*', (req, res, next) => {
+  const segment = req.path.split('/')[1];
+  if (CLIENT_ROUTES.includes(segment)) {
+    return res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  }
+  next();
+});
+
 app.listen(PORT, () => {
   console.log(`n8n template library running on http://localhost:${PORT}`);
 });

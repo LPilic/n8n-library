@@ -98,7 +98,7 @@ function renderDashboard(data, container) {
       for (const e of failed.slice(0, 5)) {
         const name = e.workflowName || 'Workflow #' + e.workflowId;
         const time = formatDashTime(e.stoppedAt || e.startedAt);
-        html += `<div class="dash-card-item" onclick="switchPanel('monitoring');setTimeout(()=>openExecutionDetail('${e.id}'),300)">
+        html += `<div class="dash-card-item" onclick="switchPanel('monitoring');setTimeout(()=>loadExecutionDetail('${e.id}'),300)">
           <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" stroke-width="2" width="14" height="14" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
           <span class="dash-item-title">${escapeHtml(name)}</span>
           <span class="dash-item-meta">${time}</span>
@@ -146,7 +146,7 @@ function renderDashboard(data, container) {
         : e.status === 'error'
         ? '<svg viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" stroke-width="2" width="14" height="14" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
         : '<svg viewBox="0 0 24 24" fill="none" stroke="var(--color-warning)" stroke-width="2" width="14" height="14" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
-      html += `<div class="dash-card-item" onclick="switchPanel('monitoring');setTimeout(()=>openExecutionDetail('${e.id}'),300)">
+      html += `<div class="dash-card-item" onclick="switchPanel('monitoring');setTimeout(()=>loadExecutionDetail('${e.id}'),300)">
         ${statusIcon}
         <span class="dash-item-title">${escapeHtml(name)}</span>
         <span class="dash-item-meta">${time}</span>
@@ -160,7 +160,7 @@ function renderDashboard(data, container) {
     html += '<div class="dash-card"><div class="dash-card-header"><h3>Popular Articles</h3><button class="btn btn-secondary btn-sm" onclick="switchPanel(\'kb\')">View All</button></div>';
     html += '<div class="dash-card-list">';
     for (const a of data.kb.popular) {
-      html += `<div class="dash-card-item" onclick="switchPanel('kb');setTimeout(()=>openKbArticle(${a.id}),200)">
+      html += `<div class="dash-card-item" onclick="switchPanel('kb');setTimeout(()=>viewKbArticle(${a.id}),200)">
         <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" stroke-width="2" width="14" height="14" style="flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         <span class="dash-item-title">${escapeHtml(a.title)}</span>
         <span class="dash-item-meta">${a.view_count} views</span>
