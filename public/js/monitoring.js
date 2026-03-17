@@ -74,6 +74,34 @@ function monUrl(path) {
   return API + path + (ip ? sep + ip : '');
 }
 
+function populateMonInstanceFilter() {
+  var sel = document.getElementById('monInstanceFilter');
+  if (!sel || typeof instancesCache === 'undefined' || !instancesCache.length) {
+    if (sel) sel.style.display = 'none';
+    return;
+  }
+  if (instancesCache.length <= 1) { sel.style.display = 'none'; return; }
+  sel.style.display = '';
+  var html = '';
+  for (var i = 0; i < instancesCache.length; i++) {
+    var inst = instancesCache[i];
+    var selected = inst.id === activeInstanceId ? ' selected' : '';
+    html += '<option value="' + inst.id + '"' + selected + '>' + esc(inst.name) + (inst.is_default ? ' (default)' : '') + '</option>';
+  }
+  sel.innerHTML = html;
+  if (typeof upgradeSelects === 'function') upgradeSelects(sel.parentNode);
+}
+
+function switchMonInstance(id) {
+  selectInstance(parseInt(id, 10), true);
+  // Sync the sidebar selector
+  renderInstanceSelector();
+  // Reload monitoring data with new instance
+  disconnectMonSse();
+  loadMonitoringData(true);
+  connectMonSse();
+}
+
 function startMonAutoRefresh() {
   stopMonAutoRefresh();
   var dd = document.getElementById('monRefreshDropdown');
@@ -96,6 +124,7 @@ function setMonRefreshInterval() {
 }
 
 async function loadMonitoringData(reset) {
+  if (reset) populateMonInstanceFilter();
   loadMonitoringStats();
   if (reset) loadMonitoringWorkflows();
   if (!monViewingDetail && reset) {

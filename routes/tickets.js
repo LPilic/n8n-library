@@ -204,6 +204,7 @@ router.get('/api/tickets', requireAuth, async (req, res) => {
     if (req.query.priority) { conditions.push(`t.priority = $${idx++}`); params.push(req.query.priority); }
     if (req.query.assignee) { conditions.push(`t.assigned_to = $${idx++}`); params.push(req.query.assignee); }
     if (req.query.category) { conditions.push(`t.category_id = $${idx++}`); params.push(req.query.category); }
+    if (req.query.instance_id) { conditions.push(`t.instance_id = $${idx++}`); params.push(req.query.instance_id); }
     if (req.query.mine === 'true') { conditions.push(`t.created_by = $${idx++}`); params.push(req.user.id); }
     if (req.query.search) {
       conditions.push(`(t.title ILIKE $${idx} OR t.description ILIKE $${idx})`);
@@ -223,11 +224,13 @@ router.get('/api/tickets', requireAuth, async (req, res) => {
       SELECT t.*, tc.name as category_name,
         cu.username as creator_name, cu.email as creator_email,
         au.username as assignee_name, au.email as assignee_email,
+        ni.name as instance_name,
         (SELECT COUNT(*)::int FROM ticket_comments WHERE ticket_id = t.id) as comment_count
       FROM tickets t
       LEFT JOIN ticket_categories tc ON tc.id = t.category_id
       LEFT JOIN users cu ON cu.id = t.created_by
       LEFT JOIN users au ON au.id = t.assigned_to
+      LEFT JOIN n8n_instances ni ON ni.id = t.instance_id
       ${where}
       ORDER BY
         CASE t.status WHEN 'open' THEN 0 WHEN 'in_progress' THEN 1 WHEN 'waiting' THEN 2 WHEN 'resolved' THEN 3 WHEN 'closed' THEN 4 END,
@@ -249,11 +252,13 @@ router.get('/api/tickets/:id', requireAuth, async (req, res) => {
     const { rows: tRows } = await pool.query(`
       SELECT t.*, tc.name as category_name,
         cu.username as creator_name, cu.email as creator_email,
-        au.username as assignee_name, au.email as assignee_email
+        au.username as assignee_name, au.email as assignee_email,
+        ni.name as instance_name
       FROM tickets t
       LEFT JOIN ticket_categories tc ON tc.id = t.category_id
       LEFT JOIN users cu ON cu.id = t.created_by
       LEFT JOIN users au ON au.id = t.assigned_to
+      LEFT JOIN n8n_instances ni ON ni.id = t.instance_id
       WHERE t.id = $1
     `, [req.params.id]);
     if (tRows.length === 0) return res.status(404).json({ error: 'Ticket not found' });
@@ -285,16 +290,16 @@ router.get('/api/tickets/:id', requireAuth, async (req, res) => {
 // Create ticket
 router.post('/api/tickets', requireAuth, ticketLimiter, async (req, res) => {
   try {
-    const { title, description, priority, category_id, assigned_to, execution_data } = req.body;
+    const { title, description, priority, category_id, assigned_to, execution_data, instance_id } = req.body;
     if (!title || !title.trim()) return res.status(400).json({ error: 'Title is required' });
     const validPriorities = ['low', 'medium', 'high', 'critical'];
     const prio = validPriorities.includes(priority) ? priority : 'medium';
     const execData = execution_data && typeof execution_data === 'object' ? JSON.stringify(execution_data) : null;
 
     const { rows } = await pool.query(
-      `INSERT INTO tickets (title, description, priority, category_id, created_by, assigned_to, execution_data)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [title.trim(), (description || '').trim(), prio, category_id || null, req.user.id, assigned_to || null, execData]
+      `INSERT INTO tickets (title, description, priority, category_id, created_by, assigned_to, execution_data, instance_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [title.trim(), (description || '').trim(), prio, category_id || null, req.user.id, assigned_to || null, execData, instance_id || null]
     );
     const ticket = rows[0];
 

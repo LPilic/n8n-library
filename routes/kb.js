@@ -87,7 +87,7 @@ router.get('/api/kb/articles', requireAuth, async (req, res) => {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 25));
     const offset = (page - 1) * limit;
-    const { category, tag, status, q, sort } = req.query;
+    const { category, tag, status, q, sort, instance_id } = req.query;
     const isWriter = req.session.user && (req.session.user.role === 'admin' || req.session.user.role === 'editor');
 
     let where = [];
@@ -106,6 +106,7 @@ router.get('/api/kb/articles', requireAuth, async (req, res) => {
       where.push(`EXISTS (SELECT 1 FROM kb_article_tags at2 JOIN kb_tags t2 ON t2.id=at2.tag_id WHERE at2.article_id=a.id AND t2.slug=$${pi++})`);
       params.push(tag);
     }
+    if (instance_id) { where.push(`a.instance_id = $${pi++}`); params.push(instance_id); }
 
     let rankSelect = '';
     let orderBy = 'a.is_pinned DESC, a.updated_at DESC';
@@ -131,12 +132,14 @@ router.get('/api/kb/articles', requireAuth, async (req, res) => {
              a.view_count, a.helpful_yes, a.helpful_no, a.created_at, a.updated_at, a.published_at,
              a.category_id, c.name AS category_name,
              u.username AS author_name,
+             ni.name AS instance_name,
              (SELECT array_agg(json_build_object('id',t.id,'name',t.name,'slug',t.slug))
               FROM kb_article_tags at JOIN kb_tags t ON t.id=at.tag_id WHERE at.article_id=a.id) AS tags
              ${rankSelect}
       FROM kb_articles a
       LEFT JOIN kb_categories c ON c.id = a.category_id
       LEFT JOIN users u ON u.id = a.author_id
+      LEFT JOIN n8n_instances ni ON ni.id = a.instance_id
       ${whereClause}
       ORDER BY ${orderBy}
       LIMIT $${pi++} OFFSET $${pi++}
@@ -158,6 +161,7 @@ router.get('/api/kb/articles/:idOrSlug', requireAuth, async (req, res) => {
 
     const { rows } = await pool.query(`
       SELECT a.*, c.name AS category_name, u.username AS author_name,
+        ni.name AS instance_name,
         (SELECT array_agg(json_build_object('id',t.id,'name',t.name,'slug',t.slug))
          FROM kb_article_tags at JOIN kb_tags t ON t.id=at.tag_id WHERE at.article_id=a.id) AS tags,
         (SELECT array_agg(json_build_object('id',att.id,'filename',att.filename,'original_name',att.original_name,'mime_type',att.mime_type,'size_bytes',att.size_bytes))
@@ -165,6 +169,7 @@ router.get('/api/kb/articles/:idOrSlug', requireAuth, async (req, res) => {
       FROM kb_articles a
       LEFT JOIN kb_categories c ON c.id = a.category_id
       LEFT JOIN users u ON u.id = a.author_id
+      LEFT JOIN n8n_instances ni ON ni.id = a.instance_id
       WHERE ${isId ? 'a.id = $1' : 'a.slug = $1'}
     `, [isId ? parseInt(param) : param]);
 
@@ -194,7 +199,7 @@ router.get('/api/kb/articles/:idOrSlug', requireAuth, async (req, res) => {
 // Create KB Article
 router.post('/api/kb/articles', requireRole('admin', 'editor'), writeLimiter, async (req, res) => {
   try {
-    const { title, body, excerpt, category_id, status, is_pinned, is_featured, tags } = req.body;
+    const { title, body, excerpt, category_id, status, is_pinned, is_featured, tags, instance_id } = req.body;
     if (!title || !title.trim()) return res.status(400).json({ error: 'Title is required' });
 
     const slug = await uniqueSlug(title);
@@ -202,10 +207,10 @@ router.post('/api/kb/articles', requireRole('admin', 'editor'), writeLimiter, as
     const publishedAt = articleStatus === 'published' ? new Date() : null;
 
     const { rows } = await pool.query(
-      `INSERT INTO kb_articles (title, slug, body, excerpt, category_id, author_id, status, is_pinned, is_featured, published_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+      `INSERT INTO kb_articles (title, slug, body, excerpt, category_id, author_id, status, is_pinned, is_featured, published_at, instance_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
       [title.trim(), slug, body || '', excerpt || '', category_id || null, req.session.user.id,
-       articleStatus, is_pinned || false, is_featured || false, publishedAt]
+       articleStatus, is_pinned || false, is_featured || false, publishedAt, instance_id || null]
     );
     const article = rows[0];
 
@@ -237,7 +242,7 @@ router.post('/api/kb/articles', requireRole('admin', 'editor'), writeLimiter, as
 // Update KB Article
 router.put('/api/kb/articles/:id', requireRole('admin', 'editor'), writeLimiter, async (req, res) => {
   try {
-    const { title, body, excerpt, category_id, status, is_pinned, is_featured, tags, version_note } = req.body;
+    const { title, body, excerpt, category_id, status, is_pinned, is_featured, tags, version_note, instance_id } = req.body;
 
     const current = await pool.query('SELECT title, body FROM kb_articles WHERE id=$1', [req.params.id]);
     if (!current.rows.length) return res.status(404).json({ error: 'Not found' });
@@ -258,8 +263,8 @@ router.put('/api/kb/articles/:id', requireRole('admin', 'editor'), writeLimiter,
       `UPDATE kb_articles SET title=COALESCE($1,title), body=COALESCE($2,body), excerpt=COALESCE($3,excerpt),
        category_id=$4, status=COALESCE($5,status), is_pinned=COALESCE($6,is_pinned),
        is_featured=COALESCE($7,is_featured), updated_at=NOW(),
-       published_at=COALESCE($8,published_at) WHERE id=$9 RETURNING *`,
-      [title?.trim(), body, excerpt, category_id || null, articleStatus, is_pinned, is_featured, publishedAt, req.params.id]
+       published_at=COALESCE($8,published_at), instance_id=$10 WHERE id=$9 RETURNING *`,
+      [title?.trim(), body, excerpt, category_id || null, articleStatus, is_pinned, is_featured, publishedAt, req.params.id, instance_id || null]
     );
     if (!rows.length) return res.status(404).json({ error: 'Not found' });
 

@@ -582,6 +582,14 @@ async function migrate() {
     CREATE INDEX IF NOT EXISTS idx_hitl_requests_created ON hitl_requests (created_at DESC);
   `);
 
+  // --- Instance references on tickets and KB articles ---
+  await pool.query(`
+    ALTER TABLE tickets ADD COLUMN IF NOT EXISTS instance_id INTEGER REFERENCES n8n_instances(id) ON DELETE SET NULL;
+    ALTER TABLE kb_articles ADD COLUMN IF NOT EXISTS instance_id INTEGER REFERENCES n8n_instances(id) ON DELETE SET NULL;
+    CREATE INDEX IF NOT EXISTS idx_tickets_instance ON tickets (instance_id);
+    CREATE INDEX IF NOT EXISTS idx_kb_articles_instance ON kb_articles (instance_id);
+  `);
+
   console.log('Migration complete.');
   await pool.end();
 }

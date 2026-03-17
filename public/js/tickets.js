@@ -77,9 +77,10 @@ function renderTicketList(data) {
     return;
   }
 
+  const showInstance = typeof instancesCache !== 'undefined' && instancesCache.length > 1;
   let html = `<div class="users-card"><table class="tickets-table">
     <thead><tr>
-      <th>#</th><th>Title</th><th>Status</th><th>Priority</th><th>Category</th><th>Assignee</th><th>Created</th>
+      <th>#</th><th>Title</th><th>Status</th><th>Priority</th><th>Category</th>${showInstance ? '<th>Instance</th>' : ''}<th>Assignee</th><th>Created</th>
     </tr></thead><tbody>`;
 
   for (const t of tickets) {
@@ -89,7 +90,8 @@ function renderTicketList(data) {
       <td><span class="ticket-title-cell">${esc(t.title)}</span>${t.comment_count > 0 ? `<span class="ticket-comment-count"><i class="fa fa-comment-o"></i> ${t.comment_count}</span>` : ''}</td>
       <td><span class="ticket-badge badge-${t.status}">${esc(statusLabel)}</span></td>
       <td><span class="ticket-badge badge-${t.priority}">${esc(t.priority)}</span></td>
-      <td class="ticket-meta">${esc(t.category_name || '—')}</td>
+      <td class="ticket-meta">${esc(t.category_name || '—')}</td>${showInstance ? `
+      <td class="ticket-meta">${t.instance_name ? `<span class="kb-cat-badge" style="font-size:10px">${esc(t.instance_name)}</span>` : '—'}</td>` : ''}
       <td class="ticket-meta">${esc(t.assignee_name || 'Unassigned')}</td>
       <td class="ticket-meta">${timeAgo(t.created_at)}</td>
     </tr>`;
@@ -327,6 +329,18 @@ async function openCreateTicketModal() {
   document.getElementById('ticketAssignee').value = '';
   if (typeof syncCustomSelect === 'function') syncCustomSelect(document.getElementById('ticketAssignee'));
   document.getElementById('ticketAttachments').innerHTML = '';
+  // Instance selector
+  var instSel = document.getElementById('ticketInstance');
+  if (instSel && typeof instancesCache !== 'undefined' && instancesCache.length > 1) {
+    instSel.parentElement.style.display = '';
+    instSel.innerHTML = '<option value="">None</option>' + instancesCache.map(function(i) {
+      var sel = i.id === (typeof activeInstanceId !== 'undefined' ? activeInstanceId : null) ? ' selected' : '';
+      return '<option value="' + i.id + '"' + sel + '>' + esc(i.name) + (i.is_default ? ' (default)' : '') + '</option>';
+    }).join('');
+    if (typeof refreshCustomSelect === 'function') refreshCustomSelect(instSel);
+  } else if (instSel) {
+    instSel.parentElement.style.display = 'none';
+  }
   document.getElementById('ticketModalTitle').textContent = 'New Ticket';
   document.getElementById('ticketSaveBtn').textContent = 'Create Ticket';
   document.getElementById('ticketExecContext').style.display = 'none';
@@ -346,6 +360,9 @@ async function saveTicket() {
     priority: document.getElementById('ticketPriority').value,
     category_id: document.getElementById('ticketCategory').value || null,
     assigned_to: document.getElementById('ticketAssignee').value || null,
+    instance_id: (document.getElementById('ticketInstance') && document.getElementById('ticketInstance').value)
+      ? document.getElementById('ticketInstance').value
+      : (typeof activeInstanceId !== 'undefined' && activeInstanceId ? activeInstanceId : null),
   };
 
   // Attach execution data if reporting from monitoring
@@ -461,6 +478,13 @@ async function openTicketDetail(id) {
       sb += `<span class="detail-value">${esc(ticket.assignee_name || 'Unassigned')}</span>`;
     }
     sb += '</div>';
+
+    // Instance
+    if (typeof instancesCache !== 'undefined' && instancesCache.length > 1) {
+      sb += '<div class="detail-field"><label>Instance</label>';
+      sb += `<span class="detail-value">${ticket.instance_name ? esc(ticket.instance_name) : '—'}</span>`;
+      sb += '</div>';
+    }
 
     sb += '<div class="sidebar-section-title" style="margin-top:24px">Information</div>';
     sb += `<div class="detail-field"><label>Created By</label><span class="detail-value">${esc(ticket.creator_name)}</span></div>`;

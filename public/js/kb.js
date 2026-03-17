@@ -120,9 +120,10 @@ function renderKbArticleList(data) {
     return;
   }
 
+  const showInstance = typeof instancesCache !== 'undefined' && instancesCache.length > 1;
   let html = `<div class="users-card"><table class="kb-articles-table">
     <thead><tr>
-      <th>Title</th><th>Category</th>${isWriter ? '<th>Status</th>' : ''}<th>Author</th><th>Views</th><th>Updated</th>
+      <th>Title</th><th>Category</th>${showInstance ? '<th>Instance</th>' : ''}${isWriter ? '<th>Status</th>' : ''}<th>Author</th><th>Views</th><th>Updated</th>
     </tr></thead><tbody>`;
 
   for (const a of data.articles) {
@@ -130,6 +131,7 @@ function renderKbArticleList(data) {
     html += `<tr onclick="viewKbArticle(${a.id})">
       <td><span class="kb-article-title-cell">${a.is_pinned ? '<span class="kb-pin" title="Pinned"><svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12" style="vertical-align:-1px"><path d="M16 2l-4 4-6-1-1 5 4 4-2 7 5-3 5 3-2-7 4-4-1-5z"/></svg></span>' : ''}${esc(a.title)}</span></td>
       <td>${a.category_name ? `<span class="kb-cat-badge">${esc(a.category_name)}</span>` : '<span class="kb-article-meta">—</span>'}</td>
+      ${showInstance ? `<td class="kb-article-meta">${a.instance_name ? `<span class="kb-cat-badge" style="font-size:10px">${esc(a.instance_name)}</span>` : '—'}</td>` : ''}
       ${isWriter ? `<td><span class="kb-status-badge ${statusLabel}">${statusLabel}</span></td>` : ''}
       <td class="kb-article-meta">${esc(a.author_name || 'Unknown')}</td>
       <td class="kb-article-meta">${a.view_count || 0}</td>
@@ -211,6 +213,7 @@ function renderKbArticleReader(article) {
         <div class="kb-reader-title">${esc(article.title)}</div>
         <div class="kb-reader-meta">
           ${article.category_name ? `<span class="kb-cat-badge">${esc(article.category_name)}</span>` : ''}
+          ${article.instance_name ? `<span class="kb-cat-badge" style="font-size:10px">${esc(article.instance_name)}</span>` : ''}
           ${article.status !== 'published' ? `<span class="kb-status-badge ${article.status}">${article.status}</span>` : ''}
           <span class="kb-reader-meta-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -394,6 +397,20 @@ async function openKbArticleModal(id) {
     kbCategoriesCache.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
   if (typeof refreshCustomSelect === 'function') refreshCustomSelect(catSel);
 
+  // Instance selector
+  var instGroup = document.getElementById('kbInstanceGroup');
+  var instSel = document.getElementById('kbArtInstance');
+  if (instGroup && instSel && typeof instancesCache !== 'undefined' && instancesCache.length > 1) {
+    instGroup.style.display = '';
+    instSel.innerHTML = '<option value="">None</option>' + instancesCache.map(function(i) {
+      var sel = i.id === (typeof activeInstanceId !== 'undefined' ? activeInstanceId : null) ? ' selected' : '';
+      return '<option value="' + i.id + '"' + sel + '>' + esc(i.name) + (i.is_default ? ' (default)' : '') + '</option>';
+    }).join('');
+    if (typeof refreshCustomSelect === 'function') refreshCustomSelect(instSel);
+  } else if (instGroup) {
+    instGroup.style.display = 'none';
+  }
+
   if (id) {
     try {
       const res = await fetch(`${API}/api/kb/articles/${id}`);
@@ -409,6 +426,10 @@ async function openKbArticleModal(id) {
       if (typeof syncCustomSelect === 'function') syncCustomSelect(document.getElementById('kbArtStatus'));
       document.getElementById('kbArtPinned').checked = !!a.is_pinned;
       document.getElementById('kbArtFeatured').checked = !!a.is_featured;
+      if (instSel && a.instance_id) {
+        instSel.value = a.instance_id;
+        if (typeof syncCustomSelect === 'function') syncCustomSelect(instSel);
+      }
 
       // Show existing attachments
       kbAttachments = (a.attachments || []).filter(Boolean);
@@ -438,6 +459,9 @@ async function saveKbArticle() {
     is_pinned: document.getElementById('kbArtPinned').checked,
     is_featured: document.getElementById('kbArtFeatured').checked,
     tags: kbSelectedTags.filter(Boolean),
+    instance_id: (document.getElementById('kbArtInstance') && document.getElementById('kbArtInstance').value)
+      ? document.getElementById('kbArtInstance').value
+      : (typeof activeInstanceId !== 'undefined' && activeInstanceId ? activeInstanceId : null),
   };
 
   const btn = document.getElementById('kbSaveBtn');
