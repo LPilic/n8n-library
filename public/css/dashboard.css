@@ -1,6 +1,7 @@
 /* dashboard.css — Dashboard / Home panel styles */
 
 .dash-greeting { margin-bottom: 20px; }
+.dash-instance-switcher { margin-bottom: 16px; display: flex; align-items: center; }
 .dash-greeting h2 { font-size: 20px; font-weight: 700; color: var(--color-text-dark); margin: 0; }
 .dash-greeting-sub { font-size: 13px; color: var(--color-text-muted); margin-top: 2px; display: block; }
 

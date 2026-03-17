@@ -71,11 +71,19 @@ router.get('/api/dashboard', requireAuth, async (req, res) => {
     if (isWriter) {
       try {
         const instances = await getAllInstances();
-        const defaultInst = instances.find(i => i.is_default) || instances[0];
-        if (defaultInst) {
+        result.instances = instances.map(i => ({ id: i.id, name: i.name, is_default: i.is_default }));
+
+        // Allow selecting a specific instance via query param
+        const requestedId = req.query.instance_id ? parseInt(req.query.instance_id, 10) : null;
+        const selectedInst = requestedId
+          ? instances.find(i => i.id === requestedId)
+          : instances.find(i => i.is_default) || instances[0];
+
+        if (selectedInst) {
+          result.selectedInstance = selectedInst.id;
           const [execData, wfMap] = await Promise.all([
-            n8nApiFetch('/api/v1/executions?limit=20', defaultInst.id),
-            getWorkflowNameMap(defaultInst.id),
+            n8nApiFetch('/api/v1/executions?limit=20', selectedInst.id),
+            getWorkflowNameMap(selectedInst.id),
           ]);
           if (execData.data) {
             enrichExecutions(execData.data, wfMap);
@@ -92,7 +100,7 @@ router.get('/api/dashboard', requireAuth, async (req, res) => {
           }
           // n8n health
           try {
-            const base = defaultInst.internal_url.replace(/\/+$/, '');
+            const base = selectedInst.internal_url.replace(/\/+$/, '');
             const start = Date.now();
             const r = await fetch(`${base}/healthz`, { signal: AbortSignal.timeout(3000) });
             result.n8nHealth = { status: r.ok ? 'healthy' : 'unhealthy', latencyMs: Date.now() - start };

@@ -1,20 +1,30 @@
 // --- Dashboard ---
 let dashboardLoaded = false;
+let _dashSelectedInstance = null;
 
-async function loadDashboard() {
+async function loadDashboard(instanceId) {
   const container = document.getElementById('dashboardContent');
   if (!container) return;
   container.innerHTML = '<div class="loading">Loading dashboard...</div>';
 
   try {
-    const res = await fetch(`${API}/api/dashboard`, { headers: CSRF_HEADERS });
+    let url = `${API}/api/dashboard`;
+    const id = instanceId || _dashSelectedInstance;
+    if (id) url += '?instance_id=' + id;
+    const res = await fetch(url, { headers: CSRF_HEADERS });
     if (!res.ok) throw new Error('Failed to load');
     const data = await res.json();
     dashboardLoaded = true;
+    if (data.selectedInstance) _dashSelectedInstance = data.selectedInstance;
     renderDashboard(data, container);
   } catch (err) {
     container.innerHTML = '<div class="loading" style="color:var(--color-danger)">Failed to load dashboard</div>';
   }
+}
+
+function switchDashInstance(instanceId) {
+  _dashSelectedInstance = parseInt(instanceId, 10);
+  loadDashboard(_dashSelectedInstance);
 }
 
 function renderDashboard(data, container) {
@@ -26,6 +36,18 @@ function renderDashboard(data, container) {
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   html += `<div class="dash-greeting"><h2>${greeting}, ${escapeHtml(data.user.username)}</h2><span class="dash-greeting-sub">Here's what's happening across your n8n environment</span></div>`;
 
+  // Instance selector (if multiple instances)
+  if (isWriter && data.instances && data.instances.length > 1) {
+    html += '<div class="dash-instance-switcher">';
+    html += '<label style="font-size:12px;font-weight:600;color:var(--color-text-muted);margin-right:8px">Instance:</label>';
+    html += '<select class="form-input" style="width:auto;display:inline-block;font-size:13px;padding:4px 10px" onchange="switchDashInstance(this.value)">';
+    for (const inst of data.instances) {
+      const sel = inst.id === data.selectedInstance ? ' selected' : '';
+      html += `<option value="${inst.id}"${sel}>${escapeHtml(inst.name)}${inst.is_default ? ' (default)' : ''}</option>`;
+    }
+    html += '</select></div>';
+  }
+
   // KPI row
   html += '<div class="dash-kpi-row">';
 
@@ -36,7 +58,7 @@ function renderDashboard(data, container) {
     const hLabel = hStatus === 'healthy' ? 'Healthy' : hStatus === 'unhealthy' ? 'Unhealthy' : 'Unreachable';
     html += `<div class="dash-kpi" onclick="switchPanel('monitoring')">
       <div class="dash-kpi-icon" style="background:${hColor}20;color:${hColor}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
-      <div class="dash-kpi-body"><div class="dash-kpi-value" style="color:${hColor}">${hLabel}</div><div class="dash-kpi-label">n8n Instance${data.n8nHealth.latencyMs ? ' &middot; ' + data.n8nHealth.latencyMs + 'ms' : ''}</div></div>
+      <div class="dash-kpi-body"><div class="dash-kpi-value" style="color:${hColor}">${hLabel}</div><div class="dash-kpi-label">${data.instances && data.instances.length > 1 && data.selectedInstance ? escapeHtml((data.instances.find(i=>i.id===data.selectedInstance)||{}).name||'n8n') : 'n8n Instance'}${data.n8nHealth.latencyMs ? ' &middot; ' + data.n8nHealth.latencyMs + 'ms' : ''}</div></div>
     </div>`;
   }
 
@@ -188,6 +210,7 @@ function renderDashboard(data, container) {
   html += '</div>'; // end grid
 
   container.innerHTML = html;
+  if (typeof upgradeSelects === 'function') upgradeSelects(container);
 }
 
 function escapeHtml(str) {

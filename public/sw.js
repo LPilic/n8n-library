@@ -1,5 +1,5 @@
 // Service Worker — App Shell Cache
-const CACHE_NAME = 'n8n-library-v1';
+const CACHE_NAME = 'n8n-library-v2';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -25,6 +25,8 @@ const APP_SHELL = [
   '/js/cmdpalette.js',
   '/js/audit.js',
   '/js/alerts.js',
+  '/js/hitl.js',
+  '/css/hitl.css',
 ];
 
 // Install — pre-cache app shell
