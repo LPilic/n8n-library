@@ -182,6 +182,7 @@ app.use(require('./routes/ai'));
 app.use(require('./routes/mcp-routes'));
 app.use(require('./routes/api-keys'));
 app.use(require('./routes/notifications'));
+app.use(require('./routes/search'));
 
 // --- API Documentation (Swagger) ---
 

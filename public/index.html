@@ -26,6 +26,7 @@
 <link rel="stylesheet" href="css/kb.css?v=1">
 <link rel="stylesheet" href="css/dashboard.css?v=1">
 <link rel="stylesheet" href="css/notifications.css?v=1">
+<link rel="stylesheet" href="css/cmdpalette.css?v=1">
 <script src="vendor/js/purify.min.js"></script>
 <link rel="stylesheet" href="vendor/css/github-highlight.min.css">
 <script src="vendor/js/highlight.min.js"></script>
@@ -34,6 +35,18 @@
 <script src="vendor/js/chart.umd.min.js"></script>
 </head>
 <body>
+  <!-- Command Palette -->
+  <div class="cmd-overlay" id="cmdOverlay" style="display:none" onclick="if(event.target===this)closeCmdPalette()">
+    <div class="cmd-palette">
+      <div class="cmd-input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" class="cmd-input" id="cmdInput" placeholder="Search or jump to..." oninput="onCmdInput()" onkeydown="onCmdKeydown(event)" autocomplete="off">
+        <span class="cmd-kbd">ESC</span>
+      </div>
+      <div class="cmd-results" id="cmdResults"></div>
+    </div>
+  </div>
+
   <!-- Login overlay -->
   <div id="login-overlay">
     <!-- Login form -->
@@ -1458,5 +1471,6 @@
 <script src="js/observability.js?v=6"></script>
 <script src="js/dashboard.js?v=1"></script>
 <script src="js/notifications.js?v=1"></script>
+<script src="js/cmdpalette.js?v=1"></script>
 </body>
 </html>
