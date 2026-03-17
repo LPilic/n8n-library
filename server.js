@@ -171,6 +171,7 @@ app.get('/health', async (_req, res) => {
 const templatesRouter = require('./routes/templates');
 templatesRouter.setNodeData(NODE_ICONS, NODE_CREDS);
 
+app.use(require('./routes/dashboard'));
 app.use(require('./routes/auth'));
 app.use(templatesRouter);
 app.use(require('./routes/tickets'));

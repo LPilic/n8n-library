@@ -92,7 +92,7 @@ function showApp() {
 
   // Init app
   loadSettings();
-  loadLibrary();
+  loadDashboard();
   updateOpenTicketBadge();
   checkAiStatus();
 
@@ -575,6 +575,7 @@ function switchPanel(name) {
   const moreBtn = document.getElementById('mobileMoreBtn');
   if (moreBtn && MORE_PANELS.includes(name)) moreBtn.classList.add('more-active');
 
+  if (name === 'dashboard') loadDashboard();
   if (name === 'library') loadLibrary();
   if (name === 'n8n') loadN8nWorkflows();
   if (name === 'categories') loadCategories();

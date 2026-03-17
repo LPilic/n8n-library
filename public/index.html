@@ -24,6 +24,7 @@
 <link rel="stylesheet" href="css/tickets.css?v=1">
 <link rel="stylesheet" href="css/comments.css?v=1">
 <link rel="stylesheet" href="css/kb.css?v=1">
+<link rel="stylesheet" href="css/dashboard.css?v=1">
 <script src="vendor/js/purify.min.js"></script>
 <link rel="stylesheet" href="vendor/css/github-highlight.min.css">
 <script src="vendor/js/highlight.min.js"></script>
@@ -90,7 +91,11 @@
     <div class="sidebar-nav">
       <!-- MAIN -->
       <div class="sidebar-section-label">Main</div>
-      <div class="nav-item active" data-panel="library" onclick="switchPanel('library')" data-tooltip="Templates">
+      <div class="nav-item active" data-panel="dashboard" onclick="switchPanel('dashboard')" data-tooltip="Dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        <span>Dashboard</span>
+      </div>
+      <div class="nav-item" data-panel="library" onclick="switchPanel('library')" data-tooltip="Templates">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         <span>Templates</span>
       </div>
@@ -170,7 +175,11 @@
 
   <!-- Mobile Nav — fixed bottom tab bar (visible only on small screens) -->
   <div class="mobile-nav" id="mobileNav" style="display:none">
-    <button data-panel="library" onclick="switchPanel('library')" class="active">
+    <button data-panel="dashboard" onclick="switchPanel('dashboard')" class="active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+      <span>Home</span>
+    </button>
+    <button data-panel="library" onclick="switchPanel('library')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
       <span>Library</span>
     </button>
@@ -236,8 +245,19 @@
   <!-- Main -->
   <div class="main" id="appMain" style="display:none">
 
+    <!-- Dashboard Panel -->
+    <div class="panel active" id="panel-dashboard">
+      <div class="toolbar">
+        <h2>Dashboard</h2>
+        <div class="toolbar-right">
+          <button class="btn btn-secondary" onclick="loadDashboard()"><i class="fa fa-refresh"></i> Refresh</button>
+        </div>
+      </div>
+      <div class="content" id="dashboardContent"></div>
+    </div>
+
     <!-- Library Panel -->
-    <div class="panel active" id="panel-library">
+    <div class="panel" id="panel-library">
       <div class="toolbar">
         <h2>Template Library</h2>
         <input type="text" class="search-input" placeholder="Search templates..." id="librarySearch" oninput="loadLibrary()">
@@ -1428,5 +1448,6 @@
 <script src="js/kb.js?v=7"></script>
 <script src="js/monitoring.js?v=7"></script>
 <script src="js/observability.js?v=6"></script>
+<script src="js/dashboard.js?v=1"></script>
 </body>
 </html>
