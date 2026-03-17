@@ -7,6 +7,7 @@ const { escHtml } = require('../lib/helpers');
 const { requireAuth, requireRole, ticketLimiter } = require('../lib/middleware');
 const { sendTicketNotification } = require('../lib/email');
 const { verifyN8nUser } = require('../lib/n8n-api');
+const { createNotification } = require('./notifications');
 
 const router = express.Router();
 
@@ -309,8 +310,17 @@ router.post('/api/tickets', requireAuth, ticketLimiter, async (req, res) => {
           [ticket.id, req.user.id, 'assigned', aRows[0].email]
         );
         sendTicketNotification('assignment', ticket, { assigneeEmail: aRows[0].email });
+        createNotification(assigned_to, 'assignment', 'Ticket assigned to you', `#${ticket.id} — ${ticket.title}`, '/tickets/' + ticket.id);
       }
     }
+
+    // Notify admins/editors of new ticket
+    try {
+      const { rows: staff } = await pool.query("SELECT id FROM users WHERE role IN ('admin','editor') AND id != $1", [req.user.id]);
+      for (const s of staff) {
+        createNotification(s.id, 'new_ticket', 'New ticket created', `#${ticket.id} — ${ticket.title}`, '/tickets/' + ticket.id);
+      }
+    } catch {}
 
     res.json(ticket);
   } catch (err) {
@@ -361,6 +371,7 @@ router.put('/api/tickets/:id', requireRole('admin', 'editor'), async (req, res) 
       activities.push({ action: 'assigned', old_value: oldAssigneeName, new_value: newAssigneeName ? newAssigneeName.username : 'Unassigned' });
       if (newAssigneeName) {
         sendTicketNotification('assignment', { ...old, assigned_to }, { assigneeEmail: newAssigneeName.email });
+        createNotification(assigned_to, 'assignment', 'Ticket assigned to you', `#${old.id} — ${old.title}`, '/tickets/' + old.id);
       }
     }
 
@@ -379,6 +390,14 @@ router.put('/api/tickets/:id', requireRole('admin', 'editor'), async (req, res) 
 
     if (status !== undefined && status !== old.status) {
       sendTicketNotification('status_change', { ...old, status }, { oldStatus: old.status, newStatus: status, changedBy: req.user.id });
+      // Notify ticket creator of status change
+      if (old.created_by && old.created_by !== req.user.id) {
+        createNotification(old.created_by, 'status_change', `Ticket status: ${status.replace(/_/g, ' ')}`, `#${old.id} — ${old.title}`, '/tickets/' + old.id);
+      }
+      // Notify assignee of status change
+      if (old.assigned_to && old.assigned_to !== req.user.id && old.assigned_to !== old.created_by) {
+        createNotification(old.assigned_to, 'status_change', `Ticket status: ${status.replace(/_/g, ' ')}`, `#${old.id} — ${old.title}`, '/tickets/' + old.id);
+      }
     }
 
     const { rows: updated } = await pool.query('SELECT * FROM tickets WHERE id=$1', [req.params.id]);
@@ -429,6 +448,13 @@ router.post('/api/tickets/:id/comments', requireAuth, ticketLimiter, async (req,
         commenterName: req.user.username,
         commentBody: commentBody.trim(),
       });
+      // Notify ticket creator and assignee of new comment
+      const notifyIds = new Set();
+      if (ticket.created_by && ticket.created_by !== req.user.id) notifyIds.add(ticket.created_by);
+      if (ticket.assigned_to && ticket.assigned_to !== req.user.id) notifyIds.add(ticket.assigned_to);
+      for (const uid of notifyIds) {
+        createNotification(uid, 'comment', `New comment by ${req.user.username}`, `#${ticket.id} — ${ticket.title}`, '/tickets/' + ticket.id);
+      }
     }
 
     res.json(rows[0]);

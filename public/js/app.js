@@ -94,6 +94,7 @@ function showApp() {
   loadSettings();
   updateOpenTicketBadge();
   checkAiStatus();
+  initNotifications();
 
   // Route from URL or fall back to dashboard
   if (!handleRouteFromUrl()) {
@@ -208,6 +209,7 @@ async function doResetPassword() {
 }
 
 async function doLogout() {
+  disconnectNotifSse();
   await fetch(`${API}/api/auth/logout`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
   currentUser = null;
   showLogin();

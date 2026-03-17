@@ -25,6 +25,7 @@
 <link rel="stylesheet" href="css/comments.css?v=1">
 <link rel="stylesheet" href="css/kb.css?v=1">
 <link rel="stylesheet" href="css/dashboard.css?v=1">
+<link rel="stylesheet" href="css/notifications.css?v=1">
 <script src="vendor/js/purify.min.js"></script>
 <link rel="stylesheet" href="vendor/css/github-highlight.min.css">
 <script src="vendor/js/highlight.min.js"></script>
@@ -163,6 +164,13 @@
             <div id="userDisplayName" style="font-weight:600"></div>
             <span class="user-badge-role" id="userRoleBadge"></span>
           </div>
+        </div>
+        <div class="notif-bell-wrap">
+          <button class="notif-bell" id="notifBtn" onclick="toggleNotifDropdown()" title="Notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="notif-badge" id="notifBadge" style="display:none">0</span>
+          </button>
+          <div class="notif-dropdown" id="notifDropdown" style="display:none"></div>
         </div>
         <button class="logout-btn" onclick="doLogout()">Logout</button>
       </div>
@@ -1449,5 +1457,6 @@
 <script src="js/monitoring.js?v=7"></script>
 <script src="js/observability.js?v=6"></script>
 <script src="js/dashboard.js?v=1"></script>
+<script src="js/notifications.js?v=1"></script>
 </body>
 </html>
