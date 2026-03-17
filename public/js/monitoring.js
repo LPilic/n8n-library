@@ -621,7 +621,8 @@ async function loadExecutionDetail(id) {
     html += '<span class="ticket-badge badge-' + statusClass + '">' + esc(ex.status || 'unknown') + '</span>';
     html += '<div class="mon-detail-actions">';
     if (ex.status === 'error') {
-      html += '<button class="btn btn-primary" onclick="reportIssueFromExecution()"><i class="fa fa-ticket"></i> Report Issue</button>';
+      html += '<button class="btn btn-primary" onclick="retryExecution(\'' + esc(String(id)) + '\')"><i class="fa fa-repeat"></i> Retry</button>';
+      html += '<button class="btn btn-secondary" onclick="reportIssueFromExecution()"><i class="fa fa-ticket"></i> Report Issue</button>';
       if (aiEnabled) {
         html += '<button class="btn btn-secondary" onclick="aiAnalyzeError(\'' + esc(String(id)) + '\')">&#10024; Analyze Error</button>';
       }
@@ -738,6 +739,28 @@ async function loadExecutionDetail(id) {
 function toggleNodeData(el) {
   var d = el.querySelector('.mon-node-data');
   if (d) d.classList.toggle('open');
+}
+
+async function retryExecution(id) {
+  if (!confirm('Retry this execution?')) return;
+  try {
+    var res = await fetch(monUrl('/api/monitoring/executions/' + encodeURIComponent(id) + '/retry'), {
+      method: 'POST',
+      headers: CSRF_HEADERS,
+    });
+    if (!res.ok) {
+      var err = await res.json().catch(function() { return {}; });
+      return toast(err.error || 'Retry failed', 'error');
+    }
+    var data = await res.json();
+    toast('Execution retried — new execution started', 'success');
+    // Reload the new execution if we got an ID back
+    if (data.id) {
+      setTimeout(function() { loadExecutionDetail(data.id); }, 500);
+    }
+  } catch (e) {
+    toast('Failed to retry execution', 'error');
+  }
 }
 
 async function reportIssueFromExecution() {

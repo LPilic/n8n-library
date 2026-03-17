@@ -223,6 +223,28 @@ router.get('/api/monitoring/executions/:id', requireRole('admin', 'editor'), asy
   }
 });
 
+// Retry execution
+router.post('/api/monitoring/executions/:id/retry', requireRole('admin', 'editor'), async (req, res) => {
+  try {
+    const cfg = await getInstanceBase(req);
+    if (!cfg) return res.status(400).json({ error: 'No n8n instance configured' });
+    const r = await fetch(`${cfg.base}/api/v1/executions/${encodeURIComponent(req.params.id)}/retry`, {
+      method: 'POST',
+      headers: { 'X-N8N-API-KEY': cfg.key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    if (!r.ok) {
+      const errBody = await r.text();
+      return res.status(r.status).json({ error: errBody || 'Failed to retry execution' });
+    }
+    const data = await r.json();
+    res.json(data);
+  } catch (err) {
+    console.error('Retry execution error:', err.message);
+    res.status(502).json({ error: 'Failed to reach n8n' });
+  }
+});
+
 // Stats
 router.get('/api/monitoring/stats', requireRole('admin', 'editor'), async (req, res) => {
   try {
