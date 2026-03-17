@@ -928,6 +928,23 @@ document.addEventListener('click', function(e) {
   }
 });
 
+// --- Confirm dialog ---
+var _confirmResolve = null;
+function appConfirm(message, opts) {
+  opts = opts || {};
+  document.getElementById('confirmTitle').textContent = opts.title || 'Confirm';
+  document.getElementById('confirmMessage').textContent = message;
+  var okBtn = document.getElementById('confirmOkBtn');
+  okBtn.textContent = opts.okLabel || 'Confirm';
+  okBtn.className = 'btn ' + (opts.danger ? 'btn-danger' : 'btn-primary');
+  openModal('confirmModal');
+  return new Promise(function(resolve) { _confirmResolve = resolve; });
+}
+function resolveConfirm(val) {
+  closeModal('confirmModal');
+  if (_confirmResolve) { _confirmResolve(val); _confirmResolve = null; }
+}
+
 // --- Modal ---
 function openModal(id) {
   document.getElementById(id).classList.add('active');

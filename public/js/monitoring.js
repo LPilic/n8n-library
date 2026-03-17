@@ -742,7 +742,8 @@ function toggleNodeData(el) {
 }
 
 async function retryExecution(id) {
-  if (!confirm('Retry this execution?')) return;
+  var ok = await appConfirm('Are you sure you want to retry this execution?', { title: 'Retry Execution', okLabel: 'Retry' });
+  if (!ok) return;
   try {
     var res = await fetch(monUrl('/api/monitoring/executions/' + encodeURIComponent(id) + '/retry'), {
       method: 'POST',

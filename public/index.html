@@ -35,6 +35,18 @@
 <script src="vendor/js/chart.umd.min.js"></script>
 </head>
 <body>
+  <!-- Confirm Dialog -->
+  <div class="modal-overlay" id="confirmModal" onclick="if(event.target===this)resolveConfirm(false)">
+    <div class="modal" style="width:400px">
+      <h3 id="confirmTitle">Confirm</h3>
+      <p id="confirmMessage" style="font-size:14px;color:var(--color-text);line-height:1.5;margin-bottom:0"></p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="resolveConfirm(false)">Cancel</button>
+        <button class="btn btn-primary" id="confirmOkBtn" onclick="resolveConfirm(true)">Confirm</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Command Palette -->
   <div class="cmd-overlay" id="cmdOverlay" style="display:none" onclick="if(event.target===this)closeCmdPalette()">
     <div class="cmd-palette">
