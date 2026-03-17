@@ -184,6 +184,7 @@ app.use(require('./routes/api-keys'));
 app.use(require('./routes/notifications'));
 app.use(require('./routes/search'));
 app.use(require('./routes/audit'));
+app.use(require('./routes/alerts'));
 
 // --- API Documentation (Swagger) ---
 
@@ -270,6 +271,9 @@ const { reconnectAllMcp } = require('./lib/mcp');
 getAiConfig().catch(() => {});
 scheduleDailySummaryCron();
 reconnectAllMcp();
+
+const { startAlertEngine } = require('./lib/alert-engine');
+startAlertEngine();
 
 // --- Client-side routing catch-all ---
 // Serve index.html for panel routes so direct navigation and refresh work

@@ -1117,6 +1117,55 @@
             </div>
           </div>
 
+          <!-- Scheduled Alerts -->
+          <div class="settings-card admin-only" style="margin-bottom:0">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+              <div style="width:36px;height:36px;border-radius:var(--radius);background:#fef3c7;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><line x1="1" y1="1" x2="23" y2="23" stroke="none"/></svg>
+              </div>
+              <div style="flex:1">
+                <h3 style="margin-bottom:0">Scheduled Alerts</h3>
+                <p style="font-size:12px;color:var(--color-text-muted);margin-top:2px">Get notified when conditions are met — checked every 5 minutes</p>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="openAlertForm()">+ New Alert</button>
+            </div>
+            <div id="alertsList"></div>
+            <div id="alertFormWrap" style="display:none">
+              <div style="border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:16px;margin-top:12px;background:var(--color-bg)">
+                <input type="hidden" id="alertEditId">
+                <div class="form-group">
+                  <label>Alert Name <span style="color:var(--color-danger)">*</span></label>
+                  <input type="text" class="form-input" id="alertName" placeholder="e.g. High failure rate alert">
+                </div>
+                <div class="form-group">
+                  <label>Condition <span style="color:var(--color-danger)">*</span></label>
+                  <select class="form-input" id="alertCondition" onchange="onAlertConditionChange()">
+                    <option value="">Select a condition...</option>
+                    <option value="execution_failure_rate">Execution failure rate exceeds threshold</option>
+                    <option value="execution_failure_count">Execution failure count exceeds threshold</option>
+                    <option value="open_tickets_threshold">Open tickets exceed threshold</option>
+                    <option value="ticket_sla_breach">Tickets unresolved past SLA</option>
+                    <option value="n8n_unreachable">n8n instance unreachable</option>
+                  </select>
+                </div>
+                <div id="alertConfigFields"></div>
+                <div class="form-group">
+                  <label>Cooldown (minutes) — minimum time between repeated alerts</label>
+                  <input type="number" class="form-input" id="alertCooldown" value="30" min="5" style="width:120px">
+                </div>
+                <div class="form-group">
+                  <label>Notify Users <span style="color:var(--color-danger)">*</span></label>
+                  <div id="alertRecipientPills" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+                  <div id="alertUserDropdownWrap"></div>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:16px">
+                  <button class="btn btn-primary" onclick="saveAlert()">Save Alert</button>
+                  <button class="btn btn-secondary" onclick="cancelAlertForm()">Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -1512,5 +1561,6 @@
 <script src="js/notifications.js?v=1"></script>
 <script src="js/cmdpalette.js?v=1"></script>
 <script src="js/audit.js?v=1"></script>
+<script src="js/alerts.js?v=1"></script>
 </body>
 </html>

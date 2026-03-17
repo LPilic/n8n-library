@@ -125,7 +125,7 @@ function loadSettings() {
   loadBranding();
   loadInstances();
   loadApiKeys();
-  if (currentUser && currentUser.role === 'admin') { loadSmtpSettings(); loadEmailTemplates(); loadMcpServerStatus(); }
+  if (currentUser && currentUser.role === 'admin') { loadSmtpSettings(); loadEmailTemplates(); loadMcpServerStatus(); if (typeof loadAlerts === 'function') loadAlerts(); }
 }
 
 // --- n8n Instance Management ---

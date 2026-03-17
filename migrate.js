@@ -452,6 +452,21 @@ async function migrate() {
     CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON audit_log (entity_type, entity_id);
   `);
 
+  // --- Scheduled Alerts ---
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS alerts (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      condition TEXT NOT NULL,
+      config JSONB NOT NULL DEFAULT '{}',
+      recipients JSONB NOT NULL DEFAULT '[]',
+      cooldown_minutes INTEGER NOT NULL DEFAULT 30,
+      enabled BOOLEAN DEFAULT TRUE,
+      last_fired_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
   console.log('Migration complete.');
   await pool.end();
 }
