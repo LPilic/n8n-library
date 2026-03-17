@@ -964,18 +964,24 @@ function hitlCopyCurl(mode) {
   if (Object.keys(data).length === 0) data = sampleData;
 
   var templateName = document.getElementById('hitlBuilderName').value.trim() || slug;
+  var payload;
 
-  var payload = {
-    callback_url: 'https://YOUR_N8N_INSTANCE/webhook/CALLBACK_ID',
-    title: templateName + (mode === 'test' ? ' (test)' : ''),
-    description: 'Approval request triggered from n8n workflow',
-    priority: 'medium',
-    timeout_minutes: 1440,
-    data: data
-  };
+  if (mode === 'test') {
+    // Test curl — just send data to validate the template
+    payload = { data: data };
+  } else {
+    // Production curl — full HITL request with callback
+    payload = {
+      callback_url: 'https://YOUR_N8N_INSTANCE/webhook-waiting/EXECUTION_ID',
+      title: templateName,
+      description: 'Approval request from n8n workflow',
+      priority: 'medium',
+      timeout_minutes: 1440,
+      data: data
+    };
+  }
 
   var jsonStr = JSON.stringify(payload, null, 2);
-  // Escape single quotes for shell
   var escaped = jsonStr.replace(/'/g, "'\\''");
 
   var curl = "curl -X POST '" + url + "' \\\n" +
@@ -984,7 +990,7 @@ function hitlCopyCurl(mode) {
     "  -d '" + escaped + "'";
 
   navigator.clipboard.writeText(curl);
-  toast('cURL command copied!', 'success');
+  toast(mode === 'test' ? 'Test cURL copied!' : 'Production cURL copied!', 'success');
 }
 
 // --- Form Preview ---
