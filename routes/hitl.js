@@ -306,9 +306,23 @@ router.post('/api/hitl/capture', requireRole('admin', 'editor'), (req, res) => {
 });
 
 // Receive webhook payload (no auth — this is what n8n hits)
-router.post('/api/hitl/capture/:token', express.json(), (req, res) => {
+// Hardened: single-use, size-limited, rate-limited per IP
+const _captureAttempts = new Map(); // ip -> { count, resetAt }
+router.post('/api/hitl/capture/:token', express.json({ limit: '1mb' }), (req, res) => {
+  // Rate limit: max 20 attempts per minute per IP
+  const ip = req.ip;
+  const now = Date.now();
+  let attempts = _captureAttempts.get(ip);
+  if (!attempts || now > attempts.resetAt) {
+    attempts = { count: 0, resetAt: now + 60000 };
+    _captureAttempts.set(ip, attempts);
+  }
+  attempts.count++;
+  if (attempts.count > 20) return res.status(429).json({ error: 'Too many attempts' });
+
   const entry = _captureStore.get(req.params.token);
   if (!entry) return res.status(404).json({ error: 'Capture session expired or not found' });
+  if (entry.payload) return res.status(409).json({ error: 'Payload already captured' });
   entry.payload = req.body;
   entry.captured_at = new Date().toISOString();
   res.json({ ok: true, message: 'Payload captured' });
