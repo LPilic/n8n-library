@@ -109,7 +109,7 @@ app.use(apiKeyAuth);
 app.use((req, res, next) => {
   if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
     if (req.apiKeyAuth) return next(); // API key auth is not susceptible to CSRF
-    if (req.path.startsWith('/templates/') || req.path === '/health' || req.path.startsWith('/api/public/') || req.path === '/mcp') return next();
+    if (req.path.startsWith('/templates/') || req.path === '/health' || req.path.startsWith('/api/public/') || req.path === '/mcp' || req.path === '/api/hitl/requests' || req.path.startsWith('/api/hitl/capture/')) return next();
     const xrw = req.headers['x-requested-with'];
     if (xrw !== 'XMLHttpRequest') {
       return res.status(403).json({ error: 'Missing X-Requested-With header' });
@@ -186,6 +186,7 @@ app.use(require('./routes/search'));
 app.use(require('./routes/audit'));
 app.use(require('./routes/alerts'));
 app.use(require('./routes/webhooks'));
+app.use(require('./routes/hitl'));
 
 // --- API Documentation (Swagger) ---
 
@@ -278,7 +279,7 @@ startAlertEngine();
 
 // --- Client-side routing catch-all ---
 // Serve index.html for panel routes so direct navigation and refresh work
-const CLIENT_ROUTES = ['dashboard','library','n8n','categories','tickets','kb','monitoring','observability','ai','settings','users','audit'];
+const CLIENT_ROUTES = ['dashboard','library','n8n','categories','tickets','kb','monitoring','observability','ai','settings','users','audit','approvals','approvals-builder'];
 app.get('*', (req, res, next) => {
   const segment = req.path.split('/')[1];
   if (CLIENT_ROUTES.includes(segment)) {

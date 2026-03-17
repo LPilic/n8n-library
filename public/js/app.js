@@ -95,6 +95,7 @@ function showApp() {
   updateOpenTicketBadge();
   checkAiStatus();
   initNotifications();
+  if (typeof loadHitlPendingCount === 'function') loadHitlPendingCount();
 
   // Route from URL or fall back to dashboard
   if (!handleRouteFromUrl()) {
@@ -617,10 +618,13 @@ function switchPanel(name, skipPush) {
   else { stopObsAutoRefresh(); }
   if (name === 'ai') { loadAiSettings(); loadAiPrompts(); loadMcpServers(); }
   if (name === 'audit') { loadAuditLog(); }
+  if (name === 'approvals') { loadHitlRequests('pending'); connectHitlSse(); loadHitlPendingCount(); }
+  else { if (typeof disconnectHitlSse === 'function') disconnectHitlSse(); }
+  if (name === 'approvals-builder') { loadHitlTemplates(); }
 }
 
 // --- Client-side routing ---
-const VALID_PANELS = ['dashboard','library','n8n','categories','tickets','kb','monitoring','observability','ai','settings','users','audit'];
+const VALID_PANELS = ['dashboard','library','n8n','categories','tickets','kb','monitoring','observability','ai','settings','users','audit','approvals','approvals-builder'];
 
 function handleRouteFromUrl() {
   const path = window.location.pathname.replace(/^\/+|\/+$/g, '');

@@ -27,6 +27,7 @@
 <link rel="stylesheet" href="css/dashboard.css?v=1">
 <link rel="stylesheet" href="css/notifications.css?v=1">
 <link rel="stylesheet" href="css/cmdpalette.css?v=1">
+<link rel="stylesheet" href="css/hitl.css?v=1">
 <script src="vendor/js/purify.min.js"></script>
 <link rel="stylesheet" href="vendor/css/github-highlight.min.css">
 <script src="vendor/js/highlight.min.js"></script>
@@ -146,6 +147,11 @@
       <!-- OPERATIONS -->
       <div class="sidebar-section-divider write-only"></div>
       <div class="sidebar-section-label write-only">Operations</div>
+      <div class="nav-item write-only" data-panel="approvals" onclick="switchPanel('approvals')" data-tooltip="Approvals">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span>Approvals</span>
+        <span class="hitl-nav-badge" id="hitlNavBadge" style="display:none">0</span>
+      </div>
       <div class="nav-item write-only" data-panel="monitoring" onclick="switchPanel('monitoring')" data-tooltip="Monitoring">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         <span>Monitoring</span>
@@ -1242,6 +1248,102 @@
       </div>
     </div>
 
+    <!-- Approvals (HITL) Panel -->
+    <div class="panel" id="panel-approvals">
+      <div class="toolbar">
+        <h2>Approvals</h2>
+        <select class="form-input" id="hitlStatusFilter" style="width:auto;min-width:140px" onchange="loadHitlRequests(this.value)">
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+          <option value="expired">Expired</option>
+        </select>
+        <div class="toolbar-right">
+          <button class="btn btn-secondary btn-sm admin-only" onclick="switchPanel('approvals-builder')"><i class="fa fa-cog"></i> Form Builder</button>
+        </div>
+      </div>
+      <div class="content" style="padding:16px">
+        <div id="hitlRequestsList"></div>
+      </div>
+    </div>
+
+    <!-- HITL Form Builder Panel (admin only) -->
+    <div class="panel" id="panel-approvals-builder">
+      <div class="toolbar">
+        <h2>HITL Form Builder</h2>
+        <div class="toolbar-right">
+          <button class="btn btn-secondary btn-sm" onclick="switchPanel('approvals')"><i class="fa fa-arrow-left"></i> Back to Approvals</button>
+        </div>
+      </div>
+      <div class="content" style="padding:16px">
+        <!-- Template list -->
+        <div id="hitlTemplateListWrap">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+            <h3 style="margin:0;flex:1">Form Templates</h3>
+            <button class="btn btn-primary btn-sm" onclick="openHitlBuilder()">+ New Template</button>
+          </div>
+          <div id="hitlTemplateList"></div>
+        </div>
+
+        <!-- Builder editor -->
+        <div id="hitlBuilderWrap" style="display:none">
+          <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:flex-end">
+            <div class="form-group" style="margin-bottom:0;flex:1;min-width:180px">
+              <label>Template Name</label>
+              <input type="text" class="form-input" id="hitlBuilderName" placeholder="e.g. Invoice Approval" oninput="hitlAutoSlug()">
+            </div>
+            <div class="form-group" style="margin-bottom:0;width:200px">
+              <label>Slug (used in API)</label>
+              <input type="text" class="form-input" id="hitlBuilderSlug" placeholder="e.g. invoice-approval">
+            </div>
+            <div class="form-group" style="margin-bottom:0;flex:1;min-width:180px">
+              <label>Description</label>
+              <input type="text" class="form-input" id="hitlBuilderDesc" placeholder="Optional description">
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-secondary" onclick="hitlTogglePreview()" id="hitlPreviewBtn"><i class="fa fa-eye"></i> Preview</button>
+              <button class="btn btn-primary" onclick="saveHitlTemplate()">Save Template</button>
+              <button class="btn btn-secondary" onclick="closeHitlBuilder()">Cancel</button>
+            </div>
+          </div>
+          <div class="hitl-builder" id="hitlBuilderGrid">
+            <div class="hitl-palette" id="hitlPalette"></div>
+            <div class="hitl-canvas" id="hitlCanvas" ondragover="hitlRootDragOver(event)" ondragleave="hitlRootDragLeave(event)" ondrop="hitlCanvasDropZone(event)">
+              <div class="hitl-canvas-empty">Drag components here to build your form</div>
+            </div>
+            <div class="hitl-props" id="hitlProps">
+              <div class="hitl-props-empty">Select a component to edit its properties</div>
+            </div>
+          </div>
+          <div id="hitlPreviewWrap" style="display:none">
+            <div class="hitl-preview-split">
+              <div class="hitl-preview-data">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                  <label style="font-weight:600;font-size:13px">Sample Data (JSON)</label>
+                  <button class="btn btn-secondary btn-sm" onclick="hitlRefreshPreview()"><i class="fa fa-refresh"></i> Refresh</button>
+                </div>
+                <textarea id="hitlPreviewData" class="form-input" style="font-family:monospace;font-size:12px;min-height:280px;resize:vertical">{
+  "customer_name": "Acme Corp",
+  "amount": 12500,
+  "invoice_number": "INV-2024-042",
+  "ai_draft": "Dear Acme Corp,\n\nPlease find attached invoice for $12,500.00 for consulting services.\n\nPayment terms: Net 30",
+  "risk_score": 0.72,
+  "status": "pending_review",
+  "invoice_items": [
+    { "description": "Consulting Services", "qty": 50, "rate": 250 }
+  ]
+}</textarea>
+              </div>
+              <div class="hitl-preview-render">
+                <div style="font-weight:600;font-size:13px;margin-bottom:8px">Form Preview</div>
+                <div class="hitl-preview-card" id="hitlPreviewOutput"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Audit Log Panel (admin only) -->
     <div class="panel" id="panel-audit">
       <div class="toolbar">
@@ -1646,6 +1748,7 @@
 <script src="js/cmdpalette.js?v=1"></script>
 <script src="js/audit.js?v=1"></script>
 <script src="js/alerts.js?v=1"></script>
+<script src="js/hitl.js?v=1"></script>
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(function() {});

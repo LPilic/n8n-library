@@ -1,0 +1,80 @@
+{
+  "name": "HITL Demo - Invoice Approval",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "hours", "hoursInterval": 1 }] } },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.N8N_LIBRARY_URL}}/api/hitl/requests",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-API-Key", "value": "={{$env.N8N_LIBRARY_API_KEY}}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "template", "value": "invoice-approval" },
+            { "name": "callback_url", "value": "={{$env.N8N_WEBHOOK_URL}}/webhook-waiting/{{$execution.id}}" },
+            { "name": "title", "value": "Review Invoice: Acme Corp" },
+            { "name": "description", "value": "AI-generated invoice needs human review before sending" },
+            { "name": "priority", "value": "high" },
+            { "name": "timeout_minutes", "value": "60" },
+            { "name": "data", "value": "={{ JSON.stringify({ customer_name: 'Acme Corp', amount: 12500, ai_draft: 'Dear Acme Corp,\\n\\nPlease find attached invoice #INV-2024-042 for $12,500.00 for consulting services rendered in February 2024.\\n\\nPayment terms: Net 30\\n\\nThank you for your business.', risk_score: 0.72, invoice_items: [{ description: 'Consulting Services', qty: 50, rate: 250 }] }) }}" }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Send to Library for Approval",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 300]
+    },
+    {
+      "parameters": { "events": "body" },
+      "name": "Wait for Human Decision",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "webhookId": "hitl-callback"
+    },
+    {
+      "parameters": {
+        "conditions": { "string": [{ "value1": "={{$json.action}}", "value2": "approve" }] }
+      },
+      "name": "Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {},
+      "name": "Send Invoice",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {},
+      "name": "Log Rejection",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1120, 400]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": { "main": [[{ "node": "Send to Library for Approval", "type": "main", "index": 0 }]] },
+    "Send to Library for Approval": { "main": [[{ "node": "Wait for Human Decision", "type": "main", "index": 0 }]] },
+    "Wait for Human Decision": { "main": [[{ "node": "Approved?", "type": "main", "index": 0 }]] },
+    "Approved?": { "main": [[{ "node": "Send Invoice", "type": "main", "index": 0 }], [{ "node": "Log Rejection", "type": "main", "index": 0 }]] }
+  },
+  "settings": {}
+}

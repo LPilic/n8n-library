@@ -546,6 +546,42 @@ async function migrate() {
     );
   `);
 
+  // --- Human-in-the-Loop (HITL) ---
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS hitl_templates (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      slug TEXT NOT NULL UNIQUE,
+      schema JSONB NOT NULL DEFAULT '{"components":[]}',
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_hitl_templates_slug ON hitl_templates (slug);
+
+    CREATE TABLE IF NOT EXISTS hitl_requests (
+      id SERIAL PRIMARY KEY,
+      template_id INTEGER NOT NULL REFERENCES hitl_templates(id) ON DELETE CASCADE,
+      callback_url TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      data JSONB NOT NULL DEFAULT '{}',
+      priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('low','medium','high','critical')),
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected','expired','request_changes')),
+      assign_to INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      responded_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      responded_at TIMESTAMPTZ,
+      response_data JSONB DEFAULT '{}',
+      response_comment TEXT DEFAULT '',
+      callback_status INTEGER,
+      expires_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_hitl_requests_status ON hitl_requests (status);
+    CREATE INDEX IF NOT EXISTS idx_hitl_requests_template ON hitl_requests (template_id);
+    CREATE INDEX IF NOT EXISTS idx_hitl_requests_created ON hitl_requests (created_at DESC);
+  `);
+
   console.log('Migration complete.');
   await pool.end();
 }
