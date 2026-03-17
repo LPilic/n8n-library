@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const pool = require('../db');
 const { slugify, uniqueSlug } = require('../lib/helpers');
-const { requireAuth, requireRole } = require('../lib/middleware');
+const { requireAuth, requireRole, writeLimiter } = require('../lib/middleware');
 const { auditLog } = require('../lib/audit');
 
 const router = express.Router();
@@ -192,7 +192,7 @@ router.get('/api/kb/articles/:idOrSlug', requireAuth, async (req, res) => {
 });
 
 // Create KB Article
-router.post('/api/kb/articles', requireRole('admin', 'editor'), async (req, res) => {
+router.post('/api/kb/articles', requireRole('admin', 'editor'), writeLimiter, async (req, res) => {
   try {
     const { title, body, excerpt, category_id, status, is_pinned, is_featured, tags } = req.body;
     if (!title || !title.trim()) return res.status(400).json({ error: 'Title is required' });
@@ -235,7 +235,7 @@ router.post('/api/kb/articles', requireRole('admin', 'editor'), async (req, res)
 });
 
 // Update KB Article
-router.put('/api/kb/articles/:id', requireRole('admin', 'editor'), async (req, res) => {
+router.put('/api/kb/articles/:id', requireRole('admin', 'editor'), writeLimiter, async (req, res) => {
   try {
     const { title, body, excerpt, category_id, status, is_pinned, is_featured, tags, version_note } = req.body;
 

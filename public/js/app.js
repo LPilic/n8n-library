@@ -586,8 +586,8 @@ function switchPanel(name, skipPush) {
   if (name === 'users') loadUsers();
   if (name === 'tickets') { loadTickets(); loadTicketStats(); }
   if (name === 'kb') { loadKbArticles(); loadKbCategories(); loadKbTags(); loadKbStats(); }
-  if (name === 'monitoring') { loadMonitoringData(true); startMonAutoRefresh(); }
-  else { stopMonAutoRefresh(); }
+  if (name === 'monitoring') { loadMonitoringData(true); startMonAutoRefresh(); connectMonSse(); }
+  else { stopMonAutoRefresh(); disconnectMonSse(); }
   if (name === 'observability') { loadObservability(); startObsAutoRefresh(); }
   else { stopObsAutoRefresh(); }
   if (name === 'ai') { loadAiSettings(); loadAiPrompts(); loadMcpServers(); }

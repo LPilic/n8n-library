@@ -452,6 +452,49 @@ async function migrate() {
     CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON audit_log (entity_type, entity_id);
   `);
 
+  // --- Full-text search for templates and tickets ---
+  await pool.query(`
+    ALTER TABLE templates ADD COLUMN IF NOT EXISTS search_vector tsvector;
+    CREATE INDEX IF NOT EXISTS idx_templates_search ON templates USING gin(search_vector);
+
+    CREATE OR REPLACE FUNCTION templates_search_update() RETURNS trigger AS $$
+    BEGIN
+      NEW.search_vector := setweight(to_tsvector('english', coalesce(NEW.name,'')), 'A')
+        || setweight(to_tsvector('english', coalesce(NEW.description,'')), 'B');
+      RETURN NEW;
+    END $$ LANGUAGE plpgsql;
+
+    DROP TRIGGER IF EXISTS templates_search_trigger ON templates;
+    CREATE TRIGGER templates_search_trigger
+      BEFORE INSERT OR UPDATE OF name, description ON templates
+      FOR EACH ROW EXECUTE FUNCTION templates_search_update();
+
+    ALTER TABLE tickets ADD COLUMN IF NOT EXISTS search_vector tsvector;
+    CREATE INDEX IF NOT EXISTS idx_tickets_search ON tickets USING gin(search_vector);
+
+    CREATE OR REPLACE FUNCTION tickets_search_update() RETURNS trigger AS $$
+    BEGIN
+      NEW.search_vector := setweight(to_tsvector('english', coalesce(NEW.title,'')), 'A')
+        || setweight(to_tsvector('english', coalesce(NEW.description,'')), 'B');
+      RETURN NEW;
+    END $$ LANGUAGE plpgsql;
+
+    DROP TRIGGER IF EXISTS tickets_search_trigger ON tickets;
+    CREATE TRIGGER tickets_search_trigger
+      BEFORE INSERT OR UPDATE OF title, description ON tickets
+      FOR EACH ROW EXECUTE FUNCTION tickets_search_update();
+  `);
+
+  // Backfill search vectors for existing rows
+  await pool.query(`
+    UPDATE templates SET search_vector = setweight(to_tsvector('english', coalesce(name,'')), 'A')
+      || setweight(to_tsvector('english', coalesce(description,'')), 'B')
+    WHERE search_vector IS NULL;
+    UPDATE tickets SET search_vector = setweight(to_tsvector('english', coalesce(title,'')), 'A')
+      || setweight(to_tsvector('english', coalesce(description,'')), 'B')
+    WHERE search_vector IS NULL;
+  `);
+
   // --- Scheduled Alerts ---
   await pool.query(`
     CREATE TABLE IF NOT EXISTS alerts (

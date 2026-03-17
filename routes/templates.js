@@ -1,7 +1,7 @@
 const express = require('express');
 const pool = require('../db');
 const { buildTemplateItem, isPrivateUrl } = require('../lib/helpers');
-const { requireRole } = require('../lib/middleware');
+const { requireRole, writeLimiter, publicLimiter } = require('../lib/middleware');
 const { auditLog } = require('../lib/audit');
 
 const router = express.Router();
@@ -22,7 +22,7 @@ router.get('/api/node-creds', (_req, res) => { res.json(NODE_CREDS); });
 
 // --- Categories (n8n-facing) ---
 
-router.get('/templates/categories', async (_req, res) => {
+router.get('/templates/categories', publicLimiter, async (_req, res) => {
   const { rows } = await pool.query('SELECT id, name FROM categories ORDER BY id');
   res.json({
     categories: rows.map(r => ({ id: r.id, name: r.name, displayName: null, icon: '', parent: null })),
@@ -40,7 +40,7 @@ router.get('/api/categories', async (_req, res) => {
 
 // --- Search templates ---
 
-router.get('/templates/search', async (req, res) => {
+router.get('/templates/search', publicLimiter, async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   const rows = Math.max(1, Math.min(100, parseInt(req.query.rows, 10) || 20));
   const offset = (page - 1) * rows;
@@ -94,7 +94,7 @@ router.get('/templates/search', async (req, res) => {
 
 // --- Get template metadata ---
 
-router.get('/templates/workflows/:id', async (req, res) => {
+router.get('/templates/workflows/:id', publicLimiter, async (req, res) => {
   const { rows } = await pool.query(`
     SELECT t.*,
       COALESCE(
@@ -121,7 +121,7 @@ router.get('/workflows/templates/:id', async (req, res) => {
 
 // --- Collections ---
 
-router.get('/templates/collections', async (req, res) => {
+router.get('/templates/collections', publicLimiter, async (req, res) => {
   const { category, search } = req.query;
   let where = [];
   let params = [];
@@ -163,7 +163,7 @@ router.get('/templates/collections', async (req, res) => {
   res.json({ collections });
 });
 
-router.get('/templates/collections/:id', async (req, res) => {
+router.get('/templates/collections/:id', publicLimiter, async (req, res) => {
   const { rows } = await pool.query(`
     SELECT col.*,
       COALESCE(
@@ -182,7 +182,7 @@ router.get('/templates/collections/:id', async (req, res) => {
 
 // --- WRITE API ---
 
-router.post('/api/templates', requireRole('admin', 'editor'), async (req, res) => {
+router.post('/api/templates', requireRole('admin', 'editor'), writeLimiter, async (req, res) => {
   const { name, description, categories: categoryNames, workflow } = req.body;
 
   if (!workflow || !workflow.nodes || !workflow.connections) {
@@ -262,7 +262,7 @@ router.post('/api/templates', requireRole('admin', 'editor'), async (req, res) =
   }
 });
 
-router.put('/api/templates/:id', requireRole('admin', 'editor'), async (req, res) => {
+router.put('/api/templates/:id', requireRole('admin', 'editor'), writeLimiter, async (req, res) => {
   const { name, description, categories: categoryNames } = req.body;
   const client = await pool.connect();
   try {

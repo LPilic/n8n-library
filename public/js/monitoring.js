@@ -2,6 +2,70 @@
 var monAutoRefreshInterval = null;
 var monWorkflowCache = [];
 var monViewingDetail = false;
+var monSse = null;
+
+function connectMonSse() {
+  if (monSse) { monSse.close(); monSse = null; }
+  var ip = typeof getActiveInstanceParam === 'function' ? getActiveInstanceParam() : '';
+  var url = API + '/api/monitoring/stream' + (ip ? '?' + ip : '');
+  monSse = new EventSource(url);
+  monSse.addEventListener('stats', function(e) {
+    try {
+      var stats = JSON.parse(e.data);
+      if (!monViewingDetail) renderMonStatsFromSse(stats);
+    } catch {}
+  });
+  monSse.addEventListener('executions', function(e) {
+    try {
+      var data = JSON.parse(e.data);
+      if (!monViewingDetail) renderMonExecutionsFromSse(data.data || []);
+    } catch {}
+  });
+  monSse.onerror = function() {
+    monSse.close();
+    monSse = null;
+    setTimeout(connectMonSse, 5000);
+  };
+}
+
+function disconnectMonSse() {
+  if (monSse) { monSse.close(); monSse = null; }
+}
+
+function renderMonStatsFromSse(stats) {
+  // Update just the counts in-place via DOM queries
+  var kpiStatus = document.querySelector('.kpi-status');
+  if (!kpiStatus) return;
+  var items = kpiStatus.querySelectorAll('.kpi-item .kpi-value');
+  if (items[0]) items[0].textContent = stats.counts.success || 0;
+  if (items[1]) {
+    items[1].textContent = stats.counts.error || 0;
+    items[1].style.color = stats.counts.error > 0 ? 'var(--color-danger)' : '';
+  }
+  if (items[2]) items[2].textContent = stats.counts.running || 0;
+  if (items[3]) items[3].textContent = stats.counts.waiting || 0;
+  var bigVal = kpiStatus.querySelector('.kpi-big-value');
+  if (bigVal) bigVal.textContent = (stats.successRate || 0) + '%';
+  // Update total in overview card
+  var overview = document.querySelector('.kpi-overview');
+  if (overview) {
+    var oItems = overview.querySelectorAll('.kpi-item .kpi-value');
+    if (oItems[2]) oItems[2].textContent = stats.total || 0;
+    if (oItems[1]) oItems[1].textContent = stats.avgDurationMs > 0 ? formatDuration(stats.avgDurationMs) : '—';
+  }
+}
+
+function renderMonExecutionsFromSse(executions) {
+  if (monViewingDetail) return;
+  // Don't update if user has active filters
+  var status = document.getElementById('monFilterStatus');
+  var wfId = document.getElementById('monFilterWorkflow');
+  if ((status && status.value) || (wfId && wfId.value)) return;
+  var container = document.getElementById('monitoringContent');
+  if (!container) return;
+  monExecAllData = executions;
+  renderMonitoringExecutions(monExecAllData, container);
+}
 
 // Append instance_id to a URL
 function monUrl(path) {

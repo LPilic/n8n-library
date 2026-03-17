@@ -1562,5 +1562,10 @@
 <script src="js/cmdpalette.js?v=1"></script>
 <script src="js/audit.js?v=1"></script>
 <script src="js/alerts.js?v=1"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(function() {});
+}
+</script>
 </body>
 </html>

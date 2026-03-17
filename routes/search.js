@@ -8,34 +8,52 @@ router.get('/api/search', requireAuth, async (req, res) => {
   const q = (req.query.q || '').trim();
   if (!q || q.length < 2) return res.json({ results: [] });
 
-  const like = `%${q}%`;
   const isWriter = ['admin', 'editor'].includes(req.user.role);
 
   try {
+    // Build tsquery — add :* for prefix matching
+    const tsquery = q.split(/\s+/).filter(Boolean).map(w => w.replace(/[^\w]/g, '')).filter(Boolean).map(w => w + ':*').join(' & ');
+    const like = `%${q}%`;
+
     const queries = [];
 
-    // Templates
+    // Templates — full-text search with ILIKE fallback
     queries.push(
       pool.query(
-        `SELECT id, name AS title, 'template' AS type FROM templates WHERE name ILIKE $1 ORDER BY name LIMIT 5`,
-        [like]
+        `SELECT id, name AS title, 'template' AS type,
+          ts_rank(search_vector, to_tsquery('english', $1)) AS rank
+         FROM templates
+         WHERE search_vector @@ to_tsquery('english', $1) OR name ILIKE $2
+         ORDER BY rank DESC, name
+         LIMIT 5`,
+        [tsquery, like]
       )
     );
 
-    // Tickets
+    // Tickets — full-text search with ILIKE fallback
     queries.push(
       pool.query(
-        `SELECT id, title, 'ticket' AS type, status, priority FROM tickets WHERE title ILIKE $1 OR description ILIKE $1 ORDER BY updated_at DESC LIMIT 5`,
-        [like]
+        `SELECT id, title, 'ticket' AS type, status, priority,
+          ts_rank(search_vector, to_tsquery('english', $1)) AS rank
+         FROM tickets
+         WHERE search_vector @@ to_tsquery('english', $1) OR title ILIKE $2 OR description ILIKE $2
+         ORDER BY rank DESC, updated_at DESC
+         LIMIT 5`,
+        [tsquery, like]
       )
     );
 
-    // KB articles
+    // KB articles — full-text search (already has search_vector)
     const kbWhere = isWriter ? '' : "AND status = 'published'";
     queries.push(
       pool.query(
-        `SELECT id, title, 'article' AS type, slug FROM kb_articles WHERE (title ILIKE $1 OR body ILIKE $1) ${kbWhere} ORDER BY view_count DESC LIMIT 5`,
-        [like]
+        `SELECT id, title, 'article' AS type, slug,
+          ts_rank(search_vector, to_tsquery('english', $1)) AS rank
+         FROM kb_articles
+         WHERE (search_vector @@ to_tsquery('english', $1) OR title ILIKE $2) ${kbWhere}
+         ORDER BY rank DESC, view_count DESC
+         LIMIT 5`,
+        [tsquery, like]
       )
     );
 

@@ -302,6 +302,83 @@ router.get('/api/monitoring/stats', requireRole('admin', 'editor'), async (req, 
   }
 });
 
+// --- SSE for live monitoring updates ---
+const monSseClients = new Map(); // uniqueId -> { res, instanceId }
+let monSseCounter = 0;
+
+router.get('/api/monitoring/stream', requireRole('admin', 'editor'), (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+  res.write(':ok\n\n');
+
+  const clientId = ++monSseCounter;
+  const instanceId = req.query.instance_id || null;
+  monSseClients.set(clientId, { res, instanceId });
+
+  req.on('close', () => { monSseClients.delete(clientId); });
+
+  // Heartbeat
+  const hb = setInterval(() => { res.write(':heartbeat\n\n'); }, 30000);
+  req.on('close', () => clearInterval(hb));
+});
+
+function broadcastMonitoringUpdate(instanceId, eventName, data) {
+  const payload = `event: ${eventName}\ndata: ${JSON.stringify(data)}\n\n`;
+  for (const [, client] of monSseClients) {
+    // Send to clients watching same instance (or no specific instance)
+    if (!client.instanceId || !instanceId || client.instanceId === String(instanceId)) {
+      try { client.res.write(payload); } catch {}
+    }
+  }
+}
+
+// Server-side push loop — fetches stats + recent executions and broadcasts
+let monPushInterval = null;
+function startMonitoringPush() {
+  if (monPushInterval) clearInterval(monPushInterval);
+  monPushInterval = setInterval(async () => {
+    if (monSseClients.size === 0) return; // No listeners, skip work
+    try {
+      const instances = await getAllInstances();
+      for (const inst of instances) {
+        try {
+          // Fetch stats
+          const data = await n8nApiFetch('/api/v1/executions?limit=250', inst.id);
+          const executions = data.data || [];
+          const counts = { success: 0, error: 0, running: 0, waiting: 0, canceled: 0, new: 0 };
+          let totalDuration = 0, durationCount = 0;
+          for (const ex of executions) {
+            const st = ex.status || 'unknown';
+            if (counts[st] !== undefined) counts[st]++;
+            if (ex.startedAt && ex.stoppedAt) {
+              const dur = new Date(ex.stoppedAt) - new Date(ex.startedAt);
+              if (dur > 0) { totalDuration += dur; durationCount++; }
+            }
+          }
+          const wfMap = await getWorkflowNameMap(inst.id);
+          const recent = executions.slice(0, 50);
+          enrichExecutions(recent, wfMap);
+
+          const stats = {
+            total: executions.length,
+            counts,
+            avgDurationMs: durationCount > 0 ? Math.round(totalDuration / durationCount) : 0,
+            successRate: executions.length > 0 ? Math.round((counts.success / executions.length) * 100) : 0,
+          };
+
+          broadcastMonitoringUpdate(inst.id, 'stats', stats);
+          broadcastMonitoringUpdate(inst.id, 'executions', { data: recent });
+        } catch {}
+      }
+    } catch {}
+  }, 15000); // Push every 15 seconds
+}
+startMonitoringPush();
+
 // Workers status — polls configured worker URLs for health + metrics
 router.get('/api/monitoring/workers', requireRole('admin', 'editor'), async (req, res) => {
   try {
