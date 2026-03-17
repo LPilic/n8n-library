@@ -3,6 +3,7 @@ const pool = require('../db');
 const { buildTemplateItem, isPrivateUrl } = require('../lib/helpers');
 const { requireRole, writeLimiter, publicLimiter } = require('../lib/middleware');
 const { auditLog } = require('../lib/audit');
+const { fireWebhooks } = require('../lib/webhooks');
 
 const router = express.Router();
 
@@ -250,8 +251,15 @@ router.post('/api/templates', requireRole('admin', 'editor'), writeLimiter, asyn
       }
     }
 
+    // Save initial version
+    await client.query(
+      'INSERT INTO template_versions (template_id, name, description, workflow, edited_by, version_note) VALUES ($1,$2,$3,$4,$5,$6)',
+      [templateId, name || workflow.name || 'Untitled Template', description || '', JSON.stringify(workflowData), req.user.id, 'Initial version']
+    );
+
     await client.query('COMMIT');
     auditLog(req.user, 'created', 'template', templateId, name);
+    fireWebhooks('template.created', { id: templateId, name: name || workflow.name });
     res.status(201).json({ id: templateId, message: 'Template created' });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -263,10 +271,18 @@ router.post('/api/templates', requireRole('admin', 'editor'), writeLimiter, asyn
 });
 
 router.put('/api/templates/:id', requireRole('admin', 'editor'), writeLimiter, async (req, res) => {
-  const { name, description, categories: categoryNames } = req.body;
+  const { name, description, categories: categoryNames, version_note } = req.body;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    // Snapshot current state before update
+    const current = await client.query('SELECT name, description, workflow FROM templates WHERE id=$1', [req.params.id]);
+    if (current.rows.length > 0) {
+      await client.query(
+        'INSERT INTO template_versions (template_id, name, description, workflow, edited_by, version_note) VALUES ($1,$2,$3,$4,$5,$6)',
+        [req.params.id, current.rows[0].name, current.rows[0].description, current.rows[0].workflow, req.user.id, version_note || '']
+      );
+    }
     const updates = []; const params = []; let idx = 1;
     if (name !== undefined) { updates.push(`name = $${idx++}`); params.push(name); }
     if (description !== undefined) { updates.push(`description = $${idx++}`); params.push(description); }
@@ -289,6 +305,7 @@ router.put('/api/templates/:id', requireRole('admin', 'editor'), writeLimiter, a
     }
     await client.query('COMMIT');
     auditLog(req.user, 'updated', 'template', req.params.id, name || '');
+    fireWebhooks('template.updated', { id: req.params.id, name: name || '' });
     res.json({ message: 'Template updated' });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -303,7 +320,61 @@ router.delete('/api/templates/:id', requireRole('admin'), async (req, res) => {
   const { rowCount } = await pool.query('DELETE FROM templates WHERE id = $1', [req.params.id]);
   if (rowCount === 0) return res.status(404).json({ error: 'Template not found' });
   auditLog(req.user, 'deleted', 'template', req.params.id);
+  fireWebhooks('template.deleted', { id: req.params.id });
   res.json({ message: 'Template deleted' });
+});
+
+// --- Template Version History ---
+
+router.get('/api/templates/:id/versions', requireRole('admin', 'editor'), async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT v.id, v.name, v.version_note, v.created_at, u.username AS edited_by_name
+       FROM template_versions v LEFT JOIN users u ON u.id=v.edited_by
+       WHERE v.template_id=$1 ORDER BY v.created_at DESC`,
+      [req.params.id]
+    );
+    res.json({ versions: rows });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load versions' });
+  }
+});
+
+router.get('/api/templates/:id/versions/:versionId', requireRole('admin', 'editor'), async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT v.*, u.username AS edited_by_name
+       FROM template_versions v LEFT JOIN users u ON u.id=v.edited_by
+       WHERE v.id=$1 AND v.template_id=$2`,
+      [req.params.versionId, req.params.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Version not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load version' });
+  }
+});
+
+router.post('/api/templates/:id/versions/:versionId/restore', requireRole('admin', 'editor'), async (req, res) => {
+  try {
+    const ver = await pool.query('SELECT * FROM template_versions WHERE id=$1 AND template_id=$2', [req.params.versionId, req.params.id]);
+    if (ver.rows.length === 0) return res.status(404).json({ error: 'Version not found' });
+    const v = ver.rows[0];
+    // Save current state as a version before restoring
+    const current = await pool.query('SELECT name, description, workflow FROM templates WHERE id=$1', [req.params.id]);
+    if (current.rows.length > 0) {
+      await pool.query(
+        'INSERT INTO template_versions (template_id, name, description, workflow, edited_by, version_note) VALUES ($1,$2,$3,$4,$5,$6)',
+        [req.params.id, current.rows[0].name, current.rows[0].description, current.rows[0].workflow, req.user.id, 'Before restore']
+      );
+    }
+    await pool.query('UPDATE templates SET name=$1, description=$2, workflow=$3 WHERE id=$4',
+      [v.name, v.description, v.workflow, req.params.id]);
+    auditLog(req.user, 'restored', 'template', req.params.id, `Restored to version ${v.id}`);
+    res.json({ message: 'Template restored to version' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to restore version' });
+  }
 });
 
 // --- Category management ---

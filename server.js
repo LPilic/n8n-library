@@ -185,6 +185,7 @@ app.use(require('./routes/notifications'));
 app.use(require('./routes/search'));
 app.use(require('./routes/audit'));
 app.use(require('./routes/alerts'));
+app.use(require('./routes/webhooks'));
 
 // --- API Documentation (Swagger) ---
 

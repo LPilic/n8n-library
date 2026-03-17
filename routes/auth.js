@@ -6,6 +6,8 @@ const { escHtml, validatePassword } = require('../lib/helpers');
 const { requireAuth, requireRole, authLimiter, forgotLimiter } = require('../lib/middleware');
 const { renderEmail, getMailTransport, getSmtpFrom, APP_URL, SMTP_FROM } = require('../lib/email');
 const { auditLog } = require('../lib/audit');
+const { authenticator } = require('otplib');
+const QRCode = require('qrcode');
 
 const router = express.Router();
 
@@ -19,6 +21,17 @@ router.post('/api/auth/login', authLimiter, async (req, res) => {
     const user = rows[0];
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
+
+    // Check if 2FA is enabled
+    if (user.totp_enabled && user.totp_secret) {
+      const { totp_token } = req.body;
+      if (!totp_token) {
+        return res.status(200).json({ requires_2fa: true, message: 'TOTP token required' });
+      }
+      const isValid = authenticator.check(totp_token, user.totp_secret);
+      if (!isValid) return res.status(401).json({ error: 'Invalid 2FA code' });
+    }
+
     // Regenerate session to prevent session fixation
     const userData = { id: user.id, username: user.username, email: user.email, role: user.role };
     await new Promise((resolve, reject) => {
@@ -120,6 +133,73 @@ router.post('/api/auth/reset-password', authLimiter, async (req, res) => {
   } catch (err) {
     console.error('Reset password error:', err.message);
     res.status(500).json({ error: 'Failed to reset password' });
+  }
+});
+
+// --- Two-Factor Authentication (TOTP) ---
+
+router.get('/api/auth/2fa/status', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT totp_enabled FROM users WHERE id = $1', [req.user.id]);
+    res.json({ enabled: rows.length > 0 && rows[0].totp_enabled === true });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/api/auth/2fa/setup', requireAuth, async (req, res) => {
+  try {
+    const secret = authenticator.generateSecret();
+    const { rows } = await pool.query('SELECT email FROM users WHERE id = $1', [req.user.id]);
+    const email = rows[0].email;
+    const otpauth = authenticator.keyuri(email, 'n8n Library', secret);
+    const qrDataUrl = await QRCode.toDataURL(otpauth);
+
+    // Store secret temporarily (not enabled yet until verified)
+    await pool.query('UPDATE users SET totp_secret = $1 WHERE id = $2', [secret, req.user.id]);
+
+    res.json({ secret, qr: qrDataUrl });
+  } catch (err) {
+    console.error('2FA setup error:', err.message);
+    res.status(500).json({ error: 'Failed to setup 2FA' });
+  }
+});
+
+router.post('/api/auth/2fa/verify', requireAuth, async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: 'Token required' });
+
+    const { rows } = await pool.query('SELECT totp_secret FROM users WHERE id = $1', [req.user.id]);
+    if (!rows[0].totp_secret) return res.status(400).json({ error: 'Setup 2FA first' });
+
+    const isValid = authenticator.check(token, rows[0].totp_secret);
+    if (!isValid) return res.status(400).json({ error: 'Invalid code. Try again.' });
+
+    await pool.query('UPDATE users SET totp_enabled = TRUE WHERE id = $1', [req.user.id]);
+    auditLog(req.user, 'enabled', '2fa', req.user.id);
+    res.json({ message: '2FA enabled successfully' });
+  } catch (err) {
+    console.error('2FA verify error:', err.message);
+    res.status(500).json({ error: 'Failed to verify 2FA' });
+  }
+});
+
+router.post('/api/auth/2fa/disable', requireAuth, async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) return res.status(400).json({ error: 'Password required to disable 2FA' });
+
+    const { rows } = await pool.query('SELECT password_hash FROM users WHERE id = $1', [req.user.id]);
+    const valid = await bcrypt.compare(password, rows[0].password_hash);
+    if (!valid) return res.status(401).json({ error: 'Invalid password' });
+
+    await pool.query('UPDATE users SET totp_secret = NULL, totp_enabled = FALSE WHERE id = $1', [req.user.id]);
+    auditLog(req.user, 'disabled', '2fa', req.user.id);
+    res.json({ message: '2FA disabled' });
+  } catch (err) {
+    console.error('2FA disable error:', err.message);
+    res.status(500).json({ error: 'Failed to disable 2FA' });
   }
 });
 

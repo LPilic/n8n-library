@@ -495,6 +495,42 @@ async function migrate() {
     WHERE search_vector IS NULL;
   `);
 
+  // --- Template Version History ---
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS template_versions (
+      id SERIAL PRIMARY KEY,
+      template_id INTEGER NOT NULL REFERENCES templates(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      workflow JSONB NOT NULL,
+      edited_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      version_note TEXT DEFAULT '',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_template_versions_template ON template_versions (template_id);
+  `);
+
+  // --- Webhook Integrations ---
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS webhooks (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      url TEXT NOT NULL,
+      events JSONB NOT NULL DEFAULT '[]',
+      headers JSONB DEFAULT '{}',
+      enabled BOOLEAN DEFAULT TRUE,
+      last_triggered_at TIMESTAMPTZ,
+      last_status INTEGER,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  // --- Two-Factor Authentication ---
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret TEXT DEFAULT NULL;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN DEFAULT FALSE;
+  `);
+
   // --- Scheduled Alerts ---
   await pool.query(`
     CREATE TABLE IF NOT EXISTS alerts (

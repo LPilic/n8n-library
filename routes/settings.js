@@ -384,4 +384,79 @@ router.put('/api/settings/mcp-server-tools', requireRole('admin'), async (req, r
   }
 });
 
+// --- Export / Import Settings ---
+
+router.get('/api/settings/export', requireRole('admin'), async (_req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT key, value FROM settings ORDER BY key');
+    const { rows: cats } = await pool.query('SELECT name, icon, description FROM categories ORDER BY id');
+    const { rows: webhooks } = await pool.query('SELECT name, url, events, headers, enabled FROM webhooks ORDER BY id');
+    const { rows: alerts } = await pool.query('SELECT name, condition, config, cooldown_minutes, enabled, recipients FROM alerts ORDER BY id');
+    res.json({
+      exported_at: new Date().toISOString(),
+      version: 1,
+      settings: rows,
+      categories: cats,
+      webhooks,
+      alerts,
+    });
+  } catch (err) {
+    console.error('Export settings error:', err.message);
+    res.status(500).json({ error: 'Failed to export settings' });
+  }
+});
+
+router.post('/api/settings/import', requireRole('admin'), async (req, res) => {
+  try {
+    const data = req.body;
+    if (!data || !data.version) return res.status(400).json({ error: 'Invalid export file' });
+    const imported = { settings: 0, categories: 0, webhooks: 0, alerts: 0 };
+
+    if (data.settings && Array.isArray(data.settings)) {
+      for (const s of data.settings) {
+        if (!s.key) continue;
+        await pool.query(
+          `INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2`,
+          [s.key, s.value]
+        );
+        imported.settings++;
+      }
+    }
+    if (data.categories && Array.isArray(data.categories)) {
+      for (const c of data.categories) {
+        if (!c.name) continue;
+        await pool.query(
+          `INSERT INTO categories (name, icon, description) VALUES ($1, $2, $3) ON CONFLICT (name) DO NOTHING`,
+          [c.name, c.icon || '', c.description || '']
+        );
+        imported.categories++;
+      }
+    }
+    if (data.webhooks && Array.isArray(data.webhooks)) {
+      for (const w of data.webhooks) {
+        if (!w.name || !w.url) continue;
+        await pool.query(
+          `INSERT INTO webhooks (name, url, events, headers, enabled) VALUES ($1, $2, $3, $4, $5)`,
+          [w.name, w.url, JSON.stringify(w.events || []), JSON.stringify(w.headers || {}), w.enabled !== false]
+        );
+        imported.webhooks++;
+      }
+    }
+    if (data.alerts && Array.isArray(data.alerts)) {
+      for (const a of data.alerts) {
+        if (!a.name || !a.condition) continue;
+        await pool.query(
+          `INSERT INTO alerts (name, condition, config, cooldown_minutes, enabled, recipients) VALUES ($1, $2, $3, $4, $5, $6)`,
+          [a.name, a.condition, JSON.stringify(a.config || {}), a.cooldown_minutes || 30, a.enabled !== false, JSON.stringify(a.recipients || [])]
+        );
+        imported.alerts++;
+      }
+    }
+    res.json({ message: 'Import complete', imported });
+  } catch (err) {
+    console.error('Import settings error:', err.message);
+    res.status(500).json({ error: 'Failed to import settings' });
+  }
+});
+
 module.exports = router;

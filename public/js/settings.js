@@ -125,7 +125,12 @@ function loadSettings() {
   loadBranding();
   loadInstances();
   loadApiKeys();
-  if (currentUser && currentUser.role === 'admin') { loadSmtpSettings(); loadEmailTemplates(); loadMcpServerStatus(); if (typeof loadAlerts === 'function') loadAlerts(); }
+  load2faStatus();
+  if (currentUser && currentUser.role === 'admin') {
+    loadSmtpSettings(); loadEmailTemplates(); loadMcpServerStatus();
+    if (typeof loadAlerts === 'function') loadAlerts();
+    loadWebhooks();
+  }
 }
 
 // --- n8n Instance Management ---
@@ -1025,6 +1030,303 @@ async function toggleMcpTool(name, enabled) {
     });
   } catch (e) {
     toast('Failed to update tool', 'error');
+  }
+}
+
+// --- Webhook Integrations ---
+
+var _webhookEvents = {};
+
+async function loadWebhooks() {
+  try {
+    var res = await fetch(API + '/api/webhooks');
+    if (!res.ok) return;
+    var data = await res.json();
+    _webhookEvents = data.events || {};
+    var container = document.getElementById('webhooksList');
+    if (!data.webhooks || data.webhooks.length === 0) {
+      container.innerHTML = '<p style="color:var(--color-text-muted);font-size:13px">No webhooks configured.</p>';
+      return;
+    }
+    var html = '<div style="display:flex;flex-direction:column;gap:8px">';
+    for (var w of data.webhooks) {
+      var evts = (w.events || []).map(function(e) { return _webhookEvents[e] || e; }).join(', ');
+      var statusDot = w.last_status ? (w.last_status < 300 ? '#22c55e' : '#ef4444') : '#9ca3af';
+      html += '<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--color-border-light);border-radius:var(--radius);background:var(--color-bg)">';
+      html += '<div style="width:8px;height:8px;border-radius:50%;background:' + (w.enabled ? '#22c55e' : '#9ca3af') + ';flex-shrink:0"></div>';
+      html += '<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">' + esc(w.name) + '</div>';
+      html += '<div style="font-size:11px;color:var(--color-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(w.url) + '</div>';
+      html += '<div style="font-size:11px;color:var(--color-text-muted);margin-top:2px">' + esc(evts) + '</div></div>';
+      html += '<div style="display:flex;gap:6px;flex-shrink:0">';
+      html += '<button class="btn btn-secondary btn-sm" onclick="testWebhook(' + w.id + ')" title="Test"><i class="fa fa-bolt"></i></button>';
+      html += '<button class="btn btn-secondary btn-sm" onclick="editWebhook(' + w.id + ')">Edit</button>';
+      html += '<button class="btn btn-danger btn-sm" onclick="deleteWebhook(' + w.id + ')"><i class="fa fa-trash"></i></button>';
+      html += '</div></div>';
+    }
+    html += '</div>';
+    container.innerHTML = html;
+  } catch (e) {
+    console.error('Load webhooks error:', e);
+  }
+}
+
+function openWebhookForm(data) {
+  document.getElementById('webhookEditId').value = data ? data.id : '';
+  document.getElementById('webhookName').value = data ? data.name : '';
+  document.getElementById('webhookUrl').value = data ? data.url : '';
+  document.getElementById('webhookHeaders').value = data && data.headers ? JSON.stringify(data.headers) : '';
+
+  // Render event checkboxes
+  var wrap = document.getElementById('webhookEventsWrap');
+  var selectedEvents = data ? (data.events || []) : [];
+  var html = '';
+  for (var key in _webhookEvents) {
+    var checked = selectedEvents.indexOf(key) >= 0 ? ' checked' : '';
+    html += '<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" class="wh-event-cb" value="' + key + '"' + checked + '> ' + esc(_webhookEvents[key]) + '</label>';
+  }
+  wrap.innerHTML = html;
+
+  document.getElementById('webhookFormWrap').style.display = '';
+}
+
+function cancelWebhookForm() {
+  document.getElementById('webhookFormWrap').style.display = 'none';
+}
+
+async function saveWebhook() {
+  var id = document.getElementById('webhookEditId').value;
+  var name = document.getElementById('webhookName').value.trim();
+  var url = document.getElementById('webhookUrl').value.trim();
+  var headersStr = document.getElementById('webhookHeaders').value.trim();
+  var events = [];
+  document.querySelectorAll('.wh-event-cb:checked').forEach(function(cb) { events.push(cb.value); });
+
+  if (!name || !url) { toast('Name and URL are required', 'error'); return; }
+  if (events.length === 0) { toast('Select at least one event', 'error'); return; }
+
+  var headers = {};
+  if (headersStr) {
+    try { headers = JSON.parse(headersStr); } catch(e) { toast('Invalid headers JSON', 'error'); return; }
+  }
+
+  var body = { name: name, url: url, events: events, headers: headers };
+  var method = id ? 'PUT' : 'POST';
+  var endpoint = id ? API + '/api/webhooks/' + id : API + '/api/webhooks';
+
+  try {
+    var res = await fetch(endpoint, { method: method, headers: CSRF_HEADERS, body: JSON.stringify(body) });
+    if (!res.ok) { var err = await res.json(); toast(err.error || 'Failed', 'error'); return; }
+    toast('Webhook saved', 'success');
+    cancelWebhookForm();
+    loadWebhooks();
+  } catch(e) {
+    toast('Failed to save webhook', 'error');
+  }
+}
+
+async function editWebhook(id) {
+  try {
+    var res = await fetch(API + '/api/webhooks');
+    var data = await res.json();
+    var wh = data.webhooks.find(function(w) { return w.id === id; });
+    if (wh) openWebhookForm(wh);
+  } catch(e) {}
+}
+
+async function deleteWebhook(id) {
+  var ok = await appConfirm('Delete this webhook?', { danger: true, okLabel: 'Delete' });
+  if (!ok) return;
+  try {
+    await fetch(API + '/api/webhooks/' + id, { method: 'DELETE', headers: CSRF_HEADERS });
+    toast('Webhook deleted', 'success');
+    loadWebhooks();
+  } catch(e) {
+    toast('Failed to delete webhook', 'error');
+  }
+}
+
+async function testWebhook(id) {
+  try {
+    var res = await fetch(API + '/api/webhooks/' + id + '/test', { method: 'POST', headers: CSRF_HEADERS });
+    var data = await res.json();
+    if (data.ok) {
+      toast('Webhook test successful (HTTP ' + data.status + ')', 'success');
+    } else {
+      toast('Webhook test failed: ' + (data.error || 'HTTP ' + data.status), 'error');
+    }
+  } catch(e) {
+    toast('Webhook test failed', 'error');
+  }
+}
+
+// --- Export / Import Settings ---
+
+async function exportSettings() {
+  try {
+    var res = await fetch(API + '/api/settings/export');
+    if (!res.ok) { toast('Export failed', 'error'); return; }
+    var data = await res.json();
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'n8n-library-settings-' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    document.getElementById('exportImportStatus').textContent = 'Exported!';
+    setTimeout(function() { document.getElementById('exportImportStatus').textContent = ''; }, 3000);
+  } catch(e) {
+    toast('Export failed', 'error');
+  }
+}
+
+async function importSettings(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var ok = await appConfirm('Import settings from "' + file.name + '"? This will add/overwrite settings, categories, webhooks, and alerts.', { title: 'Import Settings', okLabel: 'Import' });
+  if (!ok) { input.value = ''; return; }
+
+  try {
+    var text = await file.text();
+    var data = JSON.parse(text);
+    var res = await fetch(API + '/api/settings/import', {
+      method: 'POST', headers: CSRF_HEADERS, body: JSON.stringify(data)
+    });
+    var result = await res.json();
+    if (!res.ok) { toast(result.error || 'Import failed', 'error'); return; }
+    toast('Imported: ' + result.imported.settings + ' settings, ' + result.imported.categories + ' categories, ' + result.imported.webhooks + ' webhooks, ' + result.imported.alerts + ' alerts', 'success');
+    loadSettings();
+  } catch(e) {
+    toast('Invalid import file', 'error');
+  }
+  input.value = '';
+}
+
+// --- Two-Factor Authentication ---
+
+async function load2faStatus() {
+  try {
+    var res = await fetch(API + '/api/auth/2fa/status');
+    if (!res.ok) return;
+    var data = await res.json();
+    var container = document.getElementById('twoFactorContent');
+    if (data.enabled) {
+      container.innerHTML = '<div style="display:flex;align-items:center;gap:12px">' +
+        '<span style="color:#22c55e;font-weight:600;font-size:13px"><i class="fa fa-check-circle"></i> 2FA is enabled</span>' +
+        '<button class="btn btn-danger btn-sm" onclick="disable2fa()">Disable 2FA</button></div>';
+    } else {
+      container.innerHTML = '<div style="display:flex;align-items:center;gap:12px">' +
+        '<span style="color:var(--color-text-muted);font-size:13px">2FA is not enabled</span>' +
+        '<button class="btn btn-primary btn-sm" onclick="setup2fa()">Enable 2FA</button></div>';
+    }
+  } catch(e) {}
+}
+
+async function setup2fa() {
+  try {
+    var res = await fetch(API + '/api/auth/2fa/setup', { method: 'POST', headers: CSRF_HEADERS });
+    if (!res.ok) { toast('Failed to setup 2FA', 'error'); return; }
+    var data = await res.json();
+    var container = document.getElementById('twoFactorContent');
+    container.innerHTML = '<div style="text-align:center;padding:16px">' +
+      '<p style="font-size:13px;margin-bottom:12px">Scan this QR code with your authenticator app:</p>' +
+      '<img src="' + data.qr + '" style="width:200px;height:200px;margin:0 auto 12px;display:block;border-radius:var(--radius)">' +
+      '<p style="font-size:11px;color:var(--color-text-muted);margin-bottom:12px">Or enter this secret manually: <code style="background:var(--color-bg);padding:2px 6px;border-radius:4px;font-size:12px;user-select:all">' + esc(data.secret) + '</code></p>' +
+      '<div style="display:flex;gap:8px;justify-content:center;align-items:center">' +
+      '<input type="text" class="form-input" id="totpVerifyCode" placeholder="Enter 6-digit code" style="width:180px;text-align:center" maxlength="6" onkeydown="if(event.key===\'Enter\')verify2fa()">' +
+      '<button class="btn btn-primary btn-sm" onclick="verify2fa()">Verify & Enable</button>' +
+      '<button class="btn btn-secondary btn-sm" onclick="load2faStatus()">Cancel</button>' +
+      '</div></div>';
+  } catch(e) {
+    toast('Failed to setup 2FA', 'error');
+  }
+}
+
+async function verify2fa() {
+  var code = document.getElementById('totpVerifyCode').value.trim();
+  if (!code) { toast('Enter the 6-digit code', 'error'); return; }
+  try {
+    var res = await fetch(API + '/api/auth/2fa/verify', {
+      method: 'POST', headers: CSRF_HEADERS, body: JSON.stringify({ token: code })
+    });
+    var data = await res.json();
+    if (!res.ok) { toast(data.error || 'Invalid code', 'error'); return; }
+    toast('2FA enabled successfully!', 'success');
+    load2faStatus();
+  } catch(e) {
+    toast('Failed to verify', 'error');
+  }
+}
+
+async function disable2fa() {
+  var ok = await appConfirm('Disable two-factor authentication? You will need your password to confirm.', { title: 'Disable 2FA', danger: true, okLabel: 'Disable' });
+  if (!ok) return;
+  var password = prompt('Enter your password to disable 2FA:');
+  if (!password) return;
+  try {
+    var res = await fetch(API + '/api/auth/2fa/disable', {
+      method: 'POST', headers: CSRF_HEADERS, body: JSON.stringify({ password: password })
+    });
+    var data = await res.json();
+    if (!res.ok) { toast(data.error || 'Failed', 'error'); return; }
+    toast('2FA disabled', 'success');
+    load2faStatus();
+  } catch(e) {
+    toast('Failed to disable 2FA', 'error');
+  }
+}
+
+// --- Template Version History ---
+
+async function openVersionHistory(templateId) {
+  document.getElementById('versionHistoryTemplateId').value = templateId;
+  var container = document.getElementById('versionHistoryList');
+  container.innerHTML = '<div class="loading">Loading...</div>';
+  openModal('versionHistoryModal');
+
+  try {
+    var res = await fetch(API + '/api/templates/' + templateId + '/versions');
+    if (!res.ok) { container.innerHTML = '<p style="color:var(--color-text-muted)">Failed to load versions</p>'; return; }
+    var data = await res.json();
+    if (!data.versions || data.versions.length === 0) {
+      container.innerHTML = '<p style="color:var(--color-text-muted);font-size:13px">No version history available.</p>';
+      return;
+    }
+    var html = '<div style="display:flex;flex-direction:column;gap:8px">';
+    for (var i = 0; i < data.versions.length; i++) {
+      var v = data.versions[i];
+      var date = new Date(v.created_at).toLocaleString();
+      var isCurrent = i === 0;
+      html += '<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--color-border-light);border-radius:var(--radius);background:var(--color-bg)">';
+      html += '<div style="flex:1"><div style="font-weight:600;font-size:13px">' + esc(v.name) + (isCurrent ? ' <span style="font-size:11px;color:var(--color-primary);font-weight:400">(latest)</span>' : '') + '</div>';
+      html += '<div style="font-size:11px;color:var(--color-text-muted)">' + date + ' by ' + esc(v.edited_by_name || 'Unknown') + '</div>';
+      if (v.version_note) html += '<div style="font-size:11px;color:var(--color-text-muted);font-style:italic;margin-top:2px">' + esc(v.version_note) + '</div>';
+      html += '</div>';
+      if (!isCurrent) {
+        html += '<button class="btn btn-secondary btn-sm" onclick="restoreVersion(' + templateId + ',' + v.id + ')">Restore</button>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+    container.innerHTML = html;
+  } catch(e) {
+    container.innerHTML = '<p style="color:var(--color-text-muted)">Error loading versions</p>';
+  }
+}
+
+async function restoreVersion(templateId, versionId) {
+  var ok = await appConfirm('Restore this version? The current state will be saved as a new version before restoring.', { title: 'Restore Version', okLabel: 'Restore' });
+  if (!ok) return;
+  try {
+    var res = await fetch(API + '/api/templates/' + templateId + '/versions/' + versionId + '/restore', {
+      method: 'POST', headers: CSRF_HEADERS
+    });
+    if (!res.ok) { toast('Failed to restore version', 'error'); return; }
+    toast('Template restored to selected version', 'success');
+    closeModal('versionHistoryModal');
+    loadLibrary();
+  } catch(e) {
+    toast('Failed to restore version', 'error');
   }
 }
 

@@ -9,6 +9,7 @@ const { sendTicketNotification } = require('../lib/email');
 const { verifyN8nUser } = require('../lib/n8n-api');
 const { createNotification } = require('./notifications');
 const { auditLog } = require('../lib/audit');
+const { fireWebhooks } = require('../lib/webhooks');
 
 const router = express.Router();
 
@@ -303,6 +304,7 @@ router.post('/api/tickets', requireAuth, ticketLimiter, async (req, res) => {
     );
     sendTicketNotification('new_ticket', ticket, { creatorName: req.user.username });
     auditLog(req.user, 'created', 'ticket', ticket.id, ticket.title);
+    fireWebhooks('ticket.created', { id: ticket.id, title: ticket.title, priority: ticket.priority, creator: req.user.username });
 
     if (assigned_to) {
       const { rows: aRows } = await pool.query('SELECT email FROM users WHERE id=$1', [assigned_to]);
@@ -404,6 +406,12 @@ router.put('/api/tickets/:id', requireRole('admin', 'editor'), async (req, res) 
 
     const { rows: updated } = await pool.query('SELECT * FROM tickets WHERE id=$1', [req.params.id]);
     auditLog(req.user, 'updated', 'ticket', req.params.id, activities.map(a => a.action).join(', '));
+    if (status !== undefined && status !== old.status) {
+      fireWebhooks('ticket.status_changed', { id: old.id, title: old.title, old_status: old.status, new_status: status, changed_by: req.user.username });
+    }
+    if (assigned_to !== undefined && assigned_to !== old.assigned_to) {
+      fireWebhooks('ticket.assigned', { id: old.id, title: old.title, assigned_to: assigned_to });
+    }
     res.json(updated[0]);
   } catch (err) {
     console.error('Update ticket error:', err.message);
@@ -459,6 +467,7 @@ router.post('/api/tickets/:id/comments', requireAuth, ticketLimiter, async (req,
       for (const uid of notifyIds) {
         createNotification(uid, 'comment', `New comment by ${req.user.username}`, `#${ticket.id} — ${ticket.title}`, '/tickets/' + ticket.id);
       }
+      fireWebhooks('ticket.comment', { ticket_id: ticket.id, title: ticket.title, commenter: req.user.username });
     }
 
     res.json(rows[0]);

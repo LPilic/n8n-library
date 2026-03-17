@@ -43,6 +43,7 @@ async function loadLibrary() {
         </div>
         <div class="card-actions">
           <button class="btn btn-secondary btn-sm write-only" onclick="editTemplate(${w.id})">Edit</button>
+          <button class="btn btn-secondary btn-sm write-only" onclick="openVersionHistory(${w.id})" style="font-size:11px"><i class="fa fa-history"></i> History</button>
           <button class="btn btn-secondary btn-sm write-only ai-gen-btn" onclick="generateWorkflowDocs(${w.id}, 'library')" style="font-size:11px">&#10024; Docs</button>
           <button class="btn btn-danger btn-sm admin-only" onclick="deleteTemplate(${w.id})">Delete</button>
         </div>
@@ -108,7 +109,8 @@ async function saveTemplate() {
 }
 
 async function deleteTemplate(id) {
-  if (!confirm('Delete this template?')) return;
+  var ok = await appConfirm('Delete this template?', { danger: true, okLabel: 'Delete' });
+  if (!ok) return;
   await fetch(`${API}/api/templates/${id}`, { method: 'DELETE', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
   toast('Template deleted', 'success');
   loadLibrary();

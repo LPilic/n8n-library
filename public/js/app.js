@@ -135,17 +135,42 @@ async function doLogin() {
   const password = document.getElementById('loginPass').value;
   if (!email || !password) return;
   document.getElementById('loginError').textContent = '';
+
+  // Check if we have a TOTP field visible
+  var totpField = document.getElementById('loginTotp');
+  var totpToken = totpField ? totpField.value.trim() : '';
+
   try {
+    var body = { email: email, password: password };
+    if (totpToken) body.totp_token = totpToken;
+
     const res = await fetch(`${API}/api/auth/login`, {
       method: 'POST',
       headers: CSRF_HEADERS,
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify(body),
     });
+    const data = await res.json();
+
+    if (data.requires_2fa) {
+      // Show TOTP input field
+      if (!document.getElementById('loginTotp')) {
+        var totpDiv = document.createElement('div');
+        totpDiv.id = 'loginTotpWrap';
+        totpDiv.innerHTML = '<input type="text" id="loginTotp" placeholder="6-digit authenticator code" maxlength="6" autocomplete="one-time-code" style="text-align:center" onkeydown="if(event.key===\'Enter\')doLogin()">';
+        document.getElementById('loginPass').parentNode.insertBefore(totpDiv, document.getElementById('loginPass').nextSibling);
+      }
+      document.getElementById('loginTotp').focus();
+      document.getElementById('loginError').textContent = 'Enter your authenticator code';
+      return;
+    }
+
     if (!res.ok) {
-      const data = await res.json();
       document.getElementById('loginError').textContent = data.error || 'Login failed';
       return;
     }
+    // Remove TOTP field if present
+    var totpWrap = document.getElementById('loginTotpWrap');
+    if (totpWrap) totpWrap.remove();
     await checkAuth();
   } catch (e) {
     document.getElementById('loginError').textContent = 'Connection error';

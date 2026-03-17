@@ -1166,6 +1166,78 @@
             </div>
           </div>
 
+          <!-- Webhook Integrations -->
+          <div class="settings-card admin-only" style="margin-bottom:0">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+              <div style="width:36px;height:36px;border-radius:var(--radius);background:#dbeafe;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </div>
+              <div style="flex:1">
+                <h3 style="margin-bottom:0">Webhook Integrations</h3>
+                <p style="font-size:12px;color:var(--color-text-muted);margin-top:2px">Send event notifications to external services</p>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="openWebhookForm()">+ New Webhook</button>
+            </div>
+            <div id="webhooksList"></div>
+            <div id="webhookFormWrap" style="display:none">
+              <div style="border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:16px;margin-top:12px;background:var(--color-bg)">
+                <input type="hidden" id="webhookEditId">
+                <div class="form-group">
+                  <label>Name <span style="color:var(--color-danger)">*</span></label>
+                  <input type="text" class="form-input" id="webhookName" placeholder="e.g. Slack notification">
+                </div>
+                <div class="form-group">
+                  <label>URL <span style="color:var(--color-danger)">*</span></label>
+                  <input type="url" class="form-input" id="webhookUrl" placeholder="https://hooks.example.com/...">
+                </div>
+                <div class="form-group">
+                  <label>Events <span style="color:var(--color-danger)">*</span></label>
+                  <div id="webhookEventsWrap" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px"></div>
+                </div>
+                <div class="form-group">
+                  <label>Custom Headers (JSON, optional)</label>
+                  <input type="text" class="form-input" id="webhookHeaders" placeholder='{"Authorization": "Bearer ..."}'>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:16px">
+                  <button class="btn btn-primary" onclick="saveWebhook()">Save Webhook</button>
+                  <button class="btn btn-secondary" onclick="cancelWebhookForm()">Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Export / Import Settings -->
+          <div class="settings-card admin-only" style="margin-bottom:0">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+              <div style="width:36px;height:36px;border-radius:var(--radius);background:#ecfdf5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </div>
+              <div style="flex:1">
+                <h3 style="margin-bottom:0">Export / Import</h3>
+                <p style="font-size:12px;color:var(--color-text-muted);margin-top:2px">Backup and restore settings, categories, webhooks, and alerts</p>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-secondary" onclick="exportSettings()"><i class="fa fa-download"></i> Export Settings</button>
+              <label class="btn btn-secondary" style="cursor:pointer"><i class="fa fa-upload"></i> Import Settings<input type="file" id="importSettingsFile" accept=".json" style="display:none" onchange="importSettings(this)"></label>
+              <span id="exportImportStatus" style="font-size:12px;color:var(--color-text-muted);align-self:center"></span>
+            </div>
+          </div>
+
+          <!-- Two-Factor Authentication -->
+          <div class="settings-card" style="margin-bottom:0">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+              <div style="width:36px;height:36px;border-radius:var(--radius);background:#fce7f3;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#db2777" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </div>
+              <div style="flex:1">
+                <h3 style="margin-bottom:0">Two-Factor Authentication</h3>
+                <p style="font-size:12px;color:var(--color-text-muted);margin-top:2px">Add an extra layer of security with TOTP</p>
+              </div>
+            </div>
+            <div id="twoFactorContent"></div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -1308,6 +1380,18 @@
           <label>Categories</label>
           <div class="checkbox-group" id="editCategories"></div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Version History Modal -->
+  <div class="modal-overlay" id="versionHistoryModal" onclick="if(event.target===this)closeModal('versionHistoryModal')">
+    <div class="modal" style="width:600px;max-height:80vh;overflow-y:auto">
+      <h3>Version History</h3>
+      <input type="hidden" id="versionHistoryTemplateId">
+      <div id="versionHistoryList" style="margin-top:12px"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('versionHistoryModal')">Close</button>
       </div>
     </div>
   </div>
