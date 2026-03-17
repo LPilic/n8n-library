@@ -582,6 +582,11 @@ async function migrate() {
     CREATE INDEX IF NOT EXISTS idx_hitl_requests_created ON hitl_requests (created_at DESC);
   `);
 
+  // --- HITL template active toggle ---
+  await pool.query(`
+    ALTER TABLE hitl_templates ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+  `);
+
   // --- Instance references on tickets and KB articles ---
   await pool.query(`
     ALTER TABLE tickets ADD COLUMN IF NOT EXISTS instance_id INTEGER REFERENCES n8n_instances(id) ON DELETE SET NULL;

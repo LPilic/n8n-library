@@ -109,7 +109,7 @@ app.use(apiKeyAuth);
 app.use((req, res, next) => {
   if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
     if (req.apiKeyAuth) return next(); // API key auth is not susceptible to CSRF
-    if (req.path.startsWith('/templates/') || req.path === '/health' || req.path.startsWith('/api/public/') || req.path === '/mcp' || req.path === '/api/hitl/requests' || req.path.startsWith('/api/hitl/capture/')) return next();
+    if (req.path.startsWith('/templates/') || req.path === '/health' || req.path.startsWith('/api/public/') || req.path === '/mcp' || req.path === '/api/hitl/requests' || req.path.startsWith('/api/hitl/capture/') || req.path.startsWith('/api/hitl/webhook/')) return next();
     const xrw = req.headers['x-requested-with'];
     if (xrw !== 'XMLHttpRequest') {
       return res.status(403).json({ error: 'Missing X-Requested-With header' });

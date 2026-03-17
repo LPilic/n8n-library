@@ -14,9 +14,12 @@ const _captureStore = new Map();
 
 router.get('/api/hitl/templates', requireRole('admin', 'editor'), async (_req, res) => {
   try {
-    const { rows } = await pool.query(
-      'SELECT id, name, description, slug, created_at, updated_at FROM hitl_templates ORDER BY updated_at DESC'
-    );
+    const { rows } = await pool.query(`
+      SELECT t.id, t.name, t.description, t.slug, t.is_active, t.created_at, t.updated_at,
+        (SELECT COUNT(*)::int FROM hitl_requests r WHERE r.template_id = t.id) AS request_count,
+        (SELECT COUNT(*)::int FROM hitl_requests r WHERE r.template_id = t.id AND r.status = 'pending') AS pending_count
+      FROM hitl_templates t ORDER BY t.updated_at DESC
+    `);
     res.json({ templates: rows });
   } catch (err) {
     res.status(500).json({ error: 'Failed to load templates' });
@@ -82,6 +85,20 @@ router.delete('/api/hitl/templates/:id', requireRole('admin'), async (req, res) 
   }
 });
 
+// Toggle template active/inactive
+router.patch('/api/hitl/templates/:id/toggle', requireRole('admin'), async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'UPDATE hitl_templates SET is_active = NOT is_active, updated_at = NOW() WHERE id = $1 RETURNING id, is_active',
+      [req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Template not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to toggle template' });
+  }
+});
+
 // --- HITL Requests (inbound from n8n, API key auth) ---
 
 router.post('/api/hitl/requests', async (req, res) => {
@@ -91,9 +108,10 @@ router.post('/api/hitl/requests', async (req, res) => {
     if (!template || !callback_url) return res.status(400).json({ error: 'template (slug) and callback_url required' });
 
     // Look up template by slug
-    const tplRes = await pool.query('SELECT id, name FROM hitl_templates WHERE slug = $1', [template]);
+    const tplRes = await pool.query('SELECT id, name, is_active FROM hitl_templates WHERE slug = $1', [template]);
     if (tplRes.rows.length === 0) return res.status(404).json({ error: `Template "${template}" not found` });
     const tpl = tplRes.rows[0];
+    if (!tpl.is_active) return res.status(403).json({ error: `Template "${template}" is inactive` });
 
     const expiresAt = timeout_minutes
       ? new Date(Date.now() + timeout_minutes * 60 * 1000)
@@ -291,6 +309,82 @@ router.get('/api/hitl/pending-count', requireAuth, async (_req, res) => {
     res.json({ count: rows[0].count });
   } catch (err) {
     res.json({ count: 0 });
+  }
+});
+
+// --- Production Webhook (creates a real HITL request) ---
+// Usage from n8n: POST /api/hitl/webhook/<slug> with Authorization: Bearer n8nlib_xxx
+// Body: { callback_url, title?, description?, data?, priority?, timeout_minutes?, assign_to? }
+
+router.post('/api/hitl/webhook/:slug', async (req, res) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Authentication required (API key)' });
+
+    const { rows: tplRows } = await pool.query('SELECT id, name, is_active FROM hitl_templates WHERE slug = $1', [req.params.slug]);
+    if (!tplRows.length) return res.status(404).json({ error: `Template "${req.params.slug}" not found` });
+    const tpl = tplRows[0];
+    if (!tpl.is_active) return res.status(403).json({ error: `Template "${req.params.slug}" is inactive — enable it to accept webhooks` });
+
+    const { callback_url, title, description, data, priority, timeout_minutes, assign_to } = req.body;
+    if (!callback_url) return res.status(400).json({ error: 'callback_url is required' });
+
+    const expiresAt = timeout_minutes
+      ? new Date(Date.now() + timeout_minutes * 60 * 1000)
+      : new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    const { rows } = await pool.query(
+      `INSERT INTO hitl_requests (template_id, callback_url, title, description, data, priority, expires_at, assign_to)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [tpl.id, callback_url, title || tpl.name, description || '', JSON.stringify(data || {}),
+       priority || 'medium', expiresAt, assign_to || null]
+    );
+    const request = rows[0];
+
+    // Notify admins/editors
+    const { rows: users } = await pool.query(
+      "SELECT id FROM users WHERE role IN ('admin','editor')" + (assign_to ? " OR id = $1" : ""),
+      assign_to ? [assign_to] : []
+    );
+    for (const u of users) {
+      createNotification(u.id, 'hitl', `Approval: ${request.title}`, description || 'New approval request', '/approvals').catch(() => {});
+    }
+    broadcastHitlUpdate({ type: 'new_request', request: { id: request.id, title: request.title, priority: request.priority } });
+
+    res.status(201).json({ id: request.id, status: 'pending', expires_at: expiresAt });
+  } catch (err) {
+    console.error('HITL webhook error:', err.message);
+    res.status(500).json({ error: 'Failed to create approval request' });
+  }
+});
+
+// --- Test Webhook (validates but does NOT create a request) ---
+// Usage from n8n: POST /api/hitl/webhook/test/<slug> with Authorization: Bearer n8nlib_xxx
+
+router.post('/api/hitl/webhook/test/:slug', async (req, res) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Authentication required (API key)' });
+
+    const { rows: tplRows } = await pool.query('SELECT id, name, schema, is_active FROM hitl_templates WHERE slug = $1', [req.params.slug]);
+    if (!tplRows.length) return res.status(404).json({ error: `Template "${req.params.slug}" not found` });
+    const tpl = tplRows[0];
+
+    const { callback_url, title, data } = req.body;
+
+    res.json({
+      ok: true,
+      message: 'Test webhook received — no request created',
+      active: tpl.is_active,
+      template: { id: tpl.id, name: tpl.name },
+      would_create: {
+        title: title || tpl.name,
+        callback_url: callback_url || '(missing — required in production)',
+        data_fields: data ? Object.keys(data) : [],
+        data_preview: data || {},
+      }
+    });
+  } catch (err) {
+    console.error('HITL test webhook error:', err.message);
+    res.status(500).json({ error: 'Failed to validate' });
   }
 });
 

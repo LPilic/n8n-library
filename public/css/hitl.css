@@ -489,3 +489,103 @@
   border-radius: 10px;
   margin-left: auto;
 }
+
+/* Template list table */
+#hitlTemplateList .users-card { max-width: none; }
+.hitl-tpl-table { width: 100%; }
+.hitl-tpl-table tr { cursor: default; }
+.hitl-tpl-table td { vertical-align: middle; }
+.hitl-row-inactive td { opacity: 0.5; }
+.hitl-row-inactive td:first-child { opacity: 1; }
+.hitl-tpl-name { font-weight: 600; font-size: 13px; }
+.hitl-tpl-desc { font-size: 11px; color: var(--color-text-muted); margin-top: 2px; }
+.hitl-tpl-slug { font-size: 11px; background: var(--color-bg-alt); padding: 2px 8px; border-radius: var(--radius-xs); color: var(--color-text-muted); }
+
+/* Toggle switch */
+.hitl-toggle {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.hitl-toggle input { opacity: 0; width: 0; height: 0; }
+.hitl-toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--color-text-xmuted);
+  border-radius: 20px;
+  transition: background 0.2s;
+}
+.hitl-toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  left: 2px;
+  bottom: 2px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+.hitl-toggle input:checked + .hitl-toggle-slider {
+  background: var(--color-success);
+}
+.hitl-toggle input:checked + .hitl-toggle-slider::before {
+  transform: translateX(16px);
+}
+
+/* Webhook URLs display */
+.hitl-webhook-urls {
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+.hitl-webhook-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.hitl-webhook-hint {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--color-text-xmuted);
+}
+.hitl-webhook-hint code {
+  background: var(--color-bg);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+.hitl-webhook-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.hitl-webhook-row:last-child { margin-bottom: 0; }
+.hitl-webhook-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  min-width: 40px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.hitl-webhook-tag.prod {
+  background: var(--color-success-light, #dcfce7);
+  color: var(--color-success);
+}
+.hitl-webhook-tag.test {
+  background: var(--color-warning-light, #fef3c7);
+  color: #b45309;
+}

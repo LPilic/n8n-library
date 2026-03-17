@@ -1299,7 +1299,7 @@
             </div>
             <div class="form-group" style="margin-bottom:0;width:200px">
               <label>Slug (used in API)</label>
-              <input type="text" class="form-input" id="hitlBuilderSlug" placeholder="e.g. invoice-approval">
+              <input type="text" class="form-input" id="hitlBuilderSlug" placeholder="e.g. invoice-approval" oninput="hitlUpdateWebhookUrls()">
             </div>
             <div class="form-group" style="margin-bottom:0;flex:1;min-width:180px">
               <label>Description</label>
@@ -1311,6 +1311,7 @@
               <button class="btn btn-secondary" onclick="closeHitlBuilder()">Cancel</button>
             </div>
           </div>
+          <div id="hitlWebhookUrls" class="hitl-webhook-urls" style="display:none"></div>
           <div class="hitl-builder" id="hitlBuilderGrid">
             <div class="hitl-palette" id="hitlPalette"></div>
             <div class="hitl-canvas" id="hitlCanvas" ondragover="hitlRootDragOver(event)" ondragleave="hitlRootDragLeave(event)" ondrop="hitlCanvasDropZone(event)">

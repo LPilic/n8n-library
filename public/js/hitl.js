@@ -748,18 +748,34 @@ function renderHitlTemplateList() {
   var el = document.getElementById('hitlTemplateList');
   if (!el) return;
   if (_hitlTemplates.length === 0) {
-    el.innerHTML = '<p style="color:var(--color-text-muted);font-size:13px">No form templates yet. Create one to get started.</p>';
+    el.innerHTML = '<div class="kb-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg><h3>No form templates yet</h3><p>Create your first approval form template to get started.</p></div>';
     return;
   }
-  var html = '';
+  var html = '<div class="users-card"><table class="tickets-table hitl-tpl-table">';
+  html += '<thead><tr><th style="width:50px">Active</th><th>Template</th><th>Slug</th><th>Requests</th><th>Status</th><th>Updated</th><th style="width:100px">Actions</th></tr></thead><tbody>';
   for (var t of _hitlTemplates) {
-    html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--color-border-light);border-radius:var(--radius);margin-bottom:6px;background:var(--color-bg)">';
-    html += '<div style="flex:1"><div style="font-weight:600;font-size:13px">' + esc(t.name) + '</div>';
-    html += '<div style="font-size:11px;color:var(--color-text-muted)">' + esc(t.slug) + (t.description ? ' — ' + esc(t.description) : '') + '</div></div>';
-    html += '<button class="btn btn-secondary btn-sm" onclick="editHitlTemplate(' + t.id + ')">Edit</button>';
-    html += '<button class="btn btn-danger btn-sm" onclick="deleteHitlTemplate(' + t.id + ')"><i class="fa fa-trash"></i></button>';
-    html += '</div>';
+    var active = t.is_active !== false;
+    var reqCount = t.request_count || 0;
+    var pendCount = t.pending_count || 0;
+    html += '<tr class="' + (active ? '' : 'hitl-row-inactive') + '">';
+    html += '<td><label class="hitl-toggle" title="' + (active ? 'Active — webhook enabled' : 'Inactive — webhook disabled') + '">';
+    html += '<input type="checkbox"' + (active ? ' checked' : '') + ' onchange="toggleHitlTemplate(' + t.id + ')">';
+    html += '<span class="hitl-toggle-slider"></span></label></td>';
+    html += '<td><div class="hitl-tpl-name">' + esc(t.name) + '</div>';
+    if (t.description) html += '<div class="hitl-tpl-desc">' + esc(t.description) + '</div>';
+    html += '</td>';
+    html += '<td><code class="hitl-tpl-slug">' + esc(t.slug) + '</code></td>';
+    html += '<td class="ticket-meta">' + reqCount + (pendCount > 0 ? ' <span class="ticket-badge badge-open" style="font-size:10px">' + pendCount + ' pending</span>' : '') + '</td>';
+    html += '<td><span class="ticket-badge ' + (active ? 'badge-resolved' : 'badge-closed') + '">' + (active ? 'active' : 'inactive') + '</span></td>';
+    html += '<td class="ticket-meta">' + timeAgo(t.updated_at) + '</td>';
+    html += '<td><div style="display:flex;gap:4px">';
+    html += '<button class="btn btn-secondary btn-sm" onclick="editHitlTemplate(' + t.id + ')" title="Edit"><i class="fa fa-pencil"></i></button>';
+    html += '<button class="btn btn-danger btn-sm" onclick="deleteHitlTemplate(' + t.id + ')" title="Delete"><i class="fa fa-trash"></i></button>';
+    html += '</div></td>';
+    html += '</tr>';
   }
+  html += '</tbody></table></div>';
+  html += '<div style="text-align:center;font-size:12px;color:var(--color-text-muted);padding:4px 0">' + _hitlTemplates.length + ' template' + (_hitlTemplates.length !== 1 ? 's' : '') + '</div>';
   el.innerHTML = html;
 }
 
@@ -789,6 +805,7 @@ function openHitlBuilder(templateData) {
   if (bg) bg.style.display = '';
   if (pb) pb.innerHTML = '<i class="fa fa-eye"></i> Preview';
   initHitlBuilder();
+  hitlUpdateWebhookUrls();
 }
 
 function closeHitlBuilder() {
@@ -805,6 +822,20 @@ async function editHitlTemplate(id) {
     var data = await res.json();
     openHitlBuilder(data);
   } catch (e) { toast('Failed to load template', 'error'); }
+}
+
+async function toggleHitlTemplate(id) {
+  try {
+    var res = await fetch(API + '/api/hitl/templates/' + id + '/toggle', { method: 'PATCH', headers: CSRF_HEADERS });
+    if (!res.ok) { toast('Failed to toggle', 'error'); return; }
+    var data = await res.json();
+    // Update local cache
+    for (var i = 0; i < _hitlTemplates.length; i++) {
+      if (_hitlTemplates[i].id === id) { _hitlTemplates[i].is_active = data.is_active; break; }
+    }
+    renderHitlTemplateList();
+    toast(data.is_active ? 'Template activated' : 'Template deactivated', 'success');
+  } catch (e) { toast('Failed to toggle', 'error'); }
 }
 
 async function deleteHitlTemplate(id) {
@@ -843,6 +874,117 @@ function hitlAutoSlug() {
   if (!_hitlEditingTemplateId && slugEl) {
     slugEl.value = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   }
+  hitlUpdateWebhookUrls();
+}
+
+function hitlUpdateWebhookUrls() {
+  var slug = (document.getElementById('hitlBuilderSlug').value || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+  var el = document.getElementById('hitlWebhookUrls');
+  if (!el) return;
+  if (!slug) { el.style.display = 'none'; return; }
+
+  var base = window.location.origin;
+  var prodUrl = base + '/api/hitl/webhook/' + slug;
+  var testUrl = base + '/api/hitl/webhook/test/' + slug;
+
+  el.style.display = '';
+  el.innerHTML =
+    '<div class="hitl-webhook-label"><i class="fa fa-link"></i> Webhook URLs <span class="hitl-webhook-hint">(requires API key: <code>Authorization: Bearer n8nlib_xxx</code>)</span></div>' +
+    '<div class="hitl-webhook-row">' +
+      '<span class="hitl-webhook-tag prod">PROD</span>' +
+      '<input type="text" class="form-input" value="' + esc(prodUrl) + '" readonly onclick="this.select()" style="font-size:11px;font-family:monospace;flex:1">' +
+      '<button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(\'' + esc(prodUrl) + '\');toast(\'Copied!\',\'success\')" title="Copy URL"><i class="fa fa-copy"></i></button>' +
+      '<button class="btn btn-secondary btn-sm" onclick="hitlCopyCurl(\'prod\')" title="Copy cURL command"><i class="fa fa-terminal"></i> cURL</button>' +
+    '</div>' +
+    '<div class="hitl-webhook-row">' +
+      '<span class="hitl-webhook-tag test">TEST</span>' +
+      '<input type="text" class="form-input" value="' + esc(testUrl) + '" readonly onclick="this.select()" style="font-size:11px;font-family:monospace;flex:1">' +
+      '<button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(\'' + esc(testUrl) + '\');toast(\'Copied!\',\'success\')" title="Copy URL"><i class="fa fa-copy"></i></button>' +
+      '<button class="btn btn-secondary btn-sm" onclick="hitlCopyCurl(\'test\')" title="Copy cURL command"><i class="fa fa-terminal"></i> cURL</button>' +
+    '</div>';
+}
+
+function _hitlCollectDataFields(components) {
+  var fields = {};
+  for (var i = 0; i < components.length; i++) {
+    var c = components[i];
+    var p = c.props || {};
+    var type = c.type;
+
+    // Display components that reference data fields
+    if (p.field && ['data-display', 'json-viewer', 'image', 'badge'].indexOf(type) !== -1) {
+      var key = p.field;
+      if (!fields[key]) {
+        if (type === 'badge') fields[key] = 0.5;
+        else if (type === 'image') fields[key] = 'https://example.com/image.png';
+        else if (type === 'json-viewer') fields[key] = { example: 'value' };
+        else fields[key] = 'Sample ' + (p.label || key);
+      }
+    }
+
+    // Input components — these are form fields the reviewer fills in, not data
+    // but we include them so the user sees the full picture
+
+    // Recurse into columns children
+    if (type === 'columns' && c.children) {
+      for (var ci = 0; ci < c.children.length; ci++) {
+        var colFields = _hitlCollectDataFields(c.children[ci] || []);
+        for (var k in colFields) { if (!fields[k]) fields[k] = colFields[k]; }
+      }
+    }
+    // Recurse into section children
+    if (type === 'section' && c.children) {
+      var secFields = _hitlCollectDataFields(c.children[0] || []);
+      for (var k2 in secFields) { if (!fields[k2]) fields[k2] = secFields[k2]; }
+    }
+  }
+  return fields;
+}
+
+function hitlCopyCurl(mode) {
+  var slug = (document.getElementById('hitlBuilderSlug').value || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+  if (!slug) return;
+
+  var base = window.location.origin;
+  var url = mode === 'test'
+    ? base + '/api/hitl/webhook/test/' + slug
+    : base + '/api/hitl/webhook/' + slug;
+
+  // Build data from schema fields — use sample data values if available, otherwise generate placeholders
+  var schemaFields = _hitlCollectDataFields(_hitlSchema.components || []);
+  var sampleData = {};
+  try { sampleData = JSON.parse(_hitlSampleDataStr); } catch (e) {}
+
+  // Merge: use sample data values for fields that exist in schema, add schema placeholders for the rest
+  var data = {};
+  for (var key in schemaFields) {
+    data[key] = (sampleData[key] !== undefined) ? sampleData[key] : schemaFields[key];
+  }
+  // If no fields found from schema, fall back to sample data
+  if (Object.keys(data).length === 0) data = sampleData;
+
+  var templateName = document.getElementById('hitlBuilderName').value.trim() || slug;
+
+  var payload = {
+    callback_url: 'https://YOUR_N8N_INSTANCE/webhook/CALLBACK_ID',
+    title: templateName + (mode === 'test' ? ' (test)' : ''),
+    description: 'Approval request triggered from n8n workflow',
+    priority: 'medium',
+    timeout_minutes: 1440,
+    data: data
+  };
+
+  var jsonStr = JSON.stringify(payload, null, 2);
+  // Escape single quotes for shell
+  var escaped = jsonStr.replace(/'/g, "'\\''");
+
+  var curl = "curl -X POST '" + url + "' \\\n" +
+    "  -H 'Content-Type: application/json' \\\n" +
+    "  -H 'Authorization: Bearer n8nlib_YOUR_API_KEY' \\\n" +
+    "  -d '" + escaped + "'";
+
+  navigator.clipboard.writeText(curl);
+  toast('cURL command copied!', 'success');
 }
 
 // --- Form Preview ---
