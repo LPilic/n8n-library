@@ -253,12 +253,28 @@ router.post('/api/hitl/requests/:id/respond', requireAuth, async (req, res) => {
     };
 
     try {
-      const cbRes = await fetch(hitlReq.callback_url, {
+      // Rewrite localhost callback URLs to use internal n8n URL (Docker networking)
+      let callbackUrl = hitlReq.callback_url;
+      const internalUrl = process.env.N8N_INTERNAL_URL;
+      if (internalUrl) {
+        try {
+          const parsed = new URL(callbackUrl);
+          if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
+            const internal = new URL(internalUrl);
+            parsed.protocol = internal.protocol;
+            parsed.host = internal.host;
+            callbackUrl = parsed.toString();
+          }
+        } catch {}
+      }
+      console.log('HITL callback: original_url=%s rewritten_url=%s', hitlReq.callback_url, callbackUrl);
+      const cbRes = await fetch(callbackUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'User-Agent': 'n8n-library-hitl/1.0' },
         body: JSON.stringify(callbackPayload),
         signal: AbortSignal.timeout(15000),
       });
+      console.log('HITL callback: status=%d', cbRes.status);
       await pool.query('UPDATE hitl_requests SET callback_status = $1 WHERE id = $2', [cbRes.status, hitlReq.id]);
     } catch (cbErr) {
       console.error('HITL callback error:', cbErr.message);
