@@ -1051,6 +1051,15 @@ function hitlRefreshPreview() {
 // --- Approvals Panel ---
 var _hitlSse = null;
 
+function switchHitlTab(btn) {
+  var status = btn.getAttribute('data-status');
+  document.querySelectorAll('#hitlStatusTabs .hitl-tab').forEach(function(t) { t.classList.remove('active'); });
+  btn.classList.add('active');
+  var hidden = document.getElementById('hitlStatusFilter');
+  if (hidden) hidden.value = status;
+  loadHitlRequests(status);
+}
+
 async function loadHitlRequests(status) {
   status = status || 'pending';
   var container = document.getElementById('hitlRequestsList');
@@ -1063,13 +1072,14 @@ async function loadHitlRequests(status) {
     var data = await res.json();
 
     if (!data.requests || data.requests.length === 0) {
-      container.innerHTML = '<div class="empty-state" style="padding:40px"><p>No ' + status + ' requests</p></div>';
+      container.innerHTML = '<div class="empty-state" style="padding:40px"><p>No ' + (status === 'all' ? '' : status + ' ') + 'requests</p></div>';
       return;
     }
 
     var html = '';
+    var showActions = (status === 'pending');
     for (var r of data.requests) {
-      html += renderHitlRequestCard(r, status === 'pending');
+      html += renderHitlRequestCard(r, showActions || (status === 'all' && r.status === 'pending'));
     }
     container.innerHTML = html;
   } catch (e) {
@@ -1368,6 +1378,7 @@ async function loadHitlPendingCount() {
     var data = await res.json();
     var badge = document.getElementById('hitlNavBadge');
     var badgeMobile = document.getElementById('hitlNavBadgeMobile');
+    var tabBadge = document.getElementById('hitlTabBadgePending');
     if (badge) {
       badge.textContent = data.count;
       badge.style.display = data.count > 0 ? '' : 'none';
@@ -1375,6 +1386,9 @@ async function loadHitlPendingCount() {
     if (badgeMobile) {
       badgeMobile.textContent = data.count;
       badgeMobile.style.display = data.count > 0 ? '' : 'none';
+    }
+    if (tabBadge) {
+      tabBadge.textContent = data.count > 0 ? data.count : '';
     }
   } catch (e) {}
 }

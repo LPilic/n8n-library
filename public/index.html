@@ -1257,12 +1257,14 @@
     <div class="panel" id="panel-approvals">
       <div class="toolbar">
         <h2>Approvals</h2>
-        <select class="form-input" id="hitlStatusFilter" style="width:auto;min-width:140px" onchange="loadHitlRequests(this.value)">
-          <option value="pending">Pending</option>
-          <option value="approved">Approved</option>
-          <option value="rejected">Rejected</option>
-          <option value="expired">Expired</option>
-        </select>
+        <div class="hitl-status-tabs" id="hitlStatusTabs">
+          <button class="hitl-tab active" data-status="pending" onclick="switchHitlTab(this)">Pending <span class="hitl-tab-badge" id="hitlTabBadgePending"></span></button>
+          <button class="hitl-tab" data-status="approved" onclick="switchHitlTab(this)">Approved</button>
+          <button class="hitl-tab" data-status="rejected" onclick="switchHitlTab(this)">Rejected</button>
+          <button class="hitl-tab" data-status="expired" onclick="switchHitlTab(this)">Expired</button>
+          <button class="hitl-tab" data-status="all" onclick="switchHitlTab(this)">All</button>
+        </div>
+        <input type="hidden" id="hitlStatusFilter" value="pending">
         <div class="toolbar-right">
           <button class="btn btn-secondary btn-sm admin-only" onclick="switchPanel('approvals-builder')"><i class="fa fa-cog"></i> Form Builder</button>
         </div>

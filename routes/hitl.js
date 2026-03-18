@@ -160,8 +160,15 @@ router.get('/api/hitl/requests', requireAuth, async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 50, 200);
     const offset = parseInt(req.query.offset) || 0;
 
-    let where = 'WHERE r.status = $1';
-    const params = [status];
+    let where = '';
+    const params = [];
+    if (status !== 'all') {
+      where = 'WHERE r.status = $1';
+      params.push(status);
+    }
+
+    const limitParam = params.length + 1;
+    const offsetParam = params.length + 2;
 
     const { rows } = await pool.query(
       `SELECT r.*, t.name as template_name, t.slug as template_slug, t.schema as template_schema,
@@ -171,7 +178,7 @@ router.get('/api/hitl/requests', requireAuth, async (req, res) => {
        LEFT JOIN users u ON u.id = r.responded_by
        ${where}
        ORDER BY r.created_at DESC
-       LIMIT $2 OFFSET $3`,
+       LIMIT $${limitParam} OFFSET $${offsetParam}`,
       [...params, limit, offset]
     );
 
