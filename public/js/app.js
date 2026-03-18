@@ -374,19 +374,32 @@ function applyBranding(data) {
   // Background/surface/text colors only apply in light mode
   // In dark mode, the [data-theme="dark"] CSS rules handle these
   if (!isDark) {
-    if (data.brand_bg) r.setProperty('--color-bg', data.brand_bg);
+    if (data.brand_bg) {
+      r.setProperty('--color-bg', data.brand_bg);
+      r.setProperty('--color-bg-alt', data.brand_bg);
+    }
     if (data.brand_sidebar) r.setProperty('--color-sidebar', data.brand_sidebar);
     if (data.brand_card) {
       r.setProperty('--color-card', data.brand_card);
       r.setProperty('--color-card-hover', data.brand_card);
       r.setProperty('--color-bg-light', data.brand_card);
       r.setProperty('--color-input-bg', data.brand_card);
+      // Derive border colors from card/bg
+      r.setProperty('--color-border', 'color-mix(in srgb, ' + data.brand_card + ' 60%, ' + (data.brand_text || '#525356') + ' 15%)');
+      r.setProperty('--color-border-light', 'color-mix(in srgb, ' + data.brand_card + ' 75%, ' + (data.brand_text || '#525356') + ' 8%)');
+      r.setProperty('--color-input-border', 'color-mix(in srgb, ' + data.brand_card + ' 60%, ' + (data.brand_text || '#525356') + ' 15%)');
     }
-    if (data.brand_text) r.setProperty('--color-text', data.brand_text);
+    if (data.brand_text) {
+      r.setProperty('--color-text', data.brand_text);
+      // Derive muted text variants
+      r.setProperty('--color-text-muted', 'color-mix(in srgb, ' + data.brand_text + ' 65%, transparent)');
+      r.setProperty('--color-text-xmuted', 'color-mix(in srgb, ' + data.brand_text + ' 40%, transparent)');
+    }
     if (data.brand_text_dark) r.setProperty('--color-text-dark', data.brand_text_dark);
   } else {
     // Clear any previously set inline overrides so dark CSS takes effect
     r.removeProperty('--color-bg');
+    r.removeProperty('--color-bg-alt');
     r.removeProperty('--color-bg-light');
     r.removeProperty('--color-sidebar');
     r.removeProperty('--color-card');
@@ -394,6 +407,11 @@ function applyBranding(data) {
     r.removeProperty('--color-input-bg');
     r.removeProperty('--color-text');
     r.removeProperty('--color-text-dark');
+    r.removeProperty('--color-text-muted');
+    r.removeProperty('--color-text-xmuted');
+    r.removeProperty('--color-border');
+    r.removeProperty('--color-border-light');
+    r.removeProperty('--color-input-border');
   }
 
   // Logo
