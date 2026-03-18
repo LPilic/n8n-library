@@ -170,17 +170,16 @@ router.get('/api/hitl/requests', requireAuth, async (req, res) => {
     const limitParam = params.length + 1;
     const offsetParam = params.length + 2;
 
-    const { rows } = await pool.query(
-      `SELECT r.*, t.name as template_name, t.slug as template_slug, t.schema as template_schema,
+    const query = `SELECT r.*, t.name as template_name, t.slug as template_slug, t.schema as template_schema,
               u.username as responded_by_name
        FROM hitl_requests r
        LEFT JOIN hitl_templates t ON t.id = r.template_id
        LEFT JOIN users u ON u.id = r.responded_by
        ${where}
        ORDER BY r.created_at DESC
-       LIMIT $${limitParam} OFFSET $${offsetParam}`,
-      [...params, limit, offset]
-    );
+       LIMIT $${limitParam} OFFSET $${offsetParam}`;
+    const queryParams = [...params, limit, offset];
+    const { rows } = await pool.query(query, queryParams);
 
     const countRes = await pool.query(
       `SELECT COUNT(*)::int as count FROM hitl_requests r ${where}`, params

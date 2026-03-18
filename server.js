@@ -52,6 +52,9 @@ app.use(helmet({
 app.use((_req, res, next) => {
   res.setHeader('cf-edge-cache', 'no-cache');
   res.setHeader('x-robots-tag', 'noindex');
+  if (_req.path.startsWith('/api/')) {
+    res.setHeader('Cache-Control', 'no-store');
+  }
   next();
 });
 
