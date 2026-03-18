@@ -1062,6 +1062,7 @@ function switchHitlTab(btn) {
 
 async function loadHitlRequests(status) {
   status = status || 'pending';
+  _hitlDetailLoaded = {};
   var container = document.getElementById('hitlRequestsList');
   if (!container) return;
   container.innerHTML = '<div class="loading">Loading...</div>';
@@ -1089,7 +1090,7 @@ async function loadHitlRequests(status) {
 
 function renderHitlRequestCard(r, showActions) {
   var ago = timeAgo(r.created_at);
-  var html = '<div class="hitl-request-card" id="hitl-req-' + r.id + '">';
+  var html = '<div class="hitl-request-card" id="hitl-req-' + r.id + '" data-show-actions="' + (showActions ? '1' : '0') + '">';
   html += '<div class="hitl-request-header" onclick="toggleHitlRequest(' + r.id + ')">';
   html += '<div class="hitl-request-priority ' + (r.priority || 'medium') + '"></div>';
   html += '<div class="hitl-request-title">' + esc(r.title) + '</div>';
@@ -1102,35 +1103,58 @@ function renderHitlRequestCard(r, showActions) {
     html += '<p style="font-size:13px;color:var(--color-text-muted);margin-bottom:12px">' + esc(r.description) + '</p>';
   }
 
-  if (r.template_schema && r.data) {
-    html += renderHitlForm(r.template_schema, r.data, r.id, showActions);
-  } else {
-    if (r.data && Object.keys(r.data).length > 0) {
-      html += '<div class="hitl-rendered-json">' + esc(JSON.stringify(r.data, null, 2)) + '</div>';
-    }
-    if (showActions) {
-      html += '<div class="hitl-action-buttons">';
-      html += '<button class="btn btn-success" onclick="submitHitlResponse(' + r.id + ',\'approve\')">Approve</button>';
-      html += '<button class="btn btn-danger" onclick="submitHitlResponse(' + r.id + ',\'reject\')">Reject</button>';
-      html += '</div>';
-    }
-  }
-
   if (r.status !== 'pending' && r.responded_by_name) {
-    html += '<div style="font-size:12px;color:var(--color-text-muted);margin-top:12px;padding-top:8px;border-top:1px solid var(--color-border-light)">';
+    html += '<div style="font-size:12px;color:var(--color-text-muted);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--color-border-light)">';
     html += r.status + ' by <strong>' + esc(r.responded_by_name) + '</strong>';
     if (r.responded_at) html += ' on ' + new Date(r.responded_at).toLocaleString();
     if (r.response_comment) html += '<br><em>' + esc(r.response_comment) + '</em>';
     html += '</div>';
   }
 
+  // Detail content loaded on expand
+  html += '<div class="hitl-request-detail" id="hitl-req-detail-' + r.id + '"><div class="loading">Loading...</div></div>';
+
   html += '</div></div>';
   return html;
 }
 
+var _hitlDetailLoaded = {};
 function toggleHitlRequest(id) {
   var body = document.getElementById('hitl-req-body-' + id);
-  if (body) body.style.display = body.style.display === 'none' ? '' : 'none';
+  if (!body) return;
+  var isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? '' : 'none';
+
+  // Lazy-load detail on first expand
+  if (isHidden && !_hitlDetailLoaded[id]) {
+    _hitlDetailLoaded[id] = true;
+    var detailEl = document.getElementById('hitl-req-detail-' + id);
+    if (!detailEl) return;
+    fetch('/api/hitl/requests/' + id, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(function(r) { return r.json(); })
+      .then(function(full) {
+        var card = document.getElementById('hitl-req-' + id);
+        var showActions = card && card.getAttribute('data-show-actions') === '1' && full.status === 'pending';
+        var html = '';
+        if (full.template_schema && full.template_schema.components) {
+          html = renderHitlForm(full.template_schema, full.data || {}, id, showActions);
+        } else if (full.data) {
+          html = '<div class="hitl-rendered-json">' + esc(JSON.stringify(full.data, null, 2)) + '</div>';
+        }
+        // Default approve/reject buttons if pending and no button-group in schema
+        if (showActions && html.indexOf('hitl-action-buttons') === -1) {
+          html += '<div class="hitl-action-buttons">';
+          html += '<button class="btn btn-primary" onclick="submitHitlResponse(' + id + ',\'approve\',false)">Approve</button>';
+          html += '<button class="btn btn-danger" onclick="submitHitlResponse(' + id + ',\'reject\',true)">Reject</button>';
+          html += '</div>';
+        }
+        detailEl.innerHTML = html || '<p style="color:var(--color-text-muted);font-size:13px">No additional data</p>';
+      })
+      .catch(function() {
+        detailEl.innerHTML = '<p style="color:var(--color-danger);font-size:13px">Failed to load details</p>';
+        _hitlDetailLoaded[id] = false; // allow retry
+      });
+  }
 }
 
 // --- Form Renderer ---

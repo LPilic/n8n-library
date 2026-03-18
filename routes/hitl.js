@@ -170,7 +170,9 @@ router.get('/api/hitl/requests', requireAuth, async (req, res) => {
     const limitParam = params.length + 1;
     const offsetParam = params.length + 2;
 
-    const query = `SELECT r.*, t.name as template_name, t.slug as template_slug, t.schema as template_schema,
+    const query = `SELECT r.id, r.template_id, r.title, r.description, r.status, r.priority,
+              r.created_at, r.responded_at, r.response_comment,
+              t.name as template_name, t.slug as template_slug,
               u.username as responded_by_name
        FROM hitl_requests r
        LEFT JOIN hitl_templates t ON t.id = r.template_id
