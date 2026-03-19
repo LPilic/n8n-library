@@ -134,17 +134,20 @@ app.use(express.static(path.join(__dirname, 'public'), {
 // --- CORS for n8n-facing routes and API key requests ---
 
 app.use((req, res, next) => {
-  if (req.path.startsWith('/templates/') || req.path.startsWith('/workflows/') || req.path.startsWith('/api/public/')) {
-    res.header('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  if (req.path.startsWith('/templates/') || req.path.startsWith('/workflows/') || req.path.startsWith('/api/public/') || req.path === '/health') {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, n8n-version');
     if (req.method === 'OPTIONS') return res.sendStatus(204);
   }
   // CORS for API key authenticated requests and MCP endpoint
   if ((req.path.startsWith('/api/') || req.path === '/mcp') && (req.headers['authorization'] || req.headers['x-api-key'])) {
-    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-API-Key, Mcp-Session-Id');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-API-Key, Mcp-Session-Id, n8n-version');
     res.header('Access-Control-Expose-Headers', 'Mcp-Session-Id');
     if (req.method === 'OPTIONS') return res.sendStatus(204);
   }
