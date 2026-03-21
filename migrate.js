@@ -595,6 +595,70 @@ async function migrate() {
     CREATE INDEX IF NOT EXISTS idx_kb_articles_instance ON kb_articles (instance_id);
   `);
 
+  // --- Prompt Versioning ---
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS prompts (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      slug VARCHAR(255) NOT NULL UNIQUE,
+      description TEXT DEFAULT '',
+      content TEXT NOT NULL DEFAULT '',
+      variables JSONB DEFAULT '[]',
+      category VARCHAR(100) DEFAULT '',
+      tags TEXT[] DEFAULT '{}',
+      status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published','archived')),
+      current_version INTEGER NOT NULL DEFAULT 1,
+      created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      updated_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_prompts_slug ON prompts (slug);
+    CREATE INDEX IF NOT EXISTS idx_prompts_status ON prompts (status);
+    CREATE INDEX IF NOT EXISTS idx_prompts_category ON prompts (category);
+    CREATE INDEX IF NOT EXISTS idx_prompts_created_by ON prompts (created_by);
+
+    CREATE TABLE IF NOT EXISTS prompt_versions (
+      id SERIAL PRIMARY KEY,
+      prompt_id INTEGER NOT NULL REFERENCES prompts(id) ON DELETE CASCADE,
+      version INTEGER NOT NULL,
+      content TEXT NOT NULL,
+      variables JSONB DEFAULT '[]',
+      change_note TEXT DEFAULT '',
+      created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(prompt_id, version)
+    );
+    CREATE INDEX IF NOT EXISTS idx_prompt_versions_prompt ON prompt_versions (prompt_id);
+  `);
+
+  // Full-text search for prompts
+  await pool.query(`
+    ALTER TABLE prompts ADD COLUMN IF NOT EXISTS search_vector tsvector;
+    CREATE INDEX IF NOT EXISTS idx_prompts_search ON prompts USING gin(search_vector);
+
+    CREATE OR REPLACE FUNCTION prompts_search_update() RETURNS trigger AS $$
+    BEGIN
+      NEW.search_vector := setweight(to_tsvector('english', coalesce(NEW.name,'')), 'A')
+        || setweight(to_tsvector('english', coalesce(NEW.description,'')), 'B')
+        || setweight(to_tsvector('english', coalesce(NEW.content,'')), 'C');
+      RETURN NEW;
+    END $$ LANGUAGE plpgsql;
+
+    DROP TRIGGER IF EXISTS prompts_search_trigger ON prompts;
+    CREATE TRIGGER prompts_search_trigger
+      BEFORE INSERT OR UPDATE OF name, description, content ON prompts
+      FOR EACH ROW EXECUTE FUNCTION prompts_search_update();
+  `);
+
+  // Backfill search vectors for existing prompts
+  await pool.query(`
+    UPDATE prompts SET search_vector = setweight(to_tsvector('english', coalesce(name,'')), 'A')
+      || setweight(to_tsvector('english', coalesce(description,'')), 'B')
+      || setweight(to_tsvector('english', coalesce(content,'')), 'C')
+    WHERE search_vector IS NULL;
+  `);
+
   console.log('Migration complete.');
   await pool.end();
 }

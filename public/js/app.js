@@ -575,7 +575,7 @@ function updateConnectionStatus() {
 
 
 // --- Navigation ---
-const MORE_PANELS = ['kb', 'monitoring', 'observability', 'ai', 'categories', 'settings', 'users', 'audit'];
+const MORE_PANELS = ['kb', 'prompts', 'monitoring', 'observability', 'ai', 'categories', 'settings', 'users', 'audit'];
 
 function toggleSidebar() {
   var sb = document.getElementById('appSidebar');
@@ -639,10 +639,11 @@ function switchPanel(name, skipPush) {
   if (name === 'approvals') { loadHitlRequests('pending'); connectHitlSse(); loadHitlPendingCount(); }
   else { if (typeof disconnectHitlSse === 'function') disconnectHitlSse(); }
   if (name === 'approvals-builder') { loadHitlTemplates(); }
+  if (name === 'prompts') { loadPrompts(); loadPromptCategories(); }
 }
 
 // --- Client-side routing ---
-const VALID_PANELS = ['dashboard','library','n8n','categories','tickets','kb','monitoring','observability','ai','settings','users','audit','approvals','approvals-builder'];
+const VALID_PANELS = ['dashboard','library','n8n','categories','tickets','kb','prompts','monitoring','observability','ai','settings','users','audit','approvals','approvals-builder'];
 
 function handleRouteFromUrl() {
   const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
@@ -675,6 +676,8 @@ function handleRouteFromUrl() {
         setTimeout(() => openTicketDetail(parseInt(detailId)), 300);
       } else if (panel === 'kb') {
         setTimeout(() => viewKbArticle(detailId), 300);
+      } else if (panel === 'prompts') {
+        setTimeout(() => viewPrompt(detailId), 300);
       } else if (panel === 'monitoring') {
         setTimeout(() => loadExecutionDetail(detailId), 300);
       }

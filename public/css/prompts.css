@@ -1,0 +1,158 @@
+/* Prompt content display */
+.prompt-content-block {
+  margin-top: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 16px;
+}
+.prompt-content-pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+  color: var(--color-text);
+}
+.prompt-description {
+  margin: 12px 0 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.prompt-variables {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.prompt-variables code {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+/* Version compare bar */
+.prompt-version-compare-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+.prompt-version-compare-bar span {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.prompt-version-check {
+  display: flex;
+  align-items: center;
+  padding-right: 8px;
+}
+.prompt-version-check input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+/* Diff styles */
+.prompt-diff-header {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.prompt-diff-col {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.prompt-diff-col strong {
+  display: block;
+  margin-bottom: 4px;
+}
+.prompt-diff-content {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: auto;
+  max-height: 500px;
+}
+.prompt-diff-pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+  padding: 16px;
+}
+.diff-added {
+  background: #d4edda;
+  color: #155724;
+  border-radius: 2px;
+}
+.diff-removed {
+  background: #f8d7da;
+  color: #721c24;
+  text-decoration: line-through;
+  border-radius: 2px;
+}
+[data-theme="dark"] .diff-added {
+  background: #1a3a2a;
+  color: #8fd4a0;
+}
+[data-theme="dark"] .diff-removed {
+  background: #3a1a1a;
+  color: #e08080;
+}
+
+/* AI Improve */
+.prompt-improve-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.prompt-improve-section h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Prompt textarea in modal */
+.prompt-textarea {
+  width: 100%;
+  min-height: 200px;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  resize: vertical;
+}
+.prompt-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb, 99,102,241), 0.15);
+}
+
+/* Improve instruction input */
+.prompt-improve-input-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.prompt-improve-input-row input {
+  flex: 1;
+}

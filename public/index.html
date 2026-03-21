@@ -28,6 +28,7 @@
 <link rel="stylesheet" href="css/notifications.css?v=1">
 <link rel="stylesheet" href="css/cmdpalette.css?v=1">
 <link rel="stylesheet" href="css/hitl.css?v=1">
+<link rel="stylesheet" href="css/prompts.css?v=1">
 <script src="vendor/js/purify.min.js"></script>
 <link rel="stylesheet" href="vendor/css/github-highlight.min.css">
 <script src="vendor/js/highlight.min.js"></script>
@@ -143,6 +144,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         <span>Knowledge Base</span>
       </div>
+      <div class="nav-item write-only" data-panel="prompts" onclick="switchPanel('prompts')" data-tooltip="Prompts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Prompts</span>
+      </div>
 
       <!-- OPERATIONS -->
       <div class="sidebar-section-divider write-only"></div>
@@ -249,6 +254,10 @@
     <button data-panel="kb" onclick="switchPanel('kb');toggleMobileMore()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
       Knowledge Base
+    </button>
+    <button data-panel="prompts" class="write-only" onclick="switchPanel('prompts');toggleMobileMore()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Prompts
     </button>
     <button data-panel="monitoring" class="write-only" onclick="switchPanel('monitoring');toggleMobileMore()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
@@ -517,6 +526,144 @@
           <button class="preview-modal-close" onclick="document.getElementById('kbVersionModal').classList.remove('active')">&times;</button>
         </div>
         <div class="preview-modal-body" style="padding:20px;overflow-y:auto" id="kbVersionList"></div>
+      </div>
+    </div>
+
+    <!-- Prompts Panel -->
+    <div class="panel" id="panel-prompts">
+      <div class="toolbar">
+        <h2>Prompts</h2>
+        <input type="text" class="search-input" placeholder="Search prompts..." id="promptSearch" oninput="debouncedLoadPrompts()">
+        <div class="toolbar-right">
+          <button class="btn btn-primary write-only" onclick="openPromptModal()">+ New Prompt</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="ticket-panel-body">
+          <div class="ticket-panel-main" id="promptContent">
+            <!-- Prompt list or detail rendered here -->
+          </div>
+          <div class="ticket-panel-sidebar" id="promptSidebar">
+            <div class="ticket-kpi-card kpi-filters">
+              <div class="kpi-header">Filters</div>
+              <div class="ticket-filters">
+                <select id="promptFilterCategory" onchange="loadPrompts()">
+                  <option value="">All Categories</option>
+                </select>
+                <select id="promptFilterStatus" class="write-only" onchange="loadPrompts()">
+                  <option value="">All Status</option>
+                  <option value="published">Published</option>
+                  <option value="draft">Draft</option>
+                  <option value="archived">Archived</option>
+                </select>
+                <select id="promptFilterSort" onchange="loadPrompts()">
+                  <option value="">Recent</option>
+                  <option value="name">A-Z</option>
+                  <option value="created">Created</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prompt Create/Edit Modal -->
+    <div class="preview-modal-overlay" id="promptModal">
+      <div class="preview-modal" style="max-width:800px">
+        <div class="preview-modal-header">
+          <h2 id="promptModalTitle">New Prompt</h2>
+          <button class="preview-modal-close" onclick="closePromptModal()">&times;</button>
+        </div>
+        <div class="preview-modal-body" style="padding:20px;overflow-y:auto">
+          <div class="form-group">
+            <label class="form-label">Name</label>
+            <input type="text" class="form-input" id="promptName" placeholder="Prompt name">
+          </div>
+          <div class="form-group" style="display:flex;gap:12px">
+            <div style="flex:1">
+              <label class="form-label">Category</label>
+              <input type="text" class="form-input" id="promptCategory" list="promptCategoryList" placeholder="e.g. Customer Support">
+              <datalist id="promptCategoryList"></datalist>
+            </div>
+            <div style="flex:1">
+              <label class="form-label">Status</label>
+              <select class="form-input" id="promptStatus">
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description <small>(optional)</small></label>
+            <textarea class="form-input" id="promptDescription" rows="2" placeholder="Short description of what this prompt does"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Prompt Content</label>
+            <textarea class="prompt-textarea" id="promptContentInput" placeholder="Enter your prompt here... Use {{variable_name}} for template variables."></textarea>
+          </div>
+          <div class="form-group" style="display:flex;gap:12px">
+            <div style="flex:1">
+              <label class="form-label">Variables <small>(comma-separated)</small></label>
+              <input type="text" class="form-input" id="promptVariables" placeholder="e.g. customer_name, product, tone">
+            </div>
+            <div style="flex:1">
+              <label class="form-label">Tags <small>(comma-separated)</small></label>
+              <input type="text" class="form-input" id="promptTags" placeholder="e.g. support, email, onboarding">
+            </div>
+          </div>
+          <div class="form-group" id="promptChangeNoteGroup" style="display:none">
+            <label class="form-label">Change Note <small>(optional)</small></label>
+            <input type="text" class="form-input" id="promptChangeNote" placeholder="What changed in this version?">
+          </div>
+        </div>
+        <div class="preview-modal-footer" style="padding:16px 20px;border-top:1px solid var(--color-border);display:flex;justify-content:flex-end;gap:8px">
+          <button class="btn" onclick="closePromptModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="savePrompt()" id="promptSaveBtn">Save Prompt</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prompt Version History Modal -->
+    <div class="preview-modal-overlay" id="promptVersionModal">
+      <div class="preview-modal" style="max-width:700px">
+        <div class="preview-modal-header">
+          <h2>Version History</h2>
+          <button class="preview-modal-close" onclick="document.getElementById('promptVersionModal').classList.remove('active')">&times;</button>
+        </div>
+        <div class="preview-modal-body" style="padding:20px;overflow-y:auto" id="promptVersionList"></div>
+      </div>
+    </div>
+
+    <!-- Prompt Diff Modal -->
+    <div class="preview-modal-overlay" id="promptDiffModal">
+      <div class="preview-modal" style="max-width:900px">
+        <div class="preview-modal-header">
+          <h2>Version Comparison</h2>
+          <button class="preview-modal-close" onclick="document.getElementById('promptDiffModal').classList.remove('active')">&times;</button>
+        </div>
+        <div class="preview-modal-body" style="padding:20px;overflow-y:auto" id="promptDiffBody"></div>
+      </div>
+    </div>
+
+    <!-- Prompt AI Improve Modal -->
+    <div class="preview-modal-overlay" id="promptImproveModal">
+      <div class="preview-modal" style="max-width:900px">
+        <div class="preview-modal-header">
+          <h2>Improve with AI</h2>
+          <button class="preview-modal-close" onclick="document.getElementById('promptImproveModal').classList.remove('active')">&times;</button>
+        </div>
+        <div class="preview-modal-body" style="padding:20px;overflow-y:auto">
+          <div class="prompt-improve-input-row">
+            <input type="text" class="form-input" id="promptImproveInstruction" placeholder="Optional: e.g. 'make more concise', 'add chain-of-thought', 'add examples'...">
+            <button class="btn btn-primary" id="promptImproveRunBtn" onclick="runPromptImprove()">Improve</button>
+          </div>
+          <div id="promptImproveResult"></div>
+          <div style="margin-top:12px;text-align:right">
+            <button class="btn btn-primary" id="promptImproveAcceptBtn" style="display:none">Accept &amp; Edit</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1761,6 +1908,7 @@
 <script src="js/audit.js?v=1"></script>
 <script src="js/alerts.js?v=1"></script>
 <script src="js/hitl.js?v=1"></script>
+<script src="js/prompts.js?v=1"></script>
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then(function(regs) { regs.forEach(function(r) { r.unregister(); }); });
