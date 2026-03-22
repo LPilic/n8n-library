@@ -245,6 +245,53 @@ router.post('/api/monitoring/executions/:id/retry', requireRole('admin', 'editor
   }
 });
 
+// Stop execution
+router.post('/api/monitoring/executions/:id/stop', requireRole('admin', 'editor'), async (req, res) => {
+  try {
+    const cfg = await getInstanceBase(req);
+    if (!cfg) return res.status(400).json({ error: 'No n8n instance configured' });
+    const r = await fetch(`${cfg.base}/api/v1/executions/${encodeURIComponent(req.params.id)}/stop`, {
+      method: 'POST',
+      headers: { 'X-N8N-API-KEY': cfg.key, 'Content-Type': 'application/json' },
+    });
+    if (!r.ok) {
+      const errBody = await r.text();
+      return res.status(r.status).json({ error: errBody || 'Failed to stop execution' });
+    }
+    const data = await r.json();
+    res.json(data);
+  } catch (err) {
+    console.error('Stop execution error:', err.message);
+    res.status(502).json({ error: 'Failed to reach n8n' });
+  }
+});
+
+// Stop multiple executions
+router.post('/api/monitoring/executions/stop', requireRole('admin', 'editor'), async (req, res) => {
+  try {
+    const cfg = await getInstanceBase(req);
+    if (!cfg) return res.status(400).json({ error: 'No n8n instance configured' });
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'ids array required' });
+    const results = [];
+    for (const id of ids) {
+      try {
+        const r = await fetch(`${cfg.base}/api/v1/executions/${encodeURIComponent(id)}/stop`, {
+          method: 'POST',
+          headers: { 'X-N8N-API-KEY': cfg.key, 'Content-Type': 'application/json' },
+        });
+        results.push({ id, ok: r.ok, status: r.status });
+      } catch (e) {
+        results.push({ id, ok: false, error: e.message });
+      }
+    }
+    res.json({ results, stopped: results.filter(r => r.ok).length, failed: results.filter(r => !r.ok).length });
+  } catch (err) {
+    console.error('Bulk stop error:', err.message);
+    res.status(502).json({ error: 'Failed to reach n8n' });
+  }
+});
+
 // Stats
 router.get('/api/monitoring/stats', requireRole('admin', 'editor'), async (req, res) => {
   try {

@@ -482,6 +482,8 @@ function renderMonitoringExecutions(executions, container) {
       if (d > 0) { totalDur += d; durCount++; }
     }
   }
+  var stopAllBtn = document.getElementById('monStopAllBtn');
+  if (stopAllBtn) stopAllBtn.style.display = runningCount > 0 ? '' : 'none';
   kpiHtml += '<div class="mon-kpi-card"><div class="mon-kpi-number">' + executions.length + '</div><div class="mon-kpi-label">Shown</div></div>';
   kpiHtml += '<div class="mon-kpi-card"><div class="mon-kpi-number" style="color:var(--color-success)">' + successCount + '</div><div class="mon-kpi-label">Success</div></div>';
   kpiHtml += '<div class="mon-kpi-card"><div class="mon-kpi-number" style="color:var(--color-danger)">' + errorCount + '</div><div class="mon-kpi-label">Errors</div></div>';
@@ -531,7 +533,9 @@ function renderMonitoringExecutions(executions, container) {
       '<td class="kb-article-meta">' + started + '</td>' +
       '<td class="kb-article-meta">' + duration + '</td>' +
       '<td class="kb-article-meta">' + esc(mode) + '</td>' +
-      '<td style="text-align:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.6"><polyline points="9 18 15 12 9 6"/></svg></td>' +
+      '<td style="text-align:center">' +
+      ((ex.status === 'running' || ex.status === 'waiting' || ex.status === 'new') ? '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();stopExecution(\'' + esc(String(ex.id)) + '\')" style="padding:2px 6px;font-size:10px" title="Stop"><i class="fa fa-stop"></i></button>' : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.6"><polyline points="9 18 15 12 9 6"/></svg>') +
+      '</td>' +
     '</tr>';
   }
   html += '</tbody></table></div>';
@@ -713,6 +717,9 @@ async function loadExecutionDetail(id) {
     html += '<h3 style="margin:0">Execution #' + esc(String(id)) + '</h3>';
     html += '<span class="ticket-badge badge-' + statusClass + '">' + esc(ex.status || 'unknown') + '</span>';
     html += '<div class="mon-detail-actions">';
+    if (ex.status === 'running' || ex.status === 'waiting' || ex.status === 'new') {
+      html += '<button class="btn btn-danger" onclick="stopExecution(\'' + esc(String(id)) + '\')"><i class="fa fa-stop"></i> Stop</button>';
+    }
     if (ex.status === 'error') {
       html += '<button class="btn btn-primary" onclick="retryExecution(\'' + esc(String(id)) + '\')"><i class="fa fa-repeat"></i> Retry</button>';
       html += '<button class="btn btn-secondary" onclick="reportIssueFromExecution()"><i class="fa fa-ticket"></i> Report Issue</button>';
@@ -854,6 +861,50 @@ async function retryExecution(id) {
     }
   } catch (e) {
     toast('Failed to retry execution', 'error');
+  }
+}
+
+async function stopExecution(id) {
+  var ok = await appConfirm('Are you sure you want to stop this execution?', { title: 'Stop Execution', okLabel: 'Stop' });
+  if (!ok) return;
+  try {
+    var res = await fetch(monUrl('/api/monitoring/executions/' + encodeURIComponent(id) + '/stop'), {
+      method: 'POST',
+      headers: CSRF_HEADERS,
+    });
+    if (!res.ok) {
+      var err = await res.json().catch(function() { return {}; });
+      return toast(err.error || 'Stop failed', 'error');
+    }
+    toast('Execution stopped', 'success');
+    setTimeout(function() { loadExecutionDetail(id); }, 500);
+  } catch (e) {
+    toast('Failed to stop execution', 'error');
+  }
+}
+
+async function stopAllRunning() {
+  var runningIds = (monExecAllData || [])
+    .filter(function(ex) { return ex.status === 'running' || ex.status === 'waiting' || ex.status === 'new'; })
+    .map(function(ex) { return ex.id; });
+  if (runningIds.length === 0) return toast('No running executions to stop', 'info');
+  var ok = await appConfirm('Stop all ' + runningIds.length + ' running execution' + (runningIds.length > 1 ? 's' : '') + '?', { title: 'Stop All Running', okLabel: 'Stop All' });
+  if (!ok) return;
+  try {
+    var res = await fetch(monUrl('/api/monitoring/executions/stop'), {
+      method: 'POST',
+      headers: CSRF_HEADERS,
+      body: JSON.stringify({ ids: runningIds }),
+    });
+    if (!res.ok) {
+      var err = await res.json().catch(function() { return {}; });
+      return toast(err.error || 'Bulk stop failed', 'error');
+    }
+    var data = await res.json();
+    toast('Stopped ' + data.stopped + ' execution' + (data.stopped !== 1 ? 's' : '') + (data.failed ? ', ' + data.failed + ' failed' : ''), data.failed ? 'warning' : 'success');
+    loadMonitoringData(true);
+  } catch (e) {
+    toast('Failed to stop executions', 'error');
   }
 }
 

@@ -672,6 +672,7 @@
       <div class="toolbar">
         <h2>Monitoring</h2>
         <div class="toolbar-right">
+          <button class="btn btn-danger btn-sm" onclick="stopAllRunning()" style="font-size:11px;display:none" id="monStopAllBtn"><i class="fa fa-stop"></i> Stop All Running</button>
           <div class="mon-toolbar-filters" id="monToolbarFilters">
             <select id="monInstanceFilter" class="form-input" style="display:none;width:auto;min-width:130px" onchange="switchMonInstance(this.value)"></select>
             <select id="monFilterStatus" class="form-input" style="width:auto;min-width:120px" onchange="loadMonitoringExecutions(true)">
