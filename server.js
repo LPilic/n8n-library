@@ -196,6 +196,7 @@ app.use(require('./routes/hitl'));
 app.use(require('./routes/prompts'));
 app.use(require('./routes/variables'));
 app.use(require('./routes/tags'));
+app.use(require('./routes/security'));
 
 // --- API Documentation (Swagger) ---
 
@@ -288,7 +289,7 @@ startAlertEngine();
 
 // --- Client-side routing catch-all ---
 // Serve index.html for panel routes so direct navigation and refresh work
-const CLIENT_ROUTES = ['dashboard','library','n8n','categories','tickets','kb','monitoring','observability','ai','settings','users','audit','approvals','approvals-builder','prompts','variables','tags'];
+const CLIENT_ROUTES = ['dashboard','library','n8n','categories','tickets','kb','monitoring','observability','ai','settings','users','audit','approvals','approvals-builder','prompts','variables','tags','security'];
 app.get('*', (req, res, next) => {
   const segment = req.path.split('/')[1];
   if (CLIENT_ROUTES.includes(segment)) {

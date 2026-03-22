@@ -575,7 +575,7 @@ function updateConnectionStatus() {
 
 
 // --- Navigation ---
-const MORE_PANELS = ['kb', 'prompts', 'monitoring', 'observability', 'ai', 'categories', 'variables', 'tags', 'settings', 'users', 'audit'];
+const MORE_PANELS = ['kb', 'prompts', 'monitoring', 'observability', 'ai', 'categories', 'variables', 'tags', 'security', 'settings', 'users', 'audit'];
 
 function toggleSidebar() {
   var sb = document.getElementById('appSidebar');
@@ -642,10 +642,11 @@ function switchPanel(name, skipPush) {
   if (name === 'prompts') { loadPrompts(); loadPromptCategories(); }
   if (name === 'variables') { loadVariables(); }
   if (name === 'tags') { loadN8nTags(); }
+  if (name === 'security') { loadSecurityAudit(); }
 }
 
 // --- Client-side routing ---
-const VALID_PANELS = ['dashboard','library','n8n','categories','tickets','kb','prompts','monitoring','observability','ai','settings','users','audit','approvals','approvals-builder','variables','tags'];
+const VALID_PANELS = ['dashboard','library','n8n','categories','tickets','kb','prompts','monitoring','observability','ai','settings','users','audit','approvals','approvals-builder','variables','tags','security'];
 
 function handleRouteFromUrl() {
   const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
