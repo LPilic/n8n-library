@@ -29,6 +29,7 @@
 <link rel="stylesheet" href="css/cmdpalette.css?v=1">
 <link rel="stylesheet" href="css/hitl.css?v=1">
 <link rel="stylesheet" href="css/prompts.css?v=1">
+<style>.tag-wf-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid var(--color-border);border-radius:6px;margin-bottom:6px;font-size:13px}</style>
 <script src="vendor/js/purify.min.js"></script>
 <link rel="stylesheet" href="vendor/css/github-highlight.min.css">
 <script src="vendor/js/highlight.min.js"></script>
@@ -172,6 +173,10 @@
       <div class="nav-item admin-only" data-panel="ai" onclick="switchPanel('ai')" data-tooltip="AI Config">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
         <span>AI Config</span>
+      </div>
+      <div class="nav-item write-only" data-panel="tags" onclick="switchPanel('tags')" data-tooltip="Tags">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H2v7l6.29 6.29c.94.94 2.48.94 3.42 0l4.58-4.58c.94-.94.94-2.48 0-3.42L9 5Z"/><path d="M6 9.01V9"/></svg>
+        <span>Tags</span>
       </div>
       <div class="nav-item admin-only" data-panel="variables" onclick="switchPanel('variables')" data-tooltip="Variables">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
@@ -668,6 +673,51 @@
             <button class="btn btn-primary" id="promptImproveAcceptBtn" style="display:none">Accept &amp; Edit</button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Tags Panel -->
+    <div class="panel" id="panel-tags">
+      <div class="toolbar">
+        <h2>Tags</h2>
+        <input type="text" class="search-input" placeholder="Search tags..." id="tagSearchInput" oninput="renderN8nTags()">
+        <div class="toolbar-right">
+          <button class="btn btn-primary admin-only" onclick="openCreateTag()">+ New Tag</button>
+        </div>
+      </div>
+      <div class="content" style="padding:20px">
+        <div id="tagsContent"></div>
+      </div>
+    </div>
+
+    <!-- Tag Create/Rename Modal -->
+    <div class="preview-modal-overlay" id="tagModal">
+      <div class="preview-modal" style="max-width:400px">
+        <div class="preview-modal-header">
+          <h2 id="tagModalTitle">New Tag</h2>
+          <button class="preview-modal-close" onclick="closeTagModal()">&times;</button>
+        </div>
+        <div class="preview-modal-body" style="padding:20px">
+          <div class="form-group">
+            <label class="form-label">Tag Name</label>
+            <input type="text" class="form-input" id="tagNameInput" placeholder="e.g. production, billing, hr">
+          </div>
+        </div>
+        <div class="preview-modal-footer" style="padding:16px 20px;border-top:1px solid var(--color-border);display:flex;justify-content:flex-end;gap:8px">
+          <button class="btn" onclick="closeTagModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveTag()" id="tagSaveBtn">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tag Workflows Modal -->
+    <div class="preview-modal-overlay" id="tagWorkflowsModal">
+      <div class="preview-modal" style="max-width:600px">
+        <div class="preview-modal-header">
+          <h2 id="tagWorkflowsTitle">Workflows</h2>
+          <button class="preview-modal-close" onclick="document.getElementById('tagWorkflowsModal').classList.remove('active')">&times;</button>
+        </div>
+        <div class="preview-modal-body" style="padding:20px;overflow-y:auto" id="tagWorkflowsBody"></div>
       </div>
     </div>
 
@@ -1954,6 +2004,7 @@
 <script src="js/hitl.js?v=1"></script>
 <script src="js/prompts.js?v=1"></script>
 <script src="js/variables.js?v=1"></script>
+<script src="js/tags.js?v=1"></script>
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then(function(regs) { regs.forEach(function(r) { r.unregister(); }); });
