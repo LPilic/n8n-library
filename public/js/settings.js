@@ -176,6 +176,10 @@ function selectInstance(id, silent) {
       var id2 = activePanel.id;
       if (id2 === 'panel-monitoring') { loadMonitoringExecutions(true); }
       if (id2 === 'panel-observability') { loadObservability(); }
+      if (id2 === 'panel-credentials') { loadCredentials(); }
+      if (id2 === 'panel-variables') { loadVariables(); }
+      if (id2 === 'panel-tags') { loadN8nTags(); }
+      if (id2 === 'panel-security') { loadSecurityAudit(); }
     }
   }
 }
