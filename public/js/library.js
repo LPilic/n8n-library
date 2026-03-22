@@ -198,6 +198,7 @@ function renderN8nWorkflows() {
         <div class="card-actions">
           <button class="btn btn-success btn-sm" onclick="importWorkflow('${w.id}')">Import to Library</button>
           ${aiEnabled ? `<button class="btn btn-secondary btn-sm ai-gen-btn" onclick="aiRenameN8nWorkflow('${w.id}')" style="font-size:11px">&#10024; Rename</button>` : ''}
+          ${aiEnabled ? `<button class="btn btn-secondary btn-sm ai-gen-btn" onclick="generateWorkflowDocs('${w.id}', 'n8n')" style="font-size:11px">&#10024; Docs</button>` : ''}
         </div>
       </div>
     `;

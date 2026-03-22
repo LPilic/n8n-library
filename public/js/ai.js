@@ -698,6 +698,11 @@ async function generateWorkflowDocs(id, source) {
     }
     wfData = wf;
     wfName = wf.name || 'Template #' + id;
+  } else if (source === 'n8n') {
+    var wf = (typeof n8nWorkflowsCache !== 'undefined' ? n8nWorkflowsCache : []).find(function(w) { return w.id === id || w.id === String(id); });
+    if (!wf) return toast('Workflow not found', 'error');
+    wfData = wf;
+    wfName = wf.name || 'Workflow ' + id;
   } else if (source === 'monitoring') {
     var wf = (typeof monWorkflowCache !== 'undefined' ? monWorkflowCache : []).find(function(w) { return w.id === id || w.id === String(id); });
     if (!wf) return toast('Workflow not found', 'error');
