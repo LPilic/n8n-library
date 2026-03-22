@@ -734,7 +734,7 @@ async function _generateDocs(wfData, wfName) {
     if (!res.ok) { var e = await res.json(); throw new Error(e.error || 'Failed'); }
     var data = await res.json();
     if (data.documentation) {
-      document.getElementById('docContent').innerHTML = data.documentation;
+      document.getElementById('docContent').innerHTML = renderContent(data.documentation);
       document.getElementById('docSaveKbBtn').style.display = '';
       toast('Documentation generated', 'success');
     } else {

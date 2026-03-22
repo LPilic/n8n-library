@@ -30,12 +30,11 @@ function renderContent(content) {
   });
   html = tmp.innerHTML;
   if (typeof DOMPurify !== 'undefined') {
-    html = DOMPurify.sanitize(html, { ADD_TAGS: ['iframe','span'], ADD_ATTR: ['target','rel','class','spellcheck'], FORBID_TAGS: ['style'] });
+    html = DOMPurify.sanitize(html, { ADD_TAGS: ['iframe','span'], ADD_ATTR: ['target','rel','class','spellcheck'], FORBID_TAGS: ['style'], FORBID_ATTR: ['style'] });
   } else {
     html = esc(html || '').replace(/\n/g, '<br>');
   }
-  // Strip Quill-specific classes that cause CSS leaks (ql-indent-*, ql-direction-*, ql-ui, etc.)
-  // Keep ql-align-* and ql-video as we handle those in CSS
+  // Strip Quill-specific classes and AI-generated classes that cause CSS leaks
   var tmp2 = document.createElement('div');
   tmp2.innerHTML = html;
   tmp2.querySelectorAll('[class]').forEach(function(el) {
@@ -46,6 +45,8 @@ function renderContent(content) {
     el.className = classes.join(' ');
     if (!el.className) el.removeAttribute('class');
   });
+  // Remove any inline style attributes that DOMPurify might have missed
+  tmp2.querySelectorAll('[style]').forEach(function(el) { el.removeAttribute('style'); });
   return tmp2.innerHTML;
 }
 function renderMarkdown(s) { return renderContent(s); }
