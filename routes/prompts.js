@@ -403,6 +403,28 @@ router.get('/api/public/prompts/:slug', async (req, res) => {
   }
 });
 
+// --- Public API: List versions by slug (API key required) ---
+router.get('/api/public/prompts/:slug/versions', async (req, res) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'API key required' });
+
+    const prompt = await pool.query(
+      'SELECT id FROM prompts WHERE slug = $1 AND status = $2',
+      [req.params.slug, 'published']
+    );
+    if (!prompt.rows.length) return res.status(404).json({ error: 'Prompt not found' });
+
+    const { rows } = await pool.query(
+      `SELECT v.version, v.change_note, v.created_at
+       FROM prompt_versions v WHERE v.prompt_id = $1 ORDER BY v.version DESC`,
+      [prompt.rows[0].id]
+    );
+    res.json({ versions: rows });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // --- Public API: Get specific version by slug (API key required) ---
 router.get('/api/public/prompts/:slug/v/:version', async (req, res) => {
   try {
