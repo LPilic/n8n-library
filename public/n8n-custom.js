@@ -1,8 +1,12 @@
 // Inject custom CSS + Font Awesome into n8n's template browser
 (function() {
+  // Derive base URL from this script's src so CSS loads from the library host, not n8n's origin
+  var scriptSrc = document.currentScript && document.currentScript.src;
+  var baseUrl = scriptSrc ? scriptSrc.replace(/\/[^/]*$/, '') : '';
+
   var link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = '/n8n-custom.css';
+  link.href = baseUrl + '/n8n-custom.css';
   document.head.appendChild(link);
 
   if (!document.querySelector('link[href*="font-awesome"]')) {
