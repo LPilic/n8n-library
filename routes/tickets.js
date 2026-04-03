@@ -339,15 +339,30 @@ router.post('/api/tickets', requireAuth, ticketLimiter, async (req, res) => {
 });
 
 // Update ticket
-router.put('/api/tickets/:id', requireRole('admin', 'editor'), async (req, res) => {
+router.put('/api/tickets/:id', requireAuth, async (req, res) => {
   try {
     const { rows: cur } = await pool.query('SELECT * FROM tickets WHERE id=$1', [req.params.id]);
     if (cur.length === 0) return res.status(404).json({ error: 'Ticket not found' });
     const old = cur[0];
 
+    const isStaff = ['admin', 'editor'].includes(req.user.role);
+    const isCreator = old.created_by === req.user.id;
+    if (!isStaff && !isCreator) return res.status(403).json({ error: 'Forbidden' });
+
     const updates = []; const params = []; let idx = 1;
     const activities = [];
     const { title, description, status, priority, category_id, assigned_to } = req.body;
+
+    // Creators can only update status (open/closed) and priority
+    if (!isStaff) {
+      if (title !== undefined || description !== undefined || category_id !== undefined || assigned_to !== undefined) {
+        return res.status(403).json({ error: 'Only staff can update these fields' });
+      }
+      const creatorAllowedStatuses = ['open', 'closed'];
+      if (status !== undefined && !creatorAllowedStatuses.includes(status)) {
+        return res.status(403).json({ error: 'You can only open or close your own tickets' });
+      }
+    }
 
     if (title !== undefined && title !== old.title) {
       updates.push(`title = $${idx++}`); params.push(title.trim());

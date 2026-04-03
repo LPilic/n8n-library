@@ -415,6 +415,8 @@ async function openTicketDetail(id) {
     await Promise.all([loadTicketCategories(), loadAssignableUsers()]);
 
     const isStaff = currentUser && ['admin', 'editor'].includes(currentUser.role);
+    const isCreator = currentUser && currentUser.id === ticket.created_by;
+    const canManage = isStaff || isCreator;
     const statusLabel = (ticket.status || '').replace(/_/g, ' ');
 
     // Header badges
@@ -438,6 +440,11 @@ async function openTicketDetail(id) {
         ${['open','in_progress','waiting','resolved','closed'].map(s =>
           `<option value="${s}" ${s === ticket.status ? 'selected' : ''}>${s.replace(/_/g,' ')}</option>`
         ).join('')}</select>`;
+    } else if (isCreator) {
+      sb += `<select class="form-input" onchange="updateTicketField(${ticket.id},'status',this.value)">
+        ${['open','closed'].map(s =>
+          `<option value="${s}" ${s === ticket.status ? 'selected' : ''}>${s.replace(/_/g,' ')}</option>`
+        ).join('')}</select>`;
     } else {
       sb += `<span class="ticket-badge badge-${ticket.status}">${esc(statusLabel)}</span>`;
     }
@@ -445,7 +452,7 @@ async function openTicketDetail(id) {
 
     // Priority
     sb += '<div class="detail-field"><label>Priority</label>';
-    if (isStaff) {
+    if (canManage) {
       sb += `<select class="form-input" onchange="updateTicketField(${ticket.id},'priority',this.value)">
         ${['low','medium','high','critical'].map(p =>
           `<option value="${p}" ${p === ticket.priority ? 'selected' : ''}>${p}</option>`
@@ -628,8 +635,13 @@ async function openTicketDetail(id) {
                     ${['open','in_progress','waiting','resolved','closed'].map(s =>
                       `<option value="${s}" ${s === ticket.status ? 'selected' : ''}>${s.replace(/_/g,' ')}</option>`
                     ).join('')}</select>`
+                : isCreator
+                ? `<select class="form-input" onchange="updateTicketField(${ticket.id},'status',this.value)">
+                    ${['open','closed'].map(s =>
+                      `<option value="${s}" ${s === ticket.status ? 'selected' : ''}>${s.replace(/_/g,' ')}</option>`
+                    ).join('')}</select>`
                 : `<span class="ticket-badge badge-${ticket.status}">${esc(statusLabel)}</span>`}</div>
-              <div class="tmd-field"><label>Priority</label>${isStaff
+              <div class="tmd-field"><label>Priority</label>${canManage
                 ? `<select class="form-input" onchange="updateTicketField(${ticket.id},'priority',this.value)">
                     ${['low','medium','high','critical'].map(p =>
                       `<option value="${p}" ${p === ticket.priority ? 'selected' : ''}>${p}</option>`
