@@ -673,13 +673,16 @@ async function openTicketDetail(id) {
         </div>`;
 
       initEditor('newComment', { level: 'mini', placeholder: 'Write a comment...' });
+      if (typeof upgradeSelects === 'function') upgradeSelects(container);
       container.scrollTop = 0;
     } else {
       // Desktop — use modal
-      document.getElementById('ticketDetailContent').innerHTML =
+      const detailEl = document.getElementById('ticketDetailContent');
+      detailEl.innerHTML =
         `<div class="ticket-detail">${m}${sb}</div>`;
 
       initEditor('newComment', { level: 'mini', placeholder: 'Write a comment...' });
+      if (typeof upgradeSelects === 'function') upgradeSelects(detailEl);
       openModal('ticketDetailModal');
     }
   } catch (e) {
