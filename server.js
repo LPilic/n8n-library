@@ -74,6 +74,22 @@ if (!process.env.CREDENTIAL_ENCRYPTION_KEY || process.env.CREDENTIAL_ENCRYPTION_
   process.env.CREDENTIAL_ENCRYPTION_KEY = generated;
 }
 
+// Encrypt any plaintext API keys in database (one-time migration)
+(async () => {
+  try {
+    const { encrypt, decrypt } = require('./lib/crypto');
+    const dbPool = require('./db');
+    const { rows } = await dbPool.query("SELECT id, api_key FROM n8n_instances WHERE api_key IS NOT NULL AND api_key != ''");
+    for (const inst of rows) {
+      try { decrypt(inst.api_key); } catch {
+        const encrypted = encrypt(inst.api_key);
+        await dbPool.query('UPDATE n8n_instances SET api_key = $1 WHERE id = $2', [encrypted, inst.id]);
+        console.log(`Encrypted API key for instance #${inst.id}`);
+      }
+    }
+  } catch (e) { /* skip if DB not ready */ }
+})();
+
 app.use(session({
   store: new pgSession({ pool, tableName: 'session' }),
   secret: process.env.SESSION_SECRET,

@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const pool = require('../db');
-const { requireAuth, requireRole } = require('../lib/middleware');
+const { requireAuth, requireRole, credentialLimiter } = require('../lib/middleware');
 const { getInstanceConfig } = require('../lib/n8n-api');
 const { auditLog } = require('../lib/audit');
 
@@ -87,7 +87,7 @@ router.get('/api/credentials/schema/:typeName', requireRole('admin'), async (req
 });
 
 // Create credential
-router.post('/api/credentials', requireRole('admin'), async (req, res) => {
+router.post('/api/credentials', requireRole('admin'), credentialLimiter, async (req, res) => {
   try {
     const cfg = await getInstanceBase(req);
     if (!cfg) return res.status(400).json({ error: 'No n8n instance configured' });
@@ -117,7 +117,7 @@ router.post('/api/credentials', requireRole('admin'), async (req, res) => {
 });
 
 // Update credential
-router.patch('/api/credentials/:id', requireRole('admin'), async (req, res) => {
+router.patch('/api/credentials/:id', requireRole('admin'), credentialLimiter, async (req, res) => {
   try {
     const cfg = await getInstanceBase(req);
     if (!cfg) return res.status(400).json({ error: 'No n8n instance configured' });
@@ -151,7 +151,7 @@ router.patch('/api/credentials/:id', requireRole('admin'), async (req, res) => {
 });
 
 // Delete credential
-router.delete('/api/credentials/:id', requireRole('admin'), async (req, res) => {
+router.delete('/api/credentials/:id', requireRole('admin'), credentialLimiter, async (req, res) => {
   try {
     const cfg = await getInstanceBase(req);
     if (!cfg) return res.status(400).json({ error: 'No n8n instance configured' });
@@ -177,7 +177,7 @@ router.delete('/api/credentials/:id', requireRole('admin'), async (req, res) => 
 });
 
 // Transfer credential to another project
-router.put('/api/credentials/:id/transfer', requireRole('admin'), async (req, res) => {
+router.put('/api/credentials/:id/transfer', requireRole('admin'), credentialLimiter, async (req, res) => {
   try {
     const cfg = await getInstanceBase(req);
     if (!cfg) return res.status(400).json({ error: 'No n8n instance configured' });

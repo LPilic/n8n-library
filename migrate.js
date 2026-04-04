@@ -694,6 +694,8 @@ async function migrate() {
     CREATE INDEX IF NOT EXISTS idx_credential_audit_user ON credential_audit (user_id);
   `);
 
+  // Note: API key encryption is handled by server.js at startup (same encryption key context)
+
   console.log('Migration complete.');
   await pool.end();
 }

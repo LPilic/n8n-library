@@ -2,6 +2,7 @@ const express = require('express');
 const pool = require('../db');
 const { requireRole } = require('../lib/middleware');
 const { n8nApiFetch, fetchAllWorkflows, getWorkflowNameMap, enrichExecutions, invalidateWfCache, getMonStatsCache, setMonStatsCache, getInstanceConfig, getAllInstances } = require('../lib/n8n-api');
+const { encrypt: encryptValue } = require('../lib/crypto');
 const { sendDailySummaryEmail } = require('../lib/ai-providers');
 
 const router = express.Router();
@@ -509,10 +510,15 @@ router.post('/api/monitoring/daily-summary', requireRole('admin'), async (_req, 
 });
 
 // --- Instance CRUD ---
-router.get('/api/instances', requireRole('admin', 'editor'), async (_req, res) => {
+router.get('/api/instances', requireRole('admin', 'editor'), async (req, res) => {
   try {
     const instances = await getAllInstances();
-    res.json(instances);
+    // Strip API keys for non-admin users
+    if (req.user.role !== 'admin') {
+      res.json(instances.map(i => ({ ...i, api_key: i.api_key ? '••••••••' : '' })));
+    } else {
+      res.json(instances);
+    }
   } catch (err) {
     res.status(500).json({ error: 'Failed to load instances' });
   }
@@ -526,10 +532,11 @@ router.post('/api/instances', requireRole('admin'), async (req, res) => {
     if (is_default) {
       await pool.query('UPDATE n8n_instances SET is_default = FALSE');
     }
+    const encKey = api_key ? encryptValue(api_key) : '';
     const { rows } = await pool.query(
       `INSERT INTO n8n_instances (name, environment, internal_url, api_key, is_default, color, workers)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [name, environment || 'production', internal_url, api_key || '', !!is_default, color || '', JSON.stringify(workers || [])]
+      [name, environment || 'production', internal_url, encKey, !!is_default, color || '', JSON.stringify(workers || [])]
     );
     const { invalidateInstanceCache } = require('../lib/n8n-api');
     invalidateInstanceCache();
@@ -552,10 +559,11 @@ router.put('/api/instances/:id', requireRole('admin'), async (req, res) => {
     if (is_default) {
       await pool.query('UPDATE n8n_instances SET is_default = FALSE');
     }
+    const encKey = api_key ? encryptValue(api_key) : '';
     const { rows } = await pool.query(
       `UPDATE n8n_instances SET name=$1, environment=$2, internal_url=$3, api_key=$4, is_default=$5, color=$6, workers=$7
        WHERE id=$8 RETURNING *`,
-      [name, environment || 'production', internal_url, api_key || '', !!is_default, color || '', JSON.stringify(workers || []), req.params.id]
+      [name, environment || 'production', internal_url, encKey, !!is_default, color || '', JSON.stringify(workers || []), req.params.id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Instance not found' });
     const { invalidateInstanceCache } = require('../lib/n8n-api');

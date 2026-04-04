@@ -1,7 +1,7 @@
 const express = require('express');
 const pool = require('../db');
 const { encrypt, decrypt } = require('../lib/crypto');
-const { requireAuth, requireRole } = require('../lib/middleware');
+const { requireAuth, requireRole, credentialLimiter } = require('../lib/middleware');
 const { getInstanceConfig } = require('../lib/n8n-api');
 const { auditLog } = require('../lib/audit');
 
@@ -75,7 +75,7 @@ router.get('/api/credential-store/:id/fields', requireRole('admin'), async (req,
 });
 
 // Create credential template (admin only)
-router.post('/api/credential-store', requireRole('admin'), async (req, res) => {
+router.post('/api/credential-store', requireRole('admin'), credentialLimiter, async (req, res) => {
   try {
     const { name, description, credential_type, shared_data, user_fields, allowed_roles, instance_id } = req.body;
     if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
@@ -109,7 +109,7 @@ router.post('/api/credential-store', requireRole('admin'), async (req, res) => {
 });
 
 // Update credential template (admin only)
-router.patch('/api/credential-store/:id', requireRole('admin'), async (req, res) => {
+router.patch('/api/credential-store/:id', requireRole('admin'), credentialLimiter, async (req, res) => {
   try {
     const { rows: cur } = await pool.query('SELECT * FROM credential_store WHERE id = $1', [req.params.id]);
     if (cur.length === 0) return res.status(404).json({ error: 'Template not found' });
@@ -158,7 +158,7 @@ router.patch('/api/credential-store/:id', requireRole('admin'), async (req, res)
 });
 
 // Delete credential template (admin only)
-router.delete('/api/credential-store/:id', requireRole('admin'), async (req, res) => {
+router.delete('/api/credential-store/:id', requireRole('admin'), credentialLimiter, async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT name, credential_type FROM credential_store WHERE id = $1', [req.params.id]);
     if (rows.length === 0) return res.status(404).json({ error: 'Template not found' });
@@ -179,7 +179,7 @@ router.delete('/api/credential-store/:id', requireRole('admin'), async (req, res
 });
 
 // Provision credential to n8n instance (any allowed user)
-router.post('/api/credential-store/:id/provision', requireAuth, async (req, res) => {
+router.post('/api/credential-store/:id/provision', requireAuth, credentialLimiter, async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM credential_store WHERE id = $1', [req.params.id]);
     if (rows.length === 0) return res.status(404).json({ error: 'Template not found' });
