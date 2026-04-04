@@ -446,9 +446,445 @@ async function transferCredential() {
   } catch (e) { toast(e.message, 'error'); }
 }
 
+var _credSearchTimer;
+function debouncedRenderCreds() {
+  clearTimeout(_credSearchTimer);
+  _credSearchTimer = setTimeout(renderCredentials, 300);
+}
+
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
-    if (document.getElementById('transferCredModal').classList.contains('active')) document.getElementById('transferCredModal').classList.remove('active');
+    if (document.getElementById('credProvisionModal').classList.contains('active')) closeModal('credProvisionModal');
+    else if (document.getElementById('credStoreModal').classList.contains('active')) closeCredStoreModal();
+    else if (document.getElementById('transferCredModal').classList.contains('active')) document.getElementById('transferCredModal').classList.remove('active');
     else if (document.getElementById('credModal').classList.contains('active')) closeCredModal();
   }
 });
+
+// --- Credential Store Tab ---
+
+var credStoreCache = [];
+var credStoreCurrentType = '';
+var credStoreSchema = null;
+var credStoreEditingId = null;
+
+function switchCredTab(tab) {
+  document.querySelectorAll('.cred-tab').forEach(function(t) { t.classList.remove('active'); });
+  event.target.classList.add('active');
+  var instTab = document.getElementById('credTabInstance');
+  var storeTab = document.getElementById('credTabStore');
+  var actions = document.getElementById('credToolbarActions');
+  if (tab === 'store') {
+    instTab.style.display = 'none';
+    storeTab.style.display = '';
+    actions.innerHTML = '<button class="btn btn-primary admin-only" onclick="openCredStoreModal()">+ New Template</button>';
+    loadCredStore();
+  } else {
+    instTab.style.display = '';
+    storeTab.style.display = 'none';
+    actions.innerHTML = '<input type="text" class="search-input" placeholder="Search name, type or owner..." id="credentialSearchInput" oninput="debouncedRenderCreds()">' +
+      '<button class="btn btn-primary admin-only" onclick="openCreateCredential()">+ New Credential</button>';
+  }
+}
+
+async function loadCredStore() {
+  var el = document.getElementById('credStoreContent');
+  el.innerHTML = '<div class="loading">Loading credential store...</div>';
+  try {
+    var res = await fetch(API + '/api/credential-store');
+    if (!res.ok) throw new Error('Failed to load');
+    credStoreCache = await res.json();
+    renderCredStore();
+  } catch (err) {
+    el.innerHTML = '<div class="kb-empty"><h3>Failed to load credential store</h3><p>' + esc(err.message) + '</p></div>';
+  }
+}
+
+function renderCredStore() {
+  var el = document.getElementById('credStoreContent');
+  var isAdmin = currentUser && currentUser.role === 'admin';
+
+  if (credStoreCache.length === 0) {
+    el.innerHTML = '<div class="kb-empty">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
+      '<h3>No credential templates</h3>' +
+      '<p>Create templates to let users provision credentials without seeing shared secrets.</p>' +
+      (isAdmin ? '<button class="btn btn-primary" onclick="openCredStoreModal()" style="margin-top:12px">+ New Template</button>' : '') +
+      '</div>';
+    return;
+  }
+
+  var html = '<div class="cred-store-grid">';
+  for (var i = 0; i < credStoreCache.length; i++) {
+    var t = credStoreCache[i];
+    var roles = (t.allowed_roles || []).map(function(r) {
+      return '<span class="kb-cat-badge">' + esc(r) + '</span>';
+    }).join('');
+
+    html += '<div class="cred-store-card" onclick="openProvisionModal(' + t.id + ')">' +
+      '<div class="cred-store-card-title">' + esc(t.name) + '</div>' +
+      '<div class="cred-store-card-type"><code class="cred-type-badge">' + esc(formatCredType(t.credential_type)) + '</code></div>' +
+      (t.description ? '<div class="cred-store-card-desc">' + esc(t.description) + '</div>' : '') +
+      '<div class="cred-store-card-meta">' + roles +
+        (t.instance_name ? '<span class="kb-cat-badge" style="background:var(--color-bg)">' + esc(t.instance_name) + '</span>' : '') +
+        '<span style="font-size:11px;color:var(--color-text-xmuted);margin-left:auto">by ' + esc(t.creator_name || 'unknown') + '</span>' +
+      '</div>' +
+      (isAdmin ? '<div style="display:flex;gap:6px;margin-top:12px;border-top:1px solid var(--color-border);padding-top:10px">' +
+        '<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();editCredStoreTemplate(' + t.id + ')" style="font-size:11px">Edit</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteCredStoreTemplate(' + t.id + ',\'' + esc(t.name).replace(/'/g, "\\'") + '\')" style="font-size:11px">Delete</button>' +
+      '</div>' : '') +
+    '</div>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// --- Create/Edit Template Modal ---
+
+function openCredStoreModal() {
+  credStoreEditingId = null;
+  credStoreCurrentType = '';
+  credStoreSchema = null;
+  document.getElementById('credStoreModalTitle').textContent = 'New Credential Template';
+  document.getElementById('credStoreEditId').value = '';
+  document.getElementById('credStoreName').value = '';
+  document.getElementById('credStoreDesc').value = '';
+  document.getElementById('credStoreTypeStep').style.display = '';
+  document.getElementById('credStoreFieldsStep').style.display = 'none';
+  document.getElementById('credStoreSchemaFields').innerHTML = '';
+  document.getElementById('credStoreRoleEditor').checked = true;
+  document.getElementById('credStoreRoleViewer').checked = true;
+  // Populate instance selector
+  var instSel = document.getElementById('credStoreInstance');
+  instSel.innerHTML = '<option value="">Default</option>';
+  if (typeof instancesCache !== 'undefined') {
+    for (var i = 0; i < instancesCache.length; i++) {
+      instSel.innerHTML += '<option value="' + instancesCache[i].id + '">' + esc(instancesCache[i].name) + '</option>';
+    }
+  }
+  filterStoreCredTypes();
+  document.getElementById('credStoreModal').classList.add('active');
+  setTimeout(function() { document.getElementById('credStoreTypeSearch').value = ''; document.getElementById('credStoreTypeSearch').focus(); }, 100);
+}
+
+function filterStoreCredTypes() {
+  var q = (document.getElementById('credStoreTypeSearch')?.value || '').toLowerCase();
+  var el = document.getElementById('credStoreTypeList');
+  var source = allCredTypesCache.length ? allCredTypesCache : credTypesCache.map(function(t) { return { name: t, displayName: formatCredType(t) }; });
+  var filtered = source.filter(function(t) {
+    if (!q) return true;
+    return t.name.toLowerCase().includes(q) || t.displayName.toLowerCase().includes(q);
+  });
+  if (filtered.length > 50) filtered = filtered.slice(0, 50);
+  if (filtered.length === 0) {
+    el.innerHTML = '<div class="cred-type-empty">No matching types. Press Enter for custom type.</div>';
+    return;
+  }
+  var showHint = !q && source.length > 50;
+  el.innerHTML = (showHint ? '<div class="cred-type-empty" style="padding:10px;font-size:12px">Showing first 50 of ' + source.length + '. Type to search...</div>' : '') +
+    filtered.map(function(t) {
+      return '<div class="cred-type-option" onclick="selectStoreCredType(\'' + esc(t.name) + '\')">' +
+        '<span class="cred-type-option-name">' + esc(t.displayName) + '</span>' +
+        '<code class="cred-type-option-id">' + esc(t.name) + '</code></div>';
+    }).join('');
+}
+
+function selectStoreCredType(type) {
+  credStoreCurrentType = type;
+  var t = allCredTypesCache.find(function(x) { return x.name === type; });
+  document.getElementById('credStoreTypeLabel').textContent = t ? t.displayName : formatCredType(type);
+  document.getElementById('credStoreTypeStep').style.display = 'none';
+  document.getElementById('credStoreFieldsStep').style.display = '';
+  loadStoreSchema(type);
+}
+
+function credStoreBackToType() {
+  document.getElementById('credStoreTypeStep').style.display = '';
+  document.getElementById('credStoreFieldsStep').style.display = 'none';
+  document.getElementById('credStoreSchemaFields').innerHTML = '';
+  setTimeout(function() { document.getElementById('credStoreTypeSearch').focus(); }, 100);
+}
+
+async function loadStoreSchema(type) {
+  var el = document.getElementById('credStoreSchemaFields');
+  el.innerHTML = '<div class="loading" style="padding:12px">Loading schema...</div>';
+  try {
+    var url = API + '/api/credentials/schema/' + encodeURIComponent(type);
+    if (typeof activeInstanceId !== 'undefined' && activeInstanceId) url += '?instance_id=' + activeInstanceId;
+    var res = await fetch(url);
+    if (!res.ok) throw new Error('Schema not found');
+    credStoreSchema = await res.json();
+    renderStoreSchemaFields(credStoreSchema);
+  } catch (e) {
+    credStoreSchema = null;
+    el.innerHTML = '<div style="font-size:13px;color:var(--color-text-muted);margin-bottom:12px">Could not load schema. Enter shared data as JSON.</div>' +
+      '<textarea class="form-input cred-json-input" id="credStoreJsonData" rows="6" placeholder=\'{"clientId": "...", "clientSecret": "..."}\'></textarea>';
+  }
+}
+
+function renderStoreSchemaFields(schema) {
+  var el = document.getElementById('credStoreSchemaFields');
+  var props = schema.properties || {};
+  var required = schema.required || [];
+  var keys = Object.keys(props).filter(function(k) {
+    var p = props[k];
+    if (p.type === 'notice') return false;
+    if (k === 'oauthTokenData' || k === 'notice') return false;
+    return true;
+  });
+
+  if (keys.length === 0) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--color-text-muted);margin-bottom:12px">No schema fields. Enter as JSON.</div>' +
+      '<textarea class="form-input cred-json-input" id="credStoreJsonData" rows="6" placeholder=\'{"key": "value"}\'></textarea>';
+    return;
+  }
+
+  var html = '';
+  for (var i = 0; i < keys.length; i++) {
+    var k = keys[i];
+    var p = props[k];
+    var isReq = required.includes(k);
+    var label = camelToLabel(k);
+    var isSens = isSensitiveField(k);
+
+    html += '<div class="cred-store-field-row">';
+    html += '<div class="form-group">';
+    html += '<label class="form-label">' + esc(label) + (isReq ? ' <span style="color:var(--color-danger)">*</span>' : '') + '</label>';
+
+    if (p.type === 'boolean') {
+      html += '<label class="cred-toggle"><input type="checkbox" class="cred-store-field" data-key="' + esc(k) + '" data-type="boolean"> ' + esc(label) + '</label>';
+    } else {
+      var inputType = isSens ? 'password' : 'text';
+      html += '<div class="cred-input-wrap">';
+      html += '<input type="' + inputType + '" class="form-input cred-store-field" data-key="' + esc(k) + '" placeholder="' + esc(p.type || 'string') + '">';
+      if (isSens) {
+        html += '<button type="button" class="cred-toggle-vis" onclick="toggleCredFieldVis(this)" title="Show/hide">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+    html += '<label class="cred-userfield-check"><input type="checkbox" class="cred-store-userfield" data-key="' + esc(k) + '"> User field</label>';
+    html += '</div>';
+  }
+  el.innerHTML = html;
+}
+
+async function saveCredStoreTemplate() {
+  var name = document.getElementById('credStoreName').value.trim();
+  if (!name) return toast('Name is required', 'error');
+
+  var type = credStoreCurrentType;
+  if (!type && !credStoreEditingId) return toast('Select a credential type', 'error');
+
+  // Collect shared data
+  var sharedData = {};
+  var userFields = [];
+  var storeFields = document.querySelectorAll('#credStoreSchemaFields .cred-store-field');
+  if (storeFields.length > 0) {
+    storeFields.forEach(function(f) {
+      var key = f.getAttribute('data-key');
+      var isUserField = document.querySelector('.cred-store-userfield[data-key="' + key + '"]');
+      if (isUserField && isUserField.checked) {
+        userFields.push(key);
+      } else {
+        if (f.getAttribute('data-type') === 'boolean') {
+          if (f.checked) sharedData[key] = true;
+        } else if (f.value) {
+          sharedData[key] = f.value;
+        }
+      }
+    });
+  } else {
+    var jsonEl = document.getElementById('credStoreJsonData');
+    if (jsonEl && jsonEl.value.trim()) {
+      try { sharedData = JSON.parse(jsonEl.value); }
+      catch (e) { return toast('Invalid JSON', 'error'); }
+    }
+  }
+
+  if (!credStoreEditingId && Object.keys(sharedData).length === 0) {
+    return toast('Fill in at least one shared secret field', 'error');
+  }
+
+  var roles = ['admin'];
+  if (document.getElementById('credStoreRoleEditor').checked) roles.push('editor');
+  if (document.getElementById('credStoreRoleViewer').checked) roles.push('viewer');
+
+  var instanceId = document.getElementById('credStoreInstance').value || null;
+  var desc = document.getElementById('credStoreDesc').value.trim();
+
+  var btn = document.getElementById('credStoreSaveBtn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+
+  try {
+    var body = { name: name, description: desc, allowed_roles: roles, user_fields: userFields, instance_id: instanceId };
+    if (Object.keys(sharedData).length > 0) body.shared_data = sharedData;
+    if (!credStoreEditingId) {
+      body.credential_type = type;
+      if (!body.shared_data || Object.keys(body.shared_data).length === 0) {
+        return toast('Fill in at least one shared secret', 'error');
+      }
+    }
+
+    var url = credStoreEditingId ? API + '/api/credential-store/' + credStoreEditingId : API + '/api/credential-store';
+    var method = credStoreEditingId ? 'PATCH' : 'POST';
+    var res = await fetch(url, { method: method, headers: CSRF_HEADERS, body: JSON.stringify(body) });
+    if (!res.ok) { var err = await res.json().catch(function() { return {}; }); throw new Error(err.error || 'Save failed'); }
+
+    toast(credStoreEditingId ? 'Template updated' : 'Template created', 'success');
+    closeCredStoreModal();
+    loadCredStore();
+  } catch (e) {
+    toast(e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save Template';
+  }
+}
+
+function closeCredStoreModal() {
+  document.getElementById('credStoreModal').classList.remove('active');
+  credStoreEditingId = null;
+  credStoreSchema = null;
+  credStoreCurrentType = '';
+}
+
+async function editCredStoreTemplate(id) {
+  var tpl = credStoreCache.find(function(t) { return t.id === id; });
+  if (!tpl) return;
+  credStoreEditingId = id;
+  credStoreCurrentType = tpl.credential_type;
+  document.getElementById('credStoreModalTitle').textContent = 'Edit: ' + tpl.name;
+  document.getElementById('credStoreEditId').value = id;
+  document.getElementById('credStoreName').value = tpl.name;
+  document.getElementById('credStoreDesc').value = tpl.description || '';
+  document.getElementById('credStoreTypeStep').style.display = 'none';
+  document.getElementById('credStoreFieldsStep').style.display = '';
+  var t = allCredTypesCache.find(function(x) { return x.name === tpl.credential_type; });
+  document.getElementById('credStoreTypeLabel').textContent = t ? t.displayName : formatCredType(tpl.credential_type);
+  document.getElementById('credStoreRoleEditor').checked = (tpl.allowed_roles || []).includes('editor');
+  document.getElementById('credStoreRoleViewer').checked = (tpl.allowed_roles || []).includes('viewer');
+  // Instance
+  var instSel = document.getElementById('credStoreInstance');
+  instSel.innerHTML = '<option value="">Default</option>';
+  if (typeof instancesCache !== 'undefined') {
+    for (var i = 0; i < instancesCache.length; i++) {
+      var sel = instancesCache[i].id === tpl.instance_id ? ' selected' : '';
+      instSel.innerHTML += '<option value="' + instancesCache[i].id + '"' + sel + '>' + esc(instancesCache[i].name) + '</option>';
+    }
+  }
+  // Load schema and mark user fields
+  await loadStoreSchema(tpl.credential_type);
+  // After schema loads, check user_fields checkboxes and add notice for existing secrets
+  setTimeout(function() {
+    var userFields = tpl.user_fields || [];
+    userFields.forEach(function(f) {
+      var cb = document.querySelector('.cred-store-userfield[data-key="' + f + '"]');
+      if (cb) cb.checked = true;
+    });
+    // Add edit notice
+    var fieldsEl = document.getElementById('credStoreSchemaFields');
+    if (fieldsEl && fieldsEl.firstChild) {
+      var notice = document.createElement('div');
+      notice.className = 'cred-edit-notice';
+      notice.textContent = 'Existing secret values are encrypted and hidden. Leave fields empty to keep current values. Only fill fields you want to change.';
+      fieldsEl.insertBefore(notice, fieldsEl.firstChild);
+    }
+  }, 200);
+  document.getElementById('credStoreModal').classList.add('active');
+}
+
+async function deleteCredStoreTemplate(id, name) {
+  if (!confirm('Delete credential template "' + name + '"?\n\nUsers will no longer be able to provision from this template.')) return;
+  try {
+    var res = await fetch(API + '/api/credential-store/' + id, { method: 'DELETE', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+    if (!res.ok) throw new Error('Delete failed');
+    toast('Template deleted', 'success');
+    loadCredStore();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// --- Provision Modal ---
+
+async function openProvisionModal(id) {
+  var tpl = credStoreCache.find(function(t) { return t.id === id; });
+  if (!tpl) return;
+  document.getElementById('credProvisionTplId').value = id;
+  document.getElementById('credProvisionTitle').textContent = 'Create: ' + tpl.name;
+  document.getElementById('credProvisionName').value = tpl.name + ' - ' + (currentUser ? currentUser.username : '');
+
+  // Info section
+  var info = '<div style="margin-bottom:4px"><code class="cred-type-badge">' + esc(formatCredType(tpl.credential_type)) + '</code></div>';
+  if (tpl.description) info += '<p style="font-size:13px;color:var(--color-text-muted);margin:0">' + esc(tpl.description) + '</p>';
+  document.getElementById('credProvisionInfo').innerHTML = info;
+
+  // Render user fields
+  var fieldsEl = document.getElementById('credProvisionFields');
+  var userFields = tpl.user_fields || [];
+  if (userFields.length === 0) {
+    fieldsEl.innerHTML = '<div style="font-size:13px;color:var(--color-text-muted);padding:8px 0">No additional fields required — all data is pre-configured.</div>';
+  } else {
+    // Try to load schema for labels
+    var schema = null;
+    try {
+      var url = API + '/api/credentials/schema/' + encodeURIComponent(tpl.credential_type);
+      if (typeof activeInstanceId !== 'undefined' && activeInstanceId) url += '?instance_id=' + activeInstanceId;
+      var res = await fetch(url);
+      if (res.ok) schema = await res.json();
+    } catch (e) {}
+
+    var html = '<p style="font-size:12px;color:var(--color-text-muted);margin-bottom:12px">Fill in the fields below. Shared secrets are pre-configured by your admin.</p>';
+    for (var i = 0; i < userFields.length; i++) {
+      var k = userFields[i];
+      var label = camelToLabel(k);
+      var prop = schema && schema.properties && schema.properties[k];
+      var isSens = isSensitiveField(k);
+      var inputType = isSens ? 'password' : 'text';
+      var placeholder = prop && prop.type ? prop.type : 'string';
+      html += '<div class="form-group">';
+      html += '<label class="form-label">' + esc(label) + '</label>';
+      html += '<div class="cred-input-wrap">';
+      html += '<input type="' + inputType + '" class="form-input cred-provision-field" data-key="' + esc(k) + '" placeholder="' + esc(placeholder) + '">';
+      if (isSens) {
+        html += '<button type="button" class="cred-toggle-vis" onclick="toggleCredFieldVis(this)" title="Show/hide">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>';
+      }
+      html += '</div></div>';
+    }
+    fieldsEl.innerHTML = html;
+  }
+
+  document.getElementById('credProvisionModal').classList.add('active');
+}
+
+async function provisionCredential() {
+  var tplId = document.getElementById('credProvisionTplId').value;
+  var name = document.getElementById('credProvisionName').value.trim();
+  if (!name) return toast('Name is required', 'error');
+
+  var data = {};
+  document.querySelectorAll('#credProvisionFields .cred-provision-field').forEach(function(f) {
+    if (f.value) data[f.getAttribute('data-key')] = f.value;
+  });
+
+  var btn = document.getElementById('credProvisionBtn');
+  btn.disabled = true; btn.textContent = 'Creating...';
+
+  try {
+    var body = { name: name, data: data };
+    if (typeof activeInstanceId !== 'undefined' && activeInstanceId) body.instance_id = activeInstanceId;
+    var res = await fetch(API + '/api/credential-store/' + tplId + '/provision', {
+      method: 'POST', headers: CSRF_HEADERS, body: JSON.stringify(body)
+    });
+    if (!res.ok) { var err = await res.json().catch(function() { return {}; }); throw new Error(err.error || 'Provisioning failed'); }
+    var result = await res.json();
+    toast('Credential created in n8n (ID: ' + result.credentialId + ')', 'success');
+    closeModal('credProvisionModal');
+    // If on instance tab, refresh
+    if (document.getElementById('credTabInstance').style.display !== 'none') loadCredentials();
+  } catch (e) {
+    toast(e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create in n8n';
+  }
+}

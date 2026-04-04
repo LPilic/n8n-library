@@ -90,6 +90,23 @@
 .cred-toggle-vis:hover{color:var(--color-text)}
 .cred-toggle{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}
 .cred-edit-notice{background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.12);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--color-primary);line-height:1.5}
+.cred-tabs{display:flex;gap:0;margin:0 16px}
+.cred-tab{background:none;border:none;padding:6px 14px;font-size:13px;font-weight:500;color:var(--color-text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s}
+.cred-tab:hover{color:var(--color-text)}
+.cred-tab.active{color:var(--color-primary);border-bottom-color:var(--color-primary)}
+.cred-store-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;padding:20px}
+.cred-store-card{background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:20px;cursor:pointer;transition:border-color 0.15s,box-shadow 0.15s}
+.cred-store-card:hover{border-color:var(--color-primary);box-shadow:0 2px 8px rgba(99,102,241,0.08)}
+.cred-store-card-title{font-size:15px;font-weight:600;color:var(--color-text-dark);margin-bottom:4px}
+.cred-store-card-type{font-size:12px;color:var(--color-text-muted);margin-bottom:8px}
+.cred-store-card-desc{font-size:13px;color:var(--color-text);line-height:1.5;margin-bottom:12px}
+.cred-store-card-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cred-store-card-meta .kb-cat-badge{font-size:10px;padding:2px 8px}
+.cred-store-field-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:14px}
+.cred-store-field-row .form-group{flex:1;margin-bottom:0}
+.cred-store-field-row .cred-userfield-check{padding-top:28px;white-space:nowrap;font-size:12px;display:flex;align-items:center;gap:4px;color:var(--color-text-muted)}
+.cred-store-shared-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;background:var(--color-bg-alt);border:1px solid var(--color-border);border-radius:4px;padding:2px 8px;color:var(--color-text-muted)}
+.cred-store-shared-badge svg{width:12px;height:12px}
 </style>
 <script src="/vendor/js/purify.min.js"></script>
 <link rel="stylesheet" href="/vendor/css/github-highlight.min.css">
@@ -794,12 +811,17 @@
     <div class="panel" id="panel-credentials">
       <div class="toolbar">
         <h2>Credentials</h2>
-        <input type="text" class="search-input" placeholder="Search name, type or owner..." id="credentialSearchInput" oninput="renderCredentials()">
-        <div class="toolbar-right">
+        <div class="cred-tabs">
+          <button class="cred-tab active" onclick="switchCredTab('instance')">Instance Credentials</button>
+          <button class="cred-tab" onclick="switchCredTab('store')">Credential Store</button>
+        </div>
+        <div class="toolbar-right" id="credToolbarActions">
+          <input type="text" class="search-input" placeholder="Search name, type or owner..." id="credentialSearchInput" oninput="debouncedRenderCreds()">
           <button class="btn btn-primary admin-only" onclick="openCreateCredential()">+ New Credential</button>
         </div>
       </div>
-      <div class="content">
+      <!-- Tab: Instance Credentials -->
+      <div class="content" id="credTabInstance">
         <div class="ticket-panel-body">
           <div class="ticket-panel-main" id="credentialsContent"></div>
           <div class="ticket-panel-sidebar" id="credentialsSidebar" style="overflow:visible">
@@ -817,6 +839,10 @@
             <div id="credentialStatsContainer" style="display:flex;flex-direction:column;gap:12px"></div>
           </div>
         </div>
+      </div>
+      <!-- Tab: Credential Store -->
+      <div class="content" id="credTabStore" style="display:none">
+        <div id="credStoreContent"></div>
       </div>
     </div>
 
@@ -876,6 +902,86 @@
         <div class="preview-modal-footer" style="padding:16px 20px;border-top:1px solid var(--color-border);display:flex;justify-content:flex-end;gap:8px">
           <button class="btn" onclick="document.getElementById('transferCredModal').classList.remove('active')">Cancel</button>
           <button class="btn btn-primary" onclick="transferCredential()">Transfer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Credential Store Template Modal -->
+    <div class="preview-modal-overlay" id="credStoreModal">
+      <div class="preview-modal" style="max-width:600px">
+        <div class="preview-modal-header">
+          <h2 id="credStoreModalTitle">New Credential Template</h2>
+          <button class="preview-modal-close" onclick="closeCredStoreModal()">&times;</button>
+        </div>
+        <div class="preview-modal-body" style="padding:20px;overflow-y:auto;max-height:70vh">
+          <input type="hidden" id="credStoreEditId">
+          <!-- Step 1: Type selection (create only) -->
+          <div id="credStoreTypeStep">
+            <div class="form-group">
+              <label class="form-label">Search credential type</label>
+              <input type="text" class="form-input" id="credStoreTypeSearch" placeholder="Search types..." oninput="filterStoreCredTypes()" onkeydown="if(event.key==='Enter'){var v=this.value.trim();if(v)selectStoreCredType(v);}">
+            </div>
+            <div class="cred-type-list" id="credStoreTypeList"></div>
+          </div>
+          <!-- Step 2: Template config -->
+          <div id="credStoreFieldsStep" style="display:none">
+            <div class="cred-selected-type" style="margin-bottom:16px">
+              <span>Type: <strong id="credStoreTypeLabel"></strong></span>
+              <button class="btn btn-secondary btn-sm" onclick="credStoreBackToType()" style="font-size:11px">Change</button>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Template Name <span style="color:var(--color-danger)">*</span></label>
+              <input type="text" class="form-input" id="credStoreName" placeholder="Microsoft 365 (Production)">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Description</label>
+              <input type="text" class="form-input" id="credStoreDesc" placeholder="Azure AD app for production Microsoft integrations">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Target Instance</label>
+              <select class="form-input" id="credStoreInstance"><option value="">Default</option></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Access</label>
+              <div style="display:flex;gap:12px">
+                <label style="font-size:13px;display:flex;align-items:center;gap:4px"><input type="checkbox" id="credStoreRoleAdmin" checked disabled> Admin</label>
+                <label style="font-size:13px;display:flex;align-items:center;gap:4px"><input type="checkbox" id="credStoreRoleEditor" checked> Editor</label>
+                <label style="font-size:13px;display:flex;align-items:center;gap:4px"><input type="checkbox" id="credStoreRoleViewer" checked> Viewer</label>
+              </div>
+            </div>
+            <div style="border-top:1px solid var(--color-border);margin:16px 0;padding-top:16px">
+              <label class="form-label" style="margin-bottom:8px">Credential Fields</label>
+              <p style="font-size:12px;color:var(--color-text-muted);margin-bottom:12px">Fill in the shared secrets. Check "User field" for fields the user must provide themselves.</p>
+              <div id="credStoreSchemaFields"></div>
+            </div>
+          </div>
+        </div>
+        <div class="preview-modal-footer" style="padding:16px 20px;border-top:1px solid var(--color-border);display:flex;justify-content:flex-end;gap:8px">
+          <button class="btn" onclick="closeCredStoreModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveCredStoreTemplate()" id="credStoreSaveBtn">Save Template</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Credential Store Provision Modal -->
+    <div class="preview-modal-overlay" id="credProvisionModal">
+      <div class="preview-modal" style="max-width:500px">
+        <div class="preview-modal-header">
+          <h2 id="credProvisionTitle">Create Credential</h2>
+          <button class="preview-modal-close" onclick="closeModal('credProvisionModal')">&times;</button>
+        </div>
+        <div class="preview-modal-body" style="padding:20px;overflow-y:auto;max-height:70vh">
+          <input type="hidden" id="credProvisionTplId">
+          <div id="credProvisionInfo" style="margin-bottom:16px"></div>
+          <div class="form-group">
+            <label class="form-label">Credential Name</label>
+            <input type="text" class="form-input" id="credProvisionName" placeholder="My Microsoft 365">
+          </div>
+          <div id="credProvisionFields"></div>
+        </div>
+        <div class="preview-modal-footer" style="padding:16px 20px;border-top:1px solid var(--color-border);display:flex;justify-content:flex-end;gap:8px">
+          <button class="btn" onclick="closeModal('credProvisionModal')">Cancel</button>
+          <button class="btn btn-primary" onclick="provisionCredential()" id="credProvisionBtn">Create in n8n</button>
         </div>
       </div>
     </div>
@@ -2177,7 +2283,7 @@
 <script src="/js/prompts.js?v=1"></script>
 <script src="/js/variables.js?v=1"></script>
 <script src="/js/tags.js?v=1"></script>
-<script src="/js/credentials.js?v=1"></script>
+<script src="/js/credentials.js?v=2"></script>
 <script src="/js/security.js?v=1"></script>
 <script>
 if ('serviceWorker' in navigator) {
