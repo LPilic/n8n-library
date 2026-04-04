@@ -67,6 +67,13 @@ if (!SESSION_SECRET || SESSION_SECRET === 'dev-secret-change-me' || SESSION_SECR
   process.env.SESSION_SECRET = generated;
 }
 
+// --- Credential Encryption Key ---
+if (!process.env.CREDENTIAL_ENCRYPTION_KEY || process.env.CREDENTIAL_ENCRYPTION_KEY.length < 64) {
+  const generated = crypto.randomBytes(32).toString('hex');
+  console.warn('WARNING: CREDENTIAL_ENCRYPTION_KEY is missing or too short. Generating random key. Set CREDENTIAL_ENCRYPTION_KEY env var (64 hex chars) for persistent credential store encryption.');
+  process.env.CREDENTIAL_ENCRYPTION_KEY = generated;
+}
+
 app.use(session({
   store: new pgSession({ pool, tableName: 'session' }),
   secret: process.env.SESSION_SECRET,
@@ -198,6 +205,7 @@ app.use(require('./routes/variables'));
 app.use(require('./routes/tags'));
 app.use(require('./routes/security'));
 app.use(require('./routes/credentials'));
+app.use(require('./routes/credential-store'));
 
 // --- API Documentation (Swagger) ---
 

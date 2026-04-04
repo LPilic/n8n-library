@@ -659,6 +659,41 @@ async function migrate() {
     WHERE search_vector IS NULL;
   `);
 
+  // --- Credential Store (encrypted shared secrets for provisioning) ---
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS credential_store (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      credential_type TEXT NOT NULL,
+      shared_data TEXT NOT NULL,
+      user_fields TEXT[] DEFAULT '{}',
+      allowed_roles TEXT[] DEFAULT '{admin,editor,viewer}',
+      instance_id INTEGER REFERENCES n8n_instances(id) ON DELETE SET NULL,
+      created_by INTEGER REFERENCES users(id),
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_credential_store_type ON credential_store (credential_type);
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS credential_audit (
+      id SERIAL PRIMARY KEY,
+      credential_store_id INTEGER REFERENCES credential_store(id) ON DELETE SET NULL,
+      n8n_credential_id TEXT,
+      credential_name TEXT,
+      credential_type TEXT,
+      instance_id INTEGER,
+      user_id INTEGER REFERENCES users(id),
+      action TEXT NOT NULL,
+      detail TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_credential_audit_store ON credential_audit (credential_store_id);
+    CREATE INDEX IF NOT EXISTS idx_credential_audit_user ON credential_audit (user_id);
+  `);
+
   console.log('Migration complete.');
   await pool.end();
 }
