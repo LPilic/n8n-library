@@ -221,9 +221,9 @@ function openCredentialDetail(id) {
   // Actions for admin
   if (isAdmin) {
     main += '<div style="display:flex;gap:8px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--color-border-light)">';
-    main += '<button class="btn btn-secondary btn-sm" onclick="closeCredDetailModal();openEditCredential(\'' + esc(c.id) + '\')">Edit Fields</button>';
-    main += '<button class="btn btn-secondary btn-sm" onclick="closeCredDetailModal();openTransferCredential(\'' + esc(c.id) + '\',\'' + esc(c.name).replace(/'/g, "\\'") + '\')">Transfer</button>';
-    main += '<button class="btn btn-danger btn-sm" onclick="deleteCredential(\'' + esc(c.id) + '\',\'' + esc(c.name).replace(/'/g, "\\'") + '\')">Delete</button>';
+    main += '<button class="btn btn-secondary btn-sm" onclick="closeCredDetailModal();setTimeout(function(){openEditCredential(\'' + esc(c.id) + '\')},150)">Edit Fields</button>';
+    main += '<button class="btn btn-secondary btn-sm" onclick="closeCredDetailModal();setTimeout(function(){openTransferCredential(\'' + esc(c.id) + '\',\'' + esc(c.name).replace(/'/g, "\\'") + '\')},150)">Transfer</button>';
+    main += '<button class="btn btn-danger btn-sm" onclick="closeCredDetailModal();setTimeout(function(){deleteCredential(\'' + esc(c.id) + '\',\'' + esc(c.name).replace(/'/g, "\\'") + '\')},150)">Delete</button>';
     main += '</div>';
   }
 
