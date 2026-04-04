@@ -8,4 +8,12 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #252 | 11:43 PM | 🔄 | Removed credential type filter dropdown population code | ~324 |
+
+### Apr 4, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #2038 | 7:45 PM | 🟣 | Credential audit trail API and logging implementation | ~429 |
+| #1998 | 4:19 PM | 🟣 | Credential Store UI with Template and Provisioning Workflows | ~610 |
+| #1987 | 2:17 PM | 🔵 | Comprehensive credentials UI research and UX gap analysis | ~711 |
 </claude-mem-context>

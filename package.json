@@ -1,7 +1,8 @@
 {
   "name": "n8n-library",
   "version": "1.0.0",
-  "description": "Custom n8n workflow template library for self-hosted instances",
+  "description": "Self-hosted management platform for n8n — template library, credential provisioning, prompt versioning, monitoring, service desk, knowledge base, and AI assistant.",
+  "license": "AGPL-3.0-or-later",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
