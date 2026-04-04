@@ -684,6 +684,8 @@ function handleRouteFromUrl() {
         setTimeout(() => viewPrompt(detailId), 300);
       } else if (panel === 'monitoring') {
         setTimeout(() => loadExecutionDetail(detailId), 300);
+      } else if (panel === 'credentials') {
+        setTimeout(() => openCredentialDetail(detailId), 300);
       }
     }
     return true;

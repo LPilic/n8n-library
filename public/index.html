@@ -986,6 +986,24 @@
       </div>
     </div>
 
+    <!-- Credential Detail Modal -->
+    <div class="preview-modal-overlay" id="credDetailModal" onclick="if(event.target===this)closeCredDetailModal()">
+      <div class="td-modal">
+        <div class="td-header">
+          <div class="td-header-row">
+            <span class="ticket-badge" id="credDetailTypeBadge" style="background:var(--color-bg-alt);color:var(--color-text-muted)"></span>
+            <div class="td-header-spacer"></div>
+            <button class="btn btn-secondary btn-sm admin-only" onclick="openEditCredential(window._credDetailId)">Edit Fields</button>
+            <button class="btn btn-secondary btn-sm admin-only" onclick="openTransferCredential(window._credDetailId, window._credDetailName)">Transfer</button>
+            <button class="btn btn-danger btn-sm admin-only" onclick="deleteCredential(window._credDetailId, window._credDetailName)">Delete</button>
+            <button class="td-close" onclick="closeCredDetailModal()" title="Close">&times;</button>
+          </div>
+          <h3 id="credDetailTitle" class="td-title"></h3>
+        </div>
+        <div id="credDetailContent" class="td-content"></div>
+      </div>
+    </div>
+
     <!-- Security Audit Panel -->
     <div class="panel" id="panel-security">
       <div class="toolbar">
@@ -2283,7 +2301,7 @@
 <script src="/js/prompts.js?v=1"></script>
 <script src="/js/variables.js?v=1"></script>
 <script src="/js/tags.js?v=1"></script>
-<script src="/js/credentials.js?v=3"></script>
+<script src="/js/credentials.js?v=4"></script>
 <script src="/js/security.js?v=1"></script>
 <script>
 if ('serviceWorker' in navigator) {

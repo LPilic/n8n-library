@@ -85,6 +85,9 @@ function populateCredFilters(typeSet) {
   }
   // Stats
   renderCredStats(typeSet);
+  // Upgrade native selects to custom selects
+  var sidebar = document.getElementById('credentialsSidebar');
+  if (sidebar && typeof upgradeSelects === 'function') upgradeSelects(sidebar);
 }
 
 function renderCredStats(typeSet) {
@@ -133,26 +136,171 @@ function renderCredentials() {
   }
 
   var html = '<div class="users-card"><table class="kb-articles-table">' +
-    '<thead><tr><th>Name</th><th>Type</th><th>Owner</th><th>Created</th><th style="width:180px">Actions</th></tr></thead><tbody>';
+    '<thead><tr><th>Name</th><th>Type</th><th>Owner</th><th>Created</th></tr></thead><tbody>';
 
   for (var i = 0; i < filtered.length; i++) {
     var c = filtered[i];
     var owner = getCredOwner(c);
-    html += '<tr>' +
+    html += '<tr onclick="openCredentialDetail(\'' + esc(c.id) + '\')" style="cursor:pointer">' +
       '<td><span class="kb-article-title-cell">' + esc(c.name) + '</span></td>' +
       '<td><code class="cred-type-badge">' + esc(formatCredType(c.type)) + '</code></td>' +
       '<td class="kb-article-meta">' + esc(owner) + '</td>' +
       '<td class="kb-article-meta">' + new Date(c.createdAt).toLocaleDateString() + '</td>' +
-      '<td><div style="display:flex;gap:4px;white-space:nowrap">' +
-        '<button class="btn btn-secondary btn-sm" onclick="openEditCredential(\'' + esc(c.id) + '\')" style="font-size:11px">Edit</button>' +
-        '<button class="btn btn-secondary btn-sm" onclick="openTransferCredential(\'' + esc(c.id) + '\',\'' + esc(c.name).replace(/'/g, "\\'") + '\')" style="font-size:11px">Transfer</button>' +
-        '<button class="btn btn-danger btn-sm" onclick="deleteCredential(\'' + esc(c.id) + '\',\'' + esc(c.name).replace(/'/g, "\\'") + '\')" style="font-size:11px">Delete</button>' +
-      '</div></td>' +
     '</tr>';
   }
   html += '</tbody></table></div>';
   html += '<div style="text-align:center;font-size:12px;color:var(--color-text-muted);padding:4px 0">' + filtered.length + ' credential' + (filtered.length !== 1 ? 's' : '') + '</div>';
   el.innerHTML = html;
+}
+
+// --- Credential Detail View ---
+
+function openCredentialDetail(id) {
+  var c = credentialsCache.find(function(x) { return x.id === id || x.id === String(id); });
+  if (!c) return toast('Credential not found', 'error');
+
+  var isAdmin = currentUser && currentUser.role === 'admin';
+  var owner = getCredOwner(c);
+  var typeName = formatCredType(c.type);
+
+  // Deep link
+  history.replaceState({ panel: 'credentials', detail: id }, '', '/credentials/' + id);
+  window._credDetailId = c.id;
+  window._credDetailName = c.name;
+
+  // Header
+  document.getElementById('credDetailTitle').textContent = c.name;
+  var badge = document.getElementById('credDetailTypeBadge');
+  badge.textContent = typeName;
+
+  // Sidebar
+  var sb = '<div class="ticket-detail-sidebar">';
+  sb += '<div class="sidebar-section-title">Details</div>';
+  sb += '<div class="detail-field"><label>Type</label><code class="cred-type-badge">' + esc(typeName) + '</code></div>';
+  sb += '<div class="detail-field"><label>Internal Type</label><span class="detail-value" style="font-family:monospace;font-size:12px">' + esc(c.type) + '</span></div>';
+  sb += '<div class="detail-field"><label>Owner</label><span class="detail-value">' + esc(owner || 'Unknown') + '</span></div>';
+
+  // Shared with
+  if (c.shared && c.shared.length > 1) {
+    sb += '<div class="detail-field"><label>Shared With</label>';
+    for (var i = 0; i < c.shared.length; i++) {
+      var s = c.shared[i];
+      if (s.role && s.role.includes('owner')) continue;
+      sb += '<span class="detail-value" style="display:block;font-size:12px">' + esc(s.name || 'unnamed') + ' <span style="color:var(--color-text-xmuted)">(' + esc(s.role || '') + ')</span></span>';
+    }
+    sb += '</div>';
+  }
+
+  sb += '<div class="sidebar-section-title" style="margin-top:24px">Information</div>';
+  sb += '<div class="detail-field"><label>ID</label><span class="detail-value" style="font-family:monospace;font-size:12px">' + esc(c.id) + '</span></div>';
+  sb += '<div class="detail-field"><label>Created</label><span class="detail-value" style="font-size:12px;color:var(--color-text-muted)">' + new Date(c.createdAt).toLocaleString() + '</span></div>';
+  if (c.updatedAt) {
+    sb += '<div class="detail-field"><label>Updated</label><span class="detail-value" style="font-size:12px;color:var(--color-text-muted)">' + new Date(c.updatedAt).toLocaleString() + '</span></div>';
+  }
+
+  // Instance
+  if (typeof instancesCache !== 'undefined' && instancesCache.length > 1) {
+    var instName = '—';
+    if (typeof activeInstanceId !== 'undefined') {
+      var inst = instancesCache.find(function(i) { return i.id === activeInstanceId; });
+      if (inst) instName = inst.name;
+    }
+    sb += '<div class="detail-field"><label>Instance</label><span class="detail-value">' + esc(instName) + '</span></div>';
+  }
+  sb += '</div>';
+
+  // Main area
+  var main = '<div class="ticket-detail-main">';
+  main += '<div style="margin-bottom:24px">';
+  main += '<div style="font-size:20px;font-weight:700;color:var(--color-text-dark);margin-bottom:8px">' + esc(c.name) + '</div>';
+  main += '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">';
+  main += '<code class="cred-type-badge">' + esc(typeName) + '</code>';
+  main += '<span style="font-size:12px;color:var(--color-text-muted)">Owned by ' + esc(owner || 'unknown') + '</span>';
+  main += '</div></div>';
+
+  // Actions for admin
+  if (isAdmin) {
+    main += '<div style="display:flex;gap:8px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--color-border-light)">';
+    main += '<button class="btn btn-secondary btn-sm" onclick="closeCredDetailModal();openEditCredential(\'' + esc(c.id) + '\')">Edit Fields</button>';
+    main += '<button class="btn btn-secondary btn-sm" onclick="closeCredDetailModal();openTransferCredential(\'' + esc(c.id) + '\',\'' + esc(c.name).replace(/'/g, "\\'") + '\')">Transfer</button>';
+    main += '<button class="btn btn-danger btn-sm" onclick="deleteCredential(\'' + esc(c.id) + '\',\'' + esc(c.name).replace(/'/g, "\\'") + '\')">Delete</button>';
+    main += '</div>';
+  }
+
+  // Audit trail for this credential
+  main += '<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--color-text-muted);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--color-border-light)">Activity</div>';
+  main += '<div id="credDetailAudit"><div class="loading" style="padding:12px">Loading...</div></div>';
+  main += '</div>';
+
+  var isMobile = window.innerWidth <= 850;
+  if (isMobile) {
+    var container = document.getElementById('credentialsContent');
+    var ticketPanel = document.getElementById('panel-credentials');
+    var sidebar = ticketPanel.querySelector('.ticket-panel-sidebar');
+    var toolbar = ticketPanel.querySelector('.toolbar');
+    if (sidebar) sidebar.style.display = 'none';
+    if (toolbar) toolbar.style.display = 'none';
+    container.innerHTML = '<button class="kb-reader-back" onclick="restoreCredListView()">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg> Back to credentials</button>' +
+      '<div class="kb-reader-card"><div class="kb-reader-header">' +
+      '<div class="kb-reader-title">' + esc(c.name) + '</div>' +
+      '<div class="kb-reader-meta"><code class="cred-type-badge">' + esc(typeName) + '</code></div></div>' +
+      main.replace('class="ticket-detail-main"', 'style="padding:16px"') + '</div>';
+    loadCredDetailAudit(c.id);
+  } else {
+    document.getElementById('credDetailContent').innerHTML =
+      '<div class="ticket-detail">' + main + sb + '</div>';
+    openModal('credDetailModal');
+    loadCredDetailAudit(c.id);
+  }
+}
+
+function restoreCredListView() {
+  var ticketPanel = document.getElementById('panel-credentials');
+  var sidebar = ticketPanel.querySelector('.ticket-panel-sidebar');
+  var toolbar = ticketPanel.querySelector('.toolbar');
+  if (sidebar) sidebar.style.display = '';
+  if (toolbar) toolbar.style.display = '';
+  history.replaceState({ panel: 'credentials' }, '', '/credentials');
+  renderCredentials();
+}
+
+function closeCredDetailModal() {
+  closeModal('credDetailModal');
+  history.replaceState({ panel: 'credentials' }, '', '/credentials');
+}
+
+async function loadCredDetailAudit(credId) {
+  var el = document.getElementById('credDetailAudit');
+  if (!el) return;
+  try {
+    var isStaff = currentUser && ['admin', 'editor'].includes(currentUser.role);
+    if (!isStaff) { el.innerHTML = '<div style="font-size:13px;color:var(--color-text-xmuted);padding:8px 0">Audit history is available to staff only.</div>'; return; }
+    var res = await fetch(API + '/api/credentials/audit');
+    if (!res.ok) throw new Error();
+    var all = await res.json();
+    var entries = all.filter(function(a) { return a.n8n_credential_id === credId || a.n8n_credential_id === String(credId); });
+    if (entries.length === 0) {
+      el.innerHTML = '<div style="font-size:13px;color:var(--color-text-xmuted);padding:8px 0">No recorded activity for this credential.</div>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < entries.length; i++) {
+      var a = entries[i];
+      var actionColor = a.action === 'deleted' ? 'var(--color-danger)' :
+        a.action === 'provisioned' ? 'var(--color-success)' :
+        a.action === 'created' ? 'var(--color-primary)' : 'var(--color-text-muted)';
+      html += '<div class="activity-item" style="padding:8px 0;border-bottom:1px solid var(--color-border-light);font-size:13px">' +
+        '<strong>' + esc(a.username || 'system') + '</strong> ' +
+        '<span style="color:' + actionColor + ';font-weight:500">' + esc((a.action || '').replace(/_/g, ' ')) + '</span>' +
+        (a.detail ? ' <span style="color:var(--color-text-muted)">' + esc(a.detail) + '</span>' : '') +
+        '<span class="activity-time" style="float:right;font-size:11px;color:var(--color-text-xmuted)">' + timeAgo(a.created_at) + '</span>' +
+      '</div>';
+    }
+    el.innerHTML = html;
+  } catch (e) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--color-text-xmuted);padding:8px 0">Could not load activity.</div>';
+  }
 }
 
 function getCredOwner(c) {
@@ -455,6 +603,7 @@ function debouncedRenderCreds() {
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
     if (document.getElementById('credProvisionModal').classList.contains('active')) closeModal('credProvisionModal');
+    else if (document.getElementById('credDetailModal').classList.contains('active')) closeCredDetailModal();
     else if (document.getElementById('credStoreModal').classList.contains('active')) closeCredStoreModal();
     else if (document.getElementById('transferCredModal').classList.contains('active')) document.getElementById('transferCredModal').classList.remove('active');
     else if (document.getElementById('credModal').classList.contains('active')) closeCredModal();
