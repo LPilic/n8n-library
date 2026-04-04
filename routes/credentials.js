@@ -1,8 +1,10 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const { requireRole } = require('../lib/middleware');
+const pool = require('../db');
+const { requireAuth, requireRole } = require('../lib/middleware');
 const { getInstanceConfig } = require('../lib/n8n-api');
+const { auditLog } = require('../lib/audit');
 
 const router = express.Router();
 
@@ -101,6 +103,12 @@ router.post('/api/credentials', requireRole('admin'), async (req, res) => {
       return res.status(r.status).json({ error: errBody || 'Failed to create credential' });
     }
     const result = await r.json();
+    const instanceId = req.query.instance_id || req.body?.instance_id || null;
+    pool.query(
+      'INSERT INTO credential_audit (n8n_credential_id, credential_name, credential_type, instance_id, user_id, action, detail) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+      [result.id, name, type, instanceId, req.user.id, 'created', `Created credential "${name}" (${type})`]
+    ).catch(() => {});
+    auditLog(req.user, 'created', 'credential', result.id, `${name} (${type})`);
     res.status(201).json(result);
   } catch (err) {
     console.error('Credential create error:', err.message);
@@ -128,6 +136,13 @@ router.patch('/api/credentials/:id', requireRole('admin'), async (req, res) => {
       return res.status(r.status).json({ error: errBody || 'Failed to update credential' });
     }
     const result = await r.json();
+    const instanceId = req.query.instance_id || req.body?.instance_id || null;
+    const changes = [name && 'name', data && 'fields'].filter(Boolean).join(', ') || 'metadata';
+    pool.query(
+      'INSERT INTO credential_audit (n8n_credential_id, credential_name, credential_type, instance_id, user_id, action, detail) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+      [req.params.id, name || result.name, type || result.type, instanceId, req.user.id, 'updated', `Updated ${changes}`]
+    ).catch(() => {});
+    auditLog(req.user, 'updated', 'credential', req.params.id, `Updated ${changes}`);
     res.json(result);
   } catch (err) {
     console.error('Credential update error:', err.message);
@@ -148,6 +163,12 @@ router.delete('/api/credentials/:id', requireRole('admin'), async (req, res) => 
       const errBody = await r.text();
       return res.status(r.status).json({ error: errBody || 'Failed to delete credential' });
     }
+    const instanceId = req.query.instance_id || null;
+    pool.query(
+      'INSERT INTO credential_audit (n8n_credential_id, instance_id, user_id, action, detail) VALUES ($1,$2,$3,$4,$5)',
+      [req.params.id, instanceId, req.user.id, 'deleted', `Deleted credential #${req.params.id}`]
+    ).catch(() => {});
+    auditLog(req.user, 'deleted', 'credential', req.params.id);
     res.json({ success: true });
   } catch (err) {
     console.error('Credential delete error:', err.message);
@@ -171,9 +192,44 @@ router.put('/api/credentials/:id/transfer', requireRole('admin'), async (req, re
       const errBody = await r.text();
       return res.status(r.status).json({ error: errBody || 'Failed to transfer credential' });
     }
+    const instanceId = req.query.instance_id || null;
+    pool.query(
+      'INSERT INTO credential_audit (n8n_credential_id, instance_id, user_id, action, detail) VALUES ($1,$2,$3,$4,$5)',
+      [req.params.id, instanceId, req.user.id, 'transferred', `Transferred to project ${destinationProjectId}`]
+    ).catch(() => {});
+    auditLog(req.user, 'transferred', 'credential', req.params.id, `to project ${destinationProjectId}`);
     res.json({ success: true });
   } catch (err) {
     res.status(502).json({ error: 'Failed to reach n8n' });
+  }
+});
+
+// Credential audit history
+router.get('/api/credentials/audit', requireRole('admin', 'editor'), async (_req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT ca.*, u.username FROM credential_audit ca
+      LEFT JOIN users u ON u.id = ca.user_id
+      ORDER BY ca.created_at DESC LIMIT 100
+    `);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// My provisioning history (any authenticated user)
+router.get('/api/credentials/my-provisions', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT ca.*, ni.name as instance_name FROM credential_audit ca
+      LEFT JOIN n8n_instances ni ON ni.id = ca.instance_id
+      WHERE ca.user_id = $1 AND ca.action = 'provisioned'
+      ORDER BY ca.created_at DESC LIMIT 50
+    `, [req.user.id]);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

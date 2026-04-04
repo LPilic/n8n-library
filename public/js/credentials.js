@@ -491,20 +491,26 @@ async function loadCredStore() {
   var el = document.getElementById('credStoreContent');
   el.innerHTML = '<div class="loading">Loading credential store...</div>';
   try {
-    var res = await fetch(API + '/api/credential-store');
-    if (!res.ok) throw new Error('Failed to load');
-    credStoreCache = await res.json();
-    renderCredStore();
+    var results = await Promise.all([
+      fetch(API + '/api/credential-store').then(function(r) { return r.ok ? r.json() : []; }),
+      fetch(API + '/api/credentials/my-provisions').then(function(r) { return r.ok ? r.json() : []; }),
+      (currentUser && ['admin', 'editor'].includes(currentUser.role))
+        ? fetch(API + '/api/credentials/audit').then(function(r) { return r.ok ? r.json() : []; })
+        : Promise.resolve([])
+    ]);
+    credStoreCache = results[0];
+    renderCredStore(results[1], results[2]);
   } catch (err) {
     el.innerHTML = '<div class="kb-empty"><h3>Failed to load credential store</h3><p>' + esc(err.message) + '</p></div>';
   }
 }
 
-function renderCredStore() {
+function renderCredStore(myProvisions, auditLog) {
   var el = document.getElementById('credStoreContent');
   var isAdmin = currentUser && currentUser.role === 'admin';
+  var isStaff = currentUser && ['admin', 'editor'].includes(currentUser.role);
 
-  if (credStoreCache.length === 0) {
+  if (credStoreCache.length === 0 && (!myProvisions || myProvisions.length === 0)) {
     el.innerHTML = '<div class="kb-empty">' +
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
       '<h3>No credential templates</h3>' +
@@ -514,28 +520,73 @@ function renderCredStore() {
     return;
   }
 
-  var html = '<div class="cred-store-grid">';
-  for (var i = 0; i < credStoreCache.length; i++) {
-    var t = credStoreCache[i];
-    var roles = (t.allowed_roles || []).map(function(r) {
-      return '<span class="kb-cat-badge">' + esc(r) + '</span>';
-    }).join('');
+  var html = '';
 
-    html += '<div class="cred-store-card" onclick="openProvisionModal(' + t.id + ')">' +
-      '<div class="cred-store-card-title">' + esc(t.name) + '</div>' +
-      '<div class="cred-store-card-type"><code class="cred-type-badge">' + esc(formatCredType(t.credential_type)) + '</code></div>' +
-      (t.description ? '<div class="cred-store-card-desc">' + esc(t.description) + '</div>' : '') +
-      '<div class="cred-store-card-meta">' + roles +
-        (t.instance_name ? '<span class="kb-cat-badge" style="background:var(--color-bg)">' + esc(t.instance_name) + '</span>' : '') +
-        '<span style="font-size:11px;color:var(--color-text-xmuted);margin-left:auto">by ' + esc(t.creator_name || 'unknown') + '</span>' +
-      '</div>' +
-      (isAdmin ? '<div style="display:flex;gap:6px;margin-top:12px;border-top:1px solid var(--color-border);padding-top:10px">' +
-        '<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();editCredStoreTemplate(' + t.id + ')" style="font-size:11px">Edit</button>' +
-        '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteCredStoreTemplate(' + t.id + ',\'' + esc(t.name).replace(/'/g, "\\'") + '\')" style="font-size:11px">Delete</button>' +
-      '</div>' : '') +
-    '</div>';
+  // Template cards
+  if (credStoreCache.length > 0) {
+    html += '<div class="cred-store-grid">';
+    for (var i = 0; i < credStoreCache.length; i++) {
+      var t = credStoreCache[i];
+      var roles = (t.allowed_roles || []).map(function(r) {
+        return '<span class="kb-cat-badge">' + esc(r) + '</span>';
+      }).join('');
+
+      html += '<div class="cred-store-card" onclick="openProvisionModal(' + t.id + ')">' +
+        '<div class="cred-store-card-title">' + esc(t.name) + '</div>' +
+        '<div class="cred-store-card-type"><code class="cred-type-badge">' + esc(formatCredType(t.credential_type)) + '</code></div>' +
+        (t.description ? '<div class="cred-store-card-desc">' + esc(t.description) + '</div>' : '') +
+        '<div class="cred-store-card-meta">' + roles +
+          (t.instance_name ? '<span class="kb-cat-badge" style="background:var(--color-bg)">' + esc(t.instance_name) + '</span>' : '') +
+          '<span style="font-size:11px;color:var(--color-text-xmuted);margin-left:auto">by ' + esc(t.creator_name || 'unknown') + '</span>' +
+        '</div>' +
+        (isAdmin ? '<div style="display:flex;gap:6px;margin-top:12px;border-top:1px solid var(--color-border);padding-top:10px">' +
+          '<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();editCredStoreTemplate(' + t.id + ')" style="font-size:11px">Edit</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteCredStoreTemplate(' + t.id + ',\'' + esc(t.name).replace(/'/g, "\\'") + '\')" style="font-size:11px">Delete</button>' +
+        '</div>' : '') +
+      '</div>';
+    }
+    html += '</div>';
   }
-  html += '</div>';
+
+  // My provisioning history
+  if (myProvisions && myProvisions.length > 0) {
+    html += '<div style="padding:0 20px 20px">';
+    html += '<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--color-text-muted);margin:24px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--color-border-light)">My Provisioned Credentials</div>';
+    html += '<div class="users-card"><table class="kb-articles-table"><thead><tr><th>Credential</th><th>Type</th><th>Template</th><th>Instance</th><th>Date</th></tr></thead><tbody>';
+    for (var j = 0; j < myProvisions.length; j++) {
+      var p = myProvisions[j];
+      html += '<tr>' +
+        '<td>' + esc(p.credential_name || '—') + '</td>' +
+        '<td><code class="cred-type-badge">' + esc(formatCredType(p.credential_type || '')) + '</code></td>' +
+        '<td class="kb-article-meta">' + esc((p.detail || '').replace(/^User .+ provisioned from template "/, '').replace(/"$/, '') || '—') + '</td>' +
+        '<td class="kb-article-meta">' + esc(p.instance_name || '—') + '</td>' +
+        '<td class="kb-article-meta">' + new Date(p.created_at).toLocaleDateString() + '</td>' +
+      '</tr>';
+    }
+    html += '</tbody></table></div></div>';
+  }
+
+  // Audit log (staff only)
+  if (isStaff && auditLog && auditLog.length > 0) {
+    html += '<div style="padding:0 20px 20px">';
+    html += '<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--color-text-muted);margin:24px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--color-border-light)">Recent Activity</div>';
+    html += '<div style="max-height:300px;overflow-y:auto">';
+    for (var k = 0; k < Math.min(25, auditLog.length); k++) {
+      var a = auditLog[k];
+      var actionColor = a.action === 'deleted' ? 'var(--color-danger)' :
+        a.action === 'provisioned' ? 'var(--color-success)' :
+        a.action === 'created' || a.action === 'template_created' ? 'var(--color-primary)' : 'var(--color-text-muted)';
+      var actionLabel = (a.action || '').replace(/_/g, ' ');
+      html += '<div class="activity-item" style="padding:8px 0;border-bottom:1px solid var(--color-border-light);font-size:13px">' +
+        '<strong>' + esc(a.username || 'system') + '</strong> ' +
+        '<span style="color:' + actionColor + ';font-weight:500">' + esc(actionLabel) + '</span> ' +
+        (a.credential_name ? esc(a.credential_name) : '') +
+        '<span class="activity-time" style="float:right;font-size:11px;color:var(--color-text-xmuted)">' + timeAgo(a.created_at) + '</span>' +
+      '</div>';
+    }
+    html += '</div></div>';
+  }
+
   el.innerHTML = html;
 }
 
