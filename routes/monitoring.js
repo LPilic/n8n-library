@@ -104,7 +104,7 @@ async function startAllMetricsCollectors() {
       const store = getMetricsHistory(inst.id);
       if (!store.interval) {
         collectMetricsSnapshot(inst.id);
-        store.interval = setInterval(() => collectMetricsSnapshot(inst.id), 20000);
+        store.interval = setInterval(() => collectMetricsSnapshot(inst.id), 60000);
       }
     }
   } catch {}
@@ -330,9 +330,19 @@ router.get('/api/monitoring/stats', requireRole('admin', 'editor'), async (req, 
 
     let activeWorkflows = 0, totalWorkflows = 0;
     try {
-      const wfs = await fetchAllWorkflows(req.query.instance_id);
-      totalWorkflows = wfs.length;
-      activeWorkflows = wfs.filter(w => w.active).length;
+      // Use light cached workflow list instead of fetching all full workflows
+      const wfKey = req.query.instance_id || '_default';
+      const cachedWfs = wfListCacheMap[wfKey];
+      if (cachedWfs && cachedWfs.data) {
+        totalWorkflows = cachedWfs.data.length;
+        activeWorkflows = cachedWfs.data.filter(w => w.active).length;
+      } else {
+        // Fallback: trigger async cache population, return 0 for now
+        fetchAllWorkflows(req.query.instance_id).then(wfs => {
+          const light = wfs.map(wf => ({ id: wf.id, name: wf.name, active: wf.active, tags: wf.tags || [], createdAt: wf.createdAt, updatedAt: wf.updatedAt }));
+          wfListCacheMap[wfKey] = { data: light, ts: Date.now() };
+        }).catch(() => {});
+      }
     } catch (e) {}
 
     let health = 'unknown';
@@ -408,8 +418,8 @@ function startMonitoringPush() {
       const instances = await getAllInstances();
       for (const inst of instances) {
         try {
-          // Fetch stats
-          const data = await n8nApiFetch('/api/v1/executions?limit=250', inst.id);
+          // Fetch recent executions for stats (only need 50 for broadcast)
+          const data = await n8nApiFetch('/api/v1/executions?limit=50', inst.id);
           const executions = data.data || [];
           const counts = { success: 0, error: 0, running: 0, waiting: 0, canceled: 0, new: 0 };
           let totalDuration = 0, durationCount = 0;
@@ -421,7 +431,13 @@ function startMonitoringPush() {
               if (dur > 0) { totalDuration += dur; durationCount++; }
             }
           }
-          const wfMap = await getWorkflowNameMap(inst.id);
+          // Use light workflow cache for name enrichment (avoid fetching all 2000+ workflows)
+          const key = inst.id || '_default';
+          const cachedWfs = wfListCacheMap[key];
+          const wfMap = {};
+          if (cachedWfs && cachedWfs.data) {
+            for (const wf of cachedWfs.data) wfMap[wf.id] = wf.name;
+          }
           const recent = executions.slice(0, 50);
           enrichExecutions(recent, wfMap);
 
@@ -437,7 +453,7 @@ function startMonitoringPush() {
         } catch {}
       }
     } catch {}
-  }, 15000); // Push every 15 seconds
+  }, 30000); // Push every 30 seconds
 }
 function stopMonitoringPush() {
   if (monPushInterval) {
