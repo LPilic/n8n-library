@@ -145,10 +145,11 @@ router.get('/api/monitoring/workflows', requireRole('admin', 'editor'), async (r
       return res.json({ data: cached.data });
     }
     const wfs = await fetchAllWorkflows(req.query.instance_id);
-    // Strip heavy fields (nodes, connections, settings) to reduce memory and transfer size
+    // Keep fields needed for filters + node flow preview (strip connections, settings, full parameters)
     const light = wfs.map(wf => ({
       id: wf.id, name: wf.name, active: wf.active,
       tags: wf.tags || [], createdAt: wf.createdAt, updatedAt: wf.updatedAt,
+      nodes: (wf.nodes || []).map(n => ({ type: n.type, name: n.name, position: n.position, group: n.group })),
     }));
     wfListCacheMap[key] = { data: light, ts: Date.now() };
     res.json({ data: light });

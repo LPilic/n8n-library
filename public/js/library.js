@@ -341,9 +341,15 @@ const libraryWorkflowCache = {};
 
 // Icon lookup loaded from server (node-icons.json extracted from n8n)
 let NODE_ICON_DATA = {};
+let nodeIconsReady = false;
 fetch(`${API}/api/node-icons`).then(r => r.json()).then(d => {
   NODE_ICON_DATA = d;
+  nodeIconsReady = true;
   console.log(`Loaded ${Object.keys(d).length} node icon definitions`);
+  // Re-render workflow cards if monitoring workflows tab is active
+  if (typeof monCurrentTab !== 'undefined' && monCurrentTab === 'workflows') {
+    if (typeof renderWorkflowCardGrid === 'function') renderWorkflowCardGrid();
+  }
 }).catch(() => console.warn('Could not load node icon data'));
 
 const TRIGGER_KW = ['trigger','webhook','cron','schedule','start','event','formTrigger','chatTrigger'];
