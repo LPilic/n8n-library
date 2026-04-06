@@ -165,9 +165,10 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, n8n-version');
     if (req.method === 'OPTIONS') return res.sendStatus(204);
   }
-  // CORS for API key authenticated requests and MCP endpoint (no credentials — API key is the auth)
+  // CORS for API key authenticated requests and MCP endpoint
   if ((req.path.startsWith('/api/') || req.path === '/mcp') && (req.headers['authorization'] || req.headers['x-api-key'])) {
-    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-API-Key, Mcp-Session-Id, n8n-version');
     res.header('Access-Control-Expose-Headers', 'Mcp-Session-Id');

@@ -38,14 +38,7 @@
 
     --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
     --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
     --shadow-lg: 0 4px 12px rgba(0,0,0,0.1);
-
-    --color-bg-alt: #f3f4f6;
-    --color-bg-hover: #f0f0f2;
-    --color-muted: #7e8186;
-    --color-surface: #ffffff;
-    --color-primary-rgb: 255,109,90;
   }
 
   [data-theme="dark"] {
@@ -55,11 +48,6 @@
     --color-card: #1e1e21;
     --color-card-hover: #262629;
     --color-bg-alt: #222225;
-    --color-bg-hover: #2c2c30;
-    --color-muted: #8a8a96;
-    --color-surface: #1e1e21;
-    --color-primary-rgb: 255,109,90;
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
 
     --color-border: #333338;
     --color-border-light: #2a2a2e;
@@ -756,17 +744,14 @@
     transition: border-color 0.15s, box-shadow 0.15s;
   }
 
+  select {
+    display: none !important;
+  }
+
   /* Custom select replacement */
   .custom-select {
     position: relative;
     width: 100%;
-  }
-  .custom-select select {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-    width: 0;
-    height: 0;
   }
   .custom-select-trigger {
     display: flex;

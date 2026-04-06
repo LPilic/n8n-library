@@ -127,7 +127,7 @@ router.post('/api/auth/reset-password', authLimiter, async (req, res) => {
     await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, resetToken.user_id]);
     await pool.query('UPDATE password_reset_tokens SET used = TRUE WHERE user_id = $1', [resetToken.user_id]);
     // Invalidate all existing sessions for this user
-    await pool.query("DELETE FROM session WHERE (sess->'user'->>'id')::int = $1", [resetToken.user_id]).catch(() => {});
+    await pool.query("DELETE FROM session WHERE sess::text LIKE '%\"id\":' || $1 || '%'", [resetToken.user_id]).catch(() => {});
 
     res.json({ message: 'Password has been reset. You can now sign in.' });
   } catch (err) {
