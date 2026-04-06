@@ -1,15 +1,8 @@
 const express = require('express');
 const { requireRole } = require('../lib/middleware');
-const { getInstanceConfig } = require('../lib/n8n-api');
+const { getInstanceBase } = require('../lib/n8n-api');
 
 const router = express.Router();
-
-async function getInstanceBase(req) {
-  const instanceId = req.query.instance_id || req.body?.instance_id;
-  const inst = await getInstanceConfig(instanceId);
-  if (!inst) return null;
-  return { base: inst.internal_url.replace(/\/+$/, ''), key: inst.api_key };
-}
 
 // List variables
 router.get('/api/variables', requireRole('admin', 'editor'), async (req, res) => {

@@ -34,7 +34,7 @@ function renderDashboard(data, container) {
   // Greeting
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-  html += `<div class="dash-greeting"><h2>${greeting}, ${escapeHtml(data.user.username)}</h2><span class="dash-greeting-sub">Here's what's happening across your n8n environment</span></div>`;
+  html += `<div class="dash-greeting"><h2>${greeting}, ${esc(data.user.username)}</h2><span class="dash-greeting-sub">Here's what's happening across your n8n environment</span></div>`;
 
   // Instance selector (if multiple instances)
   if (isWriter && data.instances && data.instances.length > 1) {
@@ -43,7 +43,7 @@ function renderDashboard(data, container) {
     html += '<select class="form-input" style="width:auto;display:inline-block;font-size:13px;padding:4px 10px" onchange="switchDashInstance(this.value)">';
     for (const inst of data.instances) {
       const sel = inst.id === data.selectedInstance ? ' selected' : '';
-      html += `<option value="${inst.id}"${sel}>${escapeHtml(inst.name)}${inst.is_default ? ' (default)' : ''}</option>`;
+      html += `<option value="${inst.id}"${sel}>${esc(inst.name)}${inst.is_default ? ' (default)' : ''}</option>`;
     }
     html += '</select></div>';
   }
@@ -58,7 +58,7 @@ function renderDashboard(data, container) {
     const hLabel = hStatus === 'healthy' ? 'Healthy' : hStatus === 'unhealthy' ? 'Unhealthy' : 'Unreachable';
     html += `<div class="dash-kpi" onclick="switchPanel('monitoring')">
       <div class="dash-kpi-icon" style="background:${hColor}20;color:${hColor}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
-      <div class="dash-kpi-body"><div class="dash-kpi-value" style="color:${hColor}">${hLabel}</div><div class="dash-kpi-label">${data.instances && data.instances.length > 1 && data.selectedInstance ? escapeHtml((data.instances.find(i=>i.id===data.selectedInstance)||{}).name||'n8n') : 'n8n Instance'}${data.n8nHealth.latencyMs ? ' &middot; ' + data.n8nHealth.latencyMs + 'ms' : ''}</div></div>
+      <div class="dash-kpi-body"><div class="dash-kpi-value" style="color:${hColor}">${hLabel}</div><div class="dash-kpi-label">${data.instances && data.instances.length > 1 && data.selectedInstance ? esc((data.instances.find(i=>i.id===data.selectedInstance)||{}).name||'n8n') : 'n8n Instance'}${data.n8nHealth.latencyMs ? ' &middot; ' + data.n8nHealth.latencyMs + 'ms' : ''}</div></div>
     </div>`;
   }
 
@@ -104,7 +104,7 @@ function renderDashboard(data, container) {
     for (const t of data.tickets.myTickets) {
       html += `<div class="dash-card-item" onclick="switchPanel('tickets');setTimeout(()=>openTicketDetail(${t.id}),200)">
         <span class="ticket-badge badge-${t.priority}" style="font-size:10px">${t.priority}</span>
-        <span class="dash-item-title">${escapeHtml(t.title)}</span>
+        <span class="dash-item-title">${esc(t.title)}</span>
         <span class="ticket-badge badge-${t.status}" style="font-size:10px">${t.status.replace('_',' ')}</span>
       </div>`;
     }
@@ -119,10 +119,10 @@ function renderDashboard(data, container) {
       html += '<div class="dash-card-list">';
       for (const e of failed.slice(0, 5)) {
         const name = e.workflowName || 'Workflow #' + e.workflowId;
-        const time = formatDashTime(e.stoppedAt || e.startedAt);
+        const time = timeAgo(e.stoppedAt || e.startedAt);
         html += `<div class="dash-card-item" onclick="switchPanel('monitoring');setTimeout(()=>loadExecutionDetail('${e.id}'),300)">
           <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" stroke-width="2" width="14" height="14" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-          <span class="dash-item-title">${escapeHtml(name)}</span>
+          <span class="dash-item-title">${esc(name)}</span>
           <span class="dash-item-meta">${time}</span>
         </div>`;
       }
@@ -162,7 +162,7 @@ function renderDashboard(data, container) {
     html += '<div class="dash-card-list">';
     for (const e of data.executions.recent.slice(0, 6)) {
       const name = e.workflowName || 'Workflow #' + e.workflowId;
-      const time = formatDashTime(e.stoppedAt || e.startedAt);
+      const time = timeAgo(e.stoppedAt || e.startedAt);
       const statusIcon = e.status === 'success'
         ? '<svg viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2" width="14" height="14" style="flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>'
         : e.status === 'error'
@@ -170,7 +170,7 @@ function renderDashboard(data, container) {
         : '<svg viewBox="0 0 24 24" fill="none" stroke="var(--color-warning)" stroke-width="2" width="14" height="14" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
       html += `<div class="dash-card-item" onclick="switchPanel('monitoring');setTimeout(()=>loadExecutionDetail('${e.id}'),300)">
         ${statusIcon}
-        <span class="dash-item-title">${escapeHtml(name)}</span>
+        <span class="dash-item-title">${esc(name)}</span>
         <span class="dash-item-meta">${time}</span>
       </div>`;
     }
@@ -184,7 +184,7 @@ function renderDashboard(data, container) {
     for (const a of data.kb.popular) {
       html += `<div class="dash-card-item" onclick="switchPanel('kb');setTimeout(()=>viewKbArticle(${a.id}),200)">
         <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" stroke-width="2" width="14" height="14" style="flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        <span class="dash-item-title">${escapeHtml(a.title)}</span>
+        <span class="dash-item-title">${esc(a.title)}</span>
         <span class="dash-item-meta">${a.view_count} views</span>
       </div>`;
     }
@@ -196,10 +196,10 @@ function renderDashboard(data, container) {
     html += '<div class="dash-card"><div class="dash-card-header"><h3>Recent Tickets</h3><button class="btn btn-secondary btn-sm" onclick="switchPanel(\'tickets\')">View All</button></div>';
     html += '<div class="dash-card-list">';
     for (const t of data.tickets.recentTickets) {
-      const time = formatDashTime(t.created_at);
+      const time = timeAgo(t.created_at);
       html += `<div class="dash-card-item" onclick="switchPanel('tickets');setTimeout(()=>openTicketDetail(${t.id}),200)">
         <span class="ticket-badge badge-${t.priority}" style="font-size:10px">${t.priority}</span>
-        <span class="dash-item-title">${escapeHtml(t.title)}</span>
+        <span class="dash-item-title">${esc(t.title)}</span>
         <span class="dash-item-meta">${time}</span>
       </div>`;
     }
@@ -211,21 +211,4 @@ function renderDashboard(data, container) {
 
   container.innerHTML = html;
   if (typeof upgradeSelects === 'function') upgradeSelects(container);
-}
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-function formatDashTime(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  const now = new Date();
-  const diff = now - d;
-  if (diff < 60000) return 'just now';
-  if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
-  if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
-  if (diff < 604800000) return Math.floor(diff / 86400000) + 'd ago';
-  return d.toLocaleDateString();
 }

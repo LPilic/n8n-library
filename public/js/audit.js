@@ -51,12 +51,12 @@ function renderAuditLog(data, container) {
     var link = auditLink(e);
 
     html += '<tr' + (link ? ' onclick="' + link + '" style="cursor:pointer"' : '') + '>';
-    html += '<td class="kb-article-meta">' + escAudit(time) + '</td>';
-    html += '<td><span style="font-weight:600">' + escAudit(e.username) + '</span></td>';
-    html += '<td><span style="font-weight:600;text-transform:capitalize;' + actionClass + '">' + escAudit(e.action) + '</span></td>';
-    html += '<td><span class="audit-type-badge audit-type-' + escAudit(e.entity_type) + '">' + escAudit(e.entity_type) + '</span></td>';
-    html += '<td class="kb-article-meta">' + escAudit(e.entity_id || '') + '</td>';
-    html += '<td class="kb-article-meta" style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escAudit(e.details || '') + '</td>';
+    html += '<td class="kb-article-meta">' + esc(time) + '</td>';
+    html += '<td><span style="font-weight:600">' + esc(e.username) + '</span></td>';
+    html += '<td><span style="font-weight:600;text-transform:capitalize;' + actionClass + '">' + esc(e.action) + '</span></td>';
+    html += '<td><span class="audit-type-badge audit-type-' + esc(e.entity_type) + '">' + esc(e.entity_type) + '</span></td>';
+    html += '<td class="kb-article-meta">' + esc(e.entity_id || '') + '</td>';
+    html += '<td class="kb-article-meta" style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(e.details || '') + '</td>';
     html += '</tr>';
   }
   html += '</tbody></table></div>';
@@ -88,9 +88,4 @@ function auditLink(entry) {
     return "switchPanel('kb');setTimeout(function(){viewKbArticle(" + parseInt(entry.entity_id) + ")},200)";
   }
   return '';
-}
-
-function escAudit(str) {
-  if (!str) return '';
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

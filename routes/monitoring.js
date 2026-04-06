@@ -1,7 +1,7 @@
 const express = require('express');
 const pool = require('../db');
 const { requireRole } = require('../lib/middleware');
-const { n8nApiFetch, fetchAllWorkflows, getWorkflowNameMap, enrichExecutions, invalidateWfCache, getMonStatsCache, setMonStatsCache, getInstanceConfig, getAllInstances } = require('../lib/n8n-api');
+const { n8nApiFetch, fetchAllWorkflows, getWorkflowNameMap, enrichExecutions, invalidateWfCache, getMonStatsCache, setMonStatsCache, getInstanceConfig, getAllInstances, getInstanceBase } = require('../lib/n8n-api');
 const { encrypt: encryptValue } = require('../lib/crypto');
 const { sendDailySummaryEmail } = require('../lib/ai-providers');
 
@@ -32,12 +32,6 @@ function parsePrometheusText(text) {
   return metrics;
 }
 
-// Helper to get instance base URL from request
-async function getInstanceBase(req) {
-  const inst = await getInstanceConfig(req.query.instance_id);
-  if (!inst || !inst.internal_url) return null;
-  return { base: inst.internal_url.replace(/\/+$/, ''), key: inst.api_key || '', inst };
-}
 
 router.get('/api/monitoring/metrics', requireRole('admin', 'editor'), async (req, res) => {
   try {
@@ -366,8 +360,12 @@ router.get('/api/monitoring/stream', requireRole('admin', 'editor'), (req, res) 
   const clientId = ++monSseCounter;
   const instanceId = req.query.instance_id || null;
   monSseClients.set(clientId, { res, instanceId });
+  startMonitoringPush(); // start interval if not already running
 
-  req.on('close', () => { monSseClients.delete(clientId); });
+  req.on('close', () => {
+    monSseClients.delete(clientId);
+    if (monSseClients.size === 0) stopMonitoringPush(); // stop when last client disconnects
+  });
 
   // Heartbeat
   const hb = setInterval(() => { res.write(':heartbeat\n\n'); }, 30000);
@@ -387,9 +385,8 @@ function broadcastMonitoringUpdate(instanceId, eventName, data) {
 // Server-side push loop — fetches stats + recent executions and broadcasts
 let monPushInterval = null;
 function startMonitoringPush() {
-  if (monPushInterval) clearInterval(monPushInterval);
+  if (monPushInterval) return; // already running
   monPushInterval = setInterval(async () => {
-    if (monSseClients.size === 0) return; // No listeners, skip work
     try {
       const instances = await getAllInstances();
       for (const inst of instances) {
@@ -425,7 +422,12 @@ function startMonitoringPush() {
     } catch {}
   }, 15000); // Push every 15 seconds
 }
-startMonitoringPush();
+function stopMonitoringPush() {
+  if (monPushInterval) {
+    clearInterval(monPushInterval);
+    monPushInterval = null;
+  }
+}
 
 // Workers status — polls configured worker URLs for health + metrics
 router.get('/api/monitoring/workers', requireRole('admin', 'editor'), async (req, res) => {

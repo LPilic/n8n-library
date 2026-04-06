@@ -108,11 +108,11 @@ function renderNotifDropdown() {
       var n = notifData[i];
       var cls = n.read ? 'notif-item read' : 'notif-item';
       var icon = notifIcon(n.type);
-      var time = formatNotifTime(n.created_at);
-      html += '<div class="' + cls + '" onclick="clickNotif(' + n.id + ',\'' + escNotif(n.link) + '\',' + !n.read + ')">';
+      var time = timeAgo(n.created_at);
+      html += '<div class="' + cls + '" onclick="clickNotif(' + n.id + ',\'' + esc(n.link) + '\',' + !n.read + ')">';
       html += '<div class="notif-icon">' + icon + '</div>';
-      html += '<div class="notif-body"><div class="notif-title">' + escNotif(n.title) + '</div>';
-      html += '<div class="notif-text">' + escNotif(n.body) + '</div>';
+      html += '<div class="notif-body"><div class="notif-title">' + esc(n.title) + '</div>';
+      html += '<div class="notif-text">' + esc(n.body) + '</div>';
       html += '<div class="notif-time">' + time + '</div></div>';
       if (!n.read) html += '<div class="notif-dot"></div>';
       html += '</div>';
@@ -171,21 +171,6 @@ async function markAllNotifsRead() {
   } catch {}
 }
 
-function escNotif(str) {
-  if (!str) return '';
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
-function formatNotifTime(dateStr) {
-  if (!dateStr) return '';
-  var d = new Date(dateStr);
-  var diff = Date.now() - d;
-  if (diff < 60000) return 'just now';
-  if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
-  if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
-  if (diff < 604800000) return Math.floor(diff / 86400000) + 'd ago';
-  return d.toLocaleDateString();
-}
 
 // Close dropdown when clicking outside
 document.addEventListener('click', function(e) {

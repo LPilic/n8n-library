@@ -51,17 +51,6 @@ function renderContent(content) {
 }
 function renderMarkdown(s) { return renderContent(s); }
 
-function timeAgoKb(dateStr) {
-  const d = new Date(dateStr);
-  const now = new Date();
-  const diff = (now - d) / 1000;
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
-  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
-  if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
-  return d.toLocaleDateString();
-}
-
 function formatBytes(bytes) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
@@ -136,7 +125,7 @@ function renderKbArticleList(data) {
       ${isWriter ? `<td><span class="kb-status-badge ${statusLabel}">${statusLabel}</span></td>` : ''}
       <td class="kb-article-meta">${esc(a.author_name || 'Unknown')}</td>
       <td class="kb-article-meta">${a.view_count || 0}</td>
-      <td class="kb-article-meta">${timeAgoKb(a.updated_at)}</td>
+      <td class="kb-article-meta">${timeAgo(a.updated_at)}</td>
     </tr>`;
   }
   html += '</tbody></table></div>';
@@ -222,7 +211,7 @@ function renderKbArticleReader(article) {
           </span>
           <span class="kb-reader-meta-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            ${timeAgoKb(article.updated_at)}
+            ${timeAgo(article.updated_at)}
           </span>
           <span class="kb-reader-meta-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -298,7 +287,8 @@ async function toggleKbFeature(id, featured) {
 
 async function deleteKbArticle(id) {
   if (!confirm('Delete this article permanently?')) return;
-  await fetch(`${API}/api/kb/articles/${id}`, { method: 'DELETE', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+  const res = await fetch(`${API}/api/kb/articles/${id}`, { method: 'DELETE', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+  if (!res.ok) { toast('Failed to delete article', 'error'); return; }
   toast('Article deleted', 'success');
   loadKbArticles(currentKbPage);
 }
@@ -613,7 +603,7 @@ async function openKbVersionHistory(articleId) {
       el.innerHTML = versions.map(v => `<div class="kb-version-row">
         <div class="kb-version-info">
           <div class="kb-version-date">${esc(v.title)}</div>
-          <div class="kb-version-by">${esc(v.edited_by_name || 'Unknown')} &middot; ${timeAgoKb(v.created_at)}</div>
+          <div class="kb-version-by">${esc(v.edited_by_name || 'Unknown')} &middot; ${timeAgo(v.created_at)}</div>
           ${v.version_note ? `<div class="kb-version-note">${esc(v.version_note)}</div>` : ''}
         </div>
         <div class="kb-version-actions">

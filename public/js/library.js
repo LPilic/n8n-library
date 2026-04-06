@@ -98,11 +98,12 @@ async function saveTemplate() {
   const description = getEditorHtml('editDescription');
   const categories = getCheckedCategories('editCategories');
 
-  await fetch(`${API}/api/templates/${id}`, {
+  const res = await fetch(`${API}/api/templates/${id}`, {
     method: 'PUT',
     headers: CSRF_HEADERS,
     body: JSON.stringify({ name, description, categories }),
   });
+  if (!res.ok) { toast('Failed to save template', 'error'); return; }
   closeModal('editModal');
   toast('Template updated', 'success');
   loadLibrary();
@@ -111,7 +112,8 @@ async function saveTemplate() {
 async function deleteTemplate(id) {
   var ok = await appConfirm('Delete this template?', { danger: true, okLabel: 'Delete' });
   if (!ok) return;
-  await fetch(`${API}/api/templates/${id}`, { method: 'DELETE', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+  const res = await fetch(`${API}/api/templates/${id}`, { method: 'DELETE', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+  if (!res.ok) { toast('Failed to delete template', 'error'); return; }
   toast('Template deleted', 'success');
   loadLibrary();
 }

@@ -1,6 +1,6 @@
 const express = require('express');
 const pool = require('../db');
-const { escHtml, getSettingWithDefault } = require('../lib/helpers');
+const { escHtml } = require('../lib/helpers');
 const { requireRole } = require('../lib/middleware');
 const {
   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, APP_URL,
@@ -78,13 +78,16 @@ router.post('/api/settings/smtp/test', requireRole('admin'), async (req, res) =>
 
 router.get('/api/settings/email-templates', requireRole('admin'), async (_req, res) => {
   try {
+    const { rows } = await pool.query("SELECT key, value FROM settings WHERE key LIKE 'email_tpl_%'");
+    const dbSettings = {};
+    for (const r of rows) dbSettings[r.key] = r.value;
     const templates = {};
     for (const [key, defaults] of Object.entries(EMAIL_TEMPLATES)) {
-      const subjectKey = `email_tpl_${key}_subject`;
-      const bodyKey = `email_tpl_${key}_body`;
-      const subject = await getSettingWithDefault(subjectKey, defaults.subject);
-      const body = await getSettingWithDefault(bodyKey, defaults.body);
-      templates[key] = { label: defaults.label, subject, body };
+      templates[key] = {
+        label: defaults.label,
+        subject: dbSettings[`email_tpl_${key}_subject`] || defaults.subject,
+        body: dbSettings[`email_tpl_${key}_body`] || defaults.body,
+      };
     }
     res.json({ templates });
   } catch (err) {
