@@ -129,18 +129,14 @@ async function loadN8nWorkflows() {
 
   container.innerHTML = '<div class="loading">Loading workflows from n8n...</div>';
   try {
-    const allWorkflows = [];
-    let cursor = '';
-    let hasMore = true;
-    while (hasMore) {
-      const path = cursor
-        ? `/api/v1/workflows?limit=100&cursor=${cursor}`
-        : '/api/v1/workflows?limit=100';
-      const res = await n8nApi(path);
-      allWorkflows.push(...(res.data || []));
-      cursor = res.nextCursor || '';
-      hasMore = !!cursor;
-    }
+    // Use the server-side monitoring endpoint which fetches all workflows
+    // efficiently (250/page, server-side pagination, 60s cache)
+    const ip = typeof getActiveInstanceParam === 'function' ? getActiveInstanceParam() : '';
+    const url = `${API}/api/monitoring/workflows` + (ip ? '?' + ip : '');
+    const wfRes = await fetch(url, { headers: CSRF_HEADERS });
+    if (!wfRes.ok) throw new Error('HTTP ' + wfRes.status);
+    const wfData = await wfRes.json();
+    const allWorkflows = wfData.data || [];
     n8nWorkflowsCache = allWorkflows;
     n8nFilteredCache = allWorkflows;
     n8nCurrentPage = 1;

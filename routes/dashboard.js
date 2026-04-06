@@ -81,9 +81,15 @@ router.get('/api/dashboard', requireAuth, async (req, res) => {
 
         if (selectedInst) {
           result.selectedInstance = selectedInst.id;
+          // Fetch executions and workflow names in parallel; timeout name map to avoid
+          // blocking dashboard for large instances (2000+ workflows)
+          const wfMapPromise = Promise.race([
+            getWorkflowNameMap(selectedInst.id),
+            new Promise(resolve => setTimeout(() => resolve({}), 5000)),
+          ]);
           const [execData, wfMap] = await Promise.all([
             n8nApiFetch('/api/v1/executions?limit=20', selectedInst.id),
-            getWorkflowNameMap(selectedInst.id),
+            wfMapPromise,
           ]);
           if (execData.data) {
             enrichExecutions(execData.data, wfMap);
