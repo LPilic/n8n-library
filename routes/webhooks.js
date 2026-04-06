@@ -3,6 +3,7 @@ const pool = require('../db');
 const { requireRole } = require('../lib/middleware');
 const { auditLog } = require('../lib/audit');
 const { WEBHOOK_EVENTS } = require('../lib/webhooks');
+const { isPrivateUrl } = require('../lib/helpers');
 
 const router = express.Router();
 
@@ -19,6 +20,7 @@ router.post('/api/webhooks', requireRole('admin'), async (req, res) => {
   try {
     const { name, url, events, headers, enabled } = req.body;
     if (!name || !url) return res.status(400).json({ error: 'Name and URL required' });
+    if (isPrivateUrl(url)) return res.status(400).json({ error: 'Webhook URL must not target a private/internal address' });
     if (!events || events.length === 0) return res.status(400).json({ error: 'At least one event required' });
     const { rows } = await pool.query(
       `INSERT INTO webhooks (name, url, events, headers, enabled) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
@@ -36,7 +38,10 @@ router.put('/api/webhooks/:id', requireRole('admin'), async (req, res) => {
     const { name, url, events, headers, enabled } = req.body;
     const updates = []; const params = []; let idx = 1;
     if (name !== undefined) { updates.push(`name = $${idx++}`); params.push(name); }
-    if (url !== undefined) { updates.push(`url = $${idx++}`); params.push(url); }
+    if (url !== undefined) {
+      if (isPrivateUrl(url)) return res.status(400).json({ error: 'Webhook URL must not target a private/internal address' });
+      updates.push(`url = $${idx++}`); params.push(url);
+    }
     if (events !== undefined) { updates.push(`events = $${idx++}`); params.push(JSON.stringify(events)); }
     if (headers !== undefined) { updates.push(`headers = $${idx++}`); params.push(JSON.stringify(headers)); }
     if (enabled !== undefined) { updates.push(`enabled = $${idx++}`); params.push(enabled); }

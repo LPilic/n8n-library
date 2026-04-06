@@ -3,6 +3,7 @@ const pool = require('../db');
 const { requireAuth, requireRole } = require('../lib/middleware');
 const { auditLog } = require('../lib/audit');
 const { createNotification } = require('./notifications');
+const { getAllInstances } = require('../lib/n8n-api');
 
 const crypto = require('crypto');
 const router = express.Router();
@@ -275,6 +276,19 @@ router.post('/api/hitl/requests/:id/respond', requireAuth, async (req, res) => {
           }
         } catch {}
       }
+      // Validate callback URL belongs to a configured n8n instance or is localhost-rewritten
+      try {
+        const cbParsed = new URL(callbackUrl);
+        const instances = await getAllInstances();
+        const allowedHosts = instances.map(i => { try { return new URL(i.internal_url).host; } catch { return null; } }).filter(Boolean);
+        if (internalUrl) { try { allowedHosts.push(new URL(internalUrl).host); } catch {} }
+        if (!allowedHosts.includes(cbParsed.host)) {
+          console.warn('HITL callback blocked — URL host %s not in allowed instances', cbParsed.host);
+          await pool.query('UPDATE hitl_requests SET callback_status = -1 WHERE id = $1', [hitlReq.id]);
+          return res.json({ message: `Request ${newStatus}`, callback: 'blocked — URL not a known n8n instance' });
+        }
+      } catch {}
+
       console.log('HITL callback: original_url=%s rewritten_url=%s', hitlReq.callback_url, callbackUrl);
       const cbRes = await fetch(callbackUrl, {
         method: 'POST',

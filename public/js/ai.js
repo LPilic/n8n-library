@@ -227,7 +227,7 @@ function openMcpServerModal(server) {
   document.getElementById('mcpServerEnv').value = server ? JSON.stringify(server.env || {}, null, 2) : '';
   document.getElementById('mcpServerUrl').value = server ? server.url : '';
   document.getElementById('mcpServerAuth').value = server ? server.auth_header : '';
-  document.getElementById('mcpServerEnabled').checked = server ? server.enabled : true;
+  document.getElementById('mcpServerModalEnabled').checked = server ? server.enabled : true;
   onMcpTypeChange();
   openModal('mcpServerModal');
 }
@@ -242,7 +242,7 @@ async function saveMcpServer() {
   var name = document.getElementById('mcpServerName').value.trim();
   if (!name) return toast('Name is required', 'error');
   var type = document.getElementById('mcpServerType').value;
-  var body = { name: name, type: type, enabled: document.getElementById('mcpServerEnabled').checked };
+  var body = { name: name, type: type, enabled: document.getElementById('mcpServerModalEnabled').checked };
   if (type === 'stdio') {
     body.command = document.getElementById('mcpServerCommand').value.trim();
     if (!body.command) return toast('Command is required', 'error');

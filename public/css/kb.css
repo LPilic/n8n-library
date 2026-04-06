@@ -42,7 +42,7 @@
 
   /* Tag input (editor) */
   .kb-tag-input-wrap { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 10px; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-card); min-height: 38px; cursor: text; }
-  .kb-tag-input-wrap:focus-within { border-color: var(--color-primary); box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+  .kb-tag-input-wrap:focus-within { border-color: var(--color-primary); box-shadow: 0 0 0 2px rgba(255,109,90,0.15); }
   .kb-tag-input-wrap .kb-tag-chip { display: inline-flex; align-items: center; gap: 4px; background: var(--color-primary-light, #e8f0fe); color: var(--color-primary); padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 500; }
   .kb-tag-input-wrap .kb-tag-chip .kb-tag-remove { cursor: pointer; font-size: 14px; line-height: 1; opacity: 0.6; margin-left: 2px; }
   .kb-tag-input-wrap .kb-tag-chip .kb-tag-remove:hover { opacity: 1; }
