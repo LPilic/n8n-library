@@ -91,9 +91,9 @@ function renderCmdResults(results) {
     }
     html += '<div class="' + cls + '" data-idx="' + i + '" onmouseenter="cmdSelect(' + i + ')" onclick="cmdExecute(' + i + ')">';
     html += '<div class="cmd-item-icon">' + icon + '</div>';
-    html += '<span class="cmd-item-title">' + esc(r.title) + '</span>';
+    html += '<span class="cmd-item-title">' + escCmd(r.title) + '</span>';
     html += badge;
-    html += '<span class="cmd-item-type">' + esc(r.type) + '</span>';
+    html += '<span class="cmd-item-type">' + escCmd(r.type) + '</span>';
     html += '</div>';
   }
   list.innerHTML = html;
@@ -162,6 +162,11 @@ function renderCmdHighlight() {
   });
   var active = document.querySelector('#cmdResults .cmd-item.active');
   if (active) active.scrollIntoView({ block: 'nearest' });
+}
+
+function escCmd(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 // Global keyboard shortcut

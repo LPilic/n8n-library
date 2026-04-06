@@ -428,22 +428,20 @@ router.delete('/api/kb/articles/:id/attachments/:attachId', requireRole('admin',
 // KB Stats
 router.get('/api/kb/stats', requireAuth, async (_req, res) => {
   try {
-    const [total, byCategory, popular, recent] = await Promise.all([
-      pool.query("SELECT COUNT(*) FROM kb_articles WHERE status='published'"),
-      pool.query(`
-        SELECT c.id, c.name, COUNT(a.id) AS count FROM kb_categories c
-        LEFT JOIN kb_articles a ON a.category_id=c.id AND a.status='published'
-        GROUP BY c.id ORDER BY c.sort_order, c.name
-      `),
-      pool.query(`
-        SELECT id, title, slug, view_count FROM kb_articles WHERE status='published'
-        ORDER BY view_count DESC LIMIT 5
-      `),
-      pool.query(`
-        SELECT id, title, slug, updated_at FROM kb_articles WHERE status='published'
-        ORDER BY updated_at DESC LIMIT 5
-      `),
-    ]);
+    const total = await pool.query("SELECT COUNT(*) FROM kb_articles WHERE status='published'");
+    const byCategory = await pool.query(`
+      SELECT c.id, c.name, COUNT(a.id) AS count FROM kb_categories c
+      LEFT JOIN kb_articles a ON a.category_id=c.id AND a.status='published'
+      GROUP BY c.id ORDER BY c.sort_order, c.name
+    `);
+    const popular = await pool.query(`
+      SELECT id, title, slug, view_count FROM kb_articles WHERE status='published'
+      ORDER BY view_count DESC LIMIT 5
+    `);
+    const recent = await pool.query(`
+      SELECT id, title, slug, updated_at FROM kb_articles WHERE status='published'
+      ORDER BY updated_at DESC LIMIT 5
+    `);
     res.json({
       total: parseInt(total.rows[0].count),
       byCategory: byCategory.rows,

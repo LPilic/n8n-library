@@ -71,7 +71,7 @@
   cursor: pointer;
   transition: background 0.08s;
 }
-.cmd-item.active, .cmd-item.active:hover { background: var(--color-primary-light); }
+.cmd-item.active { background: var(--color-primary-light); }
 .cmd-item:hover { background: var(--color-card-hover); }
 .cmd-item-icon {
   width: 24px;

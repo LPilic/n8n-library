@@ -105,28 +105,16 @@ app.use(session({
 
 // --- Re-validate user role from DB on each request ---
 
-// 30-second in-memory cache for user DB lookups, keyed by user ID
-const userLookupCache = new Map(); // userId -> { user, ts }
-const USER_CACHE_TTL = 30000;
-
 app.use(async (req, _res, next) => {
   if (req.session.user) {
-    const userId = req.session.user.id;
-    const cached = userLookupCache.get(userId);
-    if (cached && Date.now() - cached.ts < USER_CACHE_TTL) {
-      req.user = cached.user;
-      return next();
-    }
     try {
-      const { rows } = await pool.query('SELECT id, username, email, role FROM users WHERE id = $1', [userId]);
+      const { rows } = await pool.query('SELECT id, username, email, role FROM users WHERE id = $1', [req.session.user.id]);
       if (rows.length === 0) {
-        userLookupCache.delete(userId);
         req.session.destroy(() => {});
         req.user = null;
       } else {
         req.user = { id: rows[0].id, username: rows[0].username, email: rows[0].email, role: rows[0].role };
         req.session.user = req.user;
-        userLookupCache.set(userId, { user: req.user, ts: Date.now() });
       }
     } catch {
       req.user = req.session.user;

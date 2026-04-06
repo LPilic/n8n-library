@@ -1,5 +1,4 @@
 /* responsive.css — Responsive layout and media queries */
-/* Breakpoints: tablet: 900px, mobile: 640px, sidebar-collapse: 1024px */
   /* --- Responsive --- */
   @media (max-width: 1200px) {
     .ticket-panel-sidebar { width: 260px; }

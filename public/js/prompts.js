@@ -4,6 +4,17 @@ let currentPrompt = null;
 let promptEditingId = null;
 let promptCategoriesCache = [];
 
+function timeAgoPrompt(dateStr) {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diff = (now - d) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
+  return d.toLocaleDateString();
+}
+
 const debouncedLoadPrompts = debounce(() => loadPrompts(), 300);
 
 // --- Load prompt list ---
@@ -59,7 +70,7 @@ function renderPromptList(data) {
       ${isWriter ? `<td><span class="kb-status-badge ${statusLabel}">${statusLabel}</span></td>` : ''}
       <td class="kb-article-meta">v${p.current_version}</td>
       <td class="kb-article-meta">${esc(p.created_by_name || 'Unknown')}</td>
-      <td class="kb-article-meta">${timeAgo(p.updated_at)}</td>
+      <td class="kb-article-meta">${timeAgoPrompt(p.updated_at)}</td>
     </tr>`;
   }
   html += '</tbody></table></div>';
@@ -128,7 +139,7 @@ function renderPromptDetail(prompt) {
           ${prompt.status !== 'published' ? `<span class="kb-status-badge ${prompt.status}">${prompt.status}</span>` : ''}
           <span class="kb-reader-meta-item">v${prompt.current_version}</span>
           <span class="kb-reader-meta-item">${esc(prompt.created_by_name || 'Unknown')}</span>
-          <span class="kb-reader-meta-item">${timeAgo(prompt.updated_at)}</span>
+          <span class="kb-reader-meta-item">${timeAgoPrompt(prompt.updated_at)}</span>
         </div>
         ${tags ? `<div style="margin-top:8px">${tags}</div>` : ''}
       </div>
@@ -229,8 +240,7 @@ async function savePrompt() {
 async function deletePrompt(id) {
   if (!confirm('Delete this prompt permanently?')) return;
   try {
-    const res = await fetch(`${API}/api/prompts/${id}`, { method: 'DELETE', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-    if (!res.ok) { toast('Delete failed', 'error'); return; }
+    await fetch(`${API}/api/prompts/${id}`, { method: 'DELETE', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
     toast('Prompt deleted', 'success');
     loadPrompts(currentPromptsPage);
   } catch (err) { toast('Delete failed', 'error'); }
@@ -257,7 +267,7 @@ async function openPromptVersionHistory(promptId) {
           </label>
           <div class="kb-version-info">
             <div class="kb-version-date">Version ${v.version}</div>
-            <div class="kb-version-by">${esc(v.created_by_name || 'Unknown')} &middot; ${timeAgo(v.created_at)}</div>
+            <div class="kb-version-by">${esc(v.created_by_name || 'Unknown')} &middot; ${timeAgoPrompt(v.created_at)}</div>
             ${v.change_note ? `<div class="kb-version-note">${esc(v.change_note)}</div>` : ''}
           </div>
           <div class="kb-version-actions">
@@ -313,12 +323,12 @@ async function showVersionDiff(promptId, fromV, toV) {
       <div class="prompt-diff-header">
         <div class="prompt-diff-col">
           <strong>Version ${data.from.version}</strong>
-          <span class="kb-version-by">${esc(data.from.created_by_name || 'Unknown')} &middot; ${timeAgo(data.from.created_at)}</span>
+          <span class="kb-version-by">${esc(data.from.created_by_name || 'Unknown')} &middot; ${timeAgoPrompt(data.from.created_at)}</span>
           ${data.from.change_note ? `<div class="kb-version-note">${esc(data.from.change_note)}</div>` : ''}
         </div>
         <div class="prompt-diff-col">
           <strong>Version ${data.to.version}</strong>
-          <span class="kb-version-by">${esc(data.to.created_by_name || 'Unknown')} &middot; ${timeAgo(data.to.created_at)}</span>
+          <span class="kb-version-by">${esc(data.to.created_by_name || 'Unknown')} &middot; ${timeAgoPrompt(data.to.created_at)}</span>
           ${data.to.change_note ? `<div class="kb-version-note">${esc(data.to.change_note)}</div>` : ''}
         </div>
       </div>

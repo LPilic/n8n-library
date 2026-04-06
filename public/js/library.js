@@ -98,12 +98,11 @@ async function saveTemplate() {
   const description = getEditorHtml('editDescription');
   const categories = getCheckedCategories('editCategories');
 
-  const res = await fetch(`${API}/api/templates/${id}`, {
+  await fetch(`${API}/api/templates/${id}`, {
     method: 'PUT',
     headers: CSRF_HEADERS,
     body: JSON.stringify({ name, description, categories }),
   });
-  if (!res.ok) { toast('Failed to save template', 'error'); return; }
   closeModal('editModal');
   toast('Template updated', 'success');
   loadLibrary();
@@ -112,8 +111,7 @@ async function saveTemplate() {
 async function deleteTemplate(id) {
   var ok = await appConfirm('Delete this template?', { danger: true, okLabel: 'Delete' });
   if (!ok) return;
-  const res = await fetch(`${API}/api/templates/${id}`, { method: 'DELETE', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-  if (!res.ok) { toast('Failed to delete template', 'error'); return; }
+  await fetch(`${API}/api/templates/${id}`, { method: 'DELETE', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
   toast('Template deleted', 'success');
   loadLibrary();
 }
@@ -127,37 +125,19 @@ async function loadN8nWorkflows() {
     return;
   }
 
-  container.innerHTML = '<div class="loading">Loading workflows from n8n...<div id="n8nLoadProgress" style="font-size:12px;color:var(--color-text-muted);margin-top:4px"></div></div>';
+  container.innerHTML = '<div class="loading">Loading workflows from n8n...</div>';
   try {
-    // Use server-side paginated endpoint (direct n8n API call, no proxy overhead)
-    const ip = typeof getActiveInstanceParam === 'function' ? getActiveInstanceParam() : '';
     const allWorkflows = [];
     let cursor = '';
     let hasMore = true;
-    let page = 0;
     while (hasMore) {
-      let url = `${API}/api/monitoring/workflows/page`;
-      const params = [];
-      if (cursor) params.push('cursor=' + encodeURIComponent(cursor));
-      if (ip) params.push(ip);
-      if (params.length) url += '?' + params.join('&');
-      const res = await fetch(url, { headers: CSRF_HEADERS });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-      allWorkflows.push(...(data.data || []));
-      cursor = data.nextCursor || '';
+      const path = cursor
+        ? `/api/v1/workflows?limit=100&cursor=${cursor}`
+        : '/api/v1/workflows?limit=100';
+      const res = await n8nApi(path);
+      allWorkflows.push(...(res.data || []));
+      cursor = res.nextCursor || '';
       hasMore = !!cursor;
-      page++;
-      // Show progress and render first page immediately
-      const prog = document.getElementById('n8nLoadProgress');
-      if (prog) prog.textContent = allWorkflows.length + ' workflows loaded...';
-      if (page === 1) {
-        n8nWorkflowsCache = allWorkflows;
-        n8nFilteredCache = allWorkflows;
-        n8nCurrentPage = 1;
-        document.getElementById('n8nCount').textContent = allWorkflows.length + '+ workflows';
-        renderN8nWorkflows();
-      }
     }
     n8nWorkflowsCache = allWorkflows;
     n8nFilteredCache = allWorkflows;
@@ -341,15 +321,9 @@ const libraryWorkflowCache = {};
 
 // Icon lookup loaded from server (node-icons.json extracted from n8n)
 let NODE_ICON_DATA = {};
-let nodeIconsReady = false;
 fetch(`${API}/api/node-icons`).then(r => r.json()).then(d => {
   NODE_ICON_DATA = d;
-  nodeIconsReady = true;
   console.log(`Loaded ${Object.keys(d).length} node icon definitions`);
-  // Re-render workflow cards if monitoring workflows tab is active
-  if (typeof monCurrentTab !== 'undefined' && monCurrentTab === 'workflows') {
-    if (typeof renderWorkflowCardGrid === 'function') renderWorkflowCardGrid();
-  }
 }).catch(() => console.warn('Could not load node icon data'));
 
 const TRIGGER_KW = ['trigger','webhook','cron','schedule','start','event','formTrigger','chatTrigger'];

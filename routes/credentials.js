@@ -3,10 +3,17 @@ const path = require('path');
 const fs = require('fs');
 const pool = require('../db');
 const { requireAuth, requireRole, credentialLimiter } = require('../lib/middleware');
-const { getInstanceBase } = require('../lib/n8n-api');
+const { getInstanceConfig } = require('../lib/n8n-api');
 const { auditLog } = require('../lib/audit');
 
 const router = express.Router();
+
+async function getInstanceBase(req) {
+  const instanceId = req.query.instance_id || req.body?.instance_id;
+  const inst = await getInstanceConfig(instanceId);
+  if (!inst) return null;
+  return { base: inst.internal_url.replace(/\/+$/, ''), key: inst.api_key };
+}
 
 // List credentials (metadata only — secrets excluded by n8n API)
 router.get('/api/credentials', requireRole('admin'), async (req, res) => {

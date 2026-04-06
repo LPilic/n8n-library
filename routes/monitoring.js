@@ -1,7 +1,7 @@
 const express = require('express');
 const pool = require('../db');
 const { requireRole } = require('../lib/middleware');
-const { n8nApiFetch, fetchAllWorkflows, getWorkflowNameMap, enrichExecutions, invalidateWfCache, getMonStatsCache, setMonStatsCache, getInstanceConfig, getAllInstances, getInstanceBase } = require('../lib/n8n-api');
+const { n8nApiFetch, fetchAllWorkflows, getWorkflowNameMap, enrichExecutions, invalidateWfCache, getMonStatsCache, setMonStatsCache, getInstanceConfig, getAllInstances } = require('../lib/n8n-api');
 const { encrypt: encryptValue } = require('../lib/crypto');
 const { sendDailySummaryEmail } = require('../lib/ai-providers');
 
@@ -32,6 +32,12 @@ function parsePrometheusText(text) {
   return metrics;
 }
 
+// Helper to get instance base URL from request
+async function getInstanceBase(req) {
+  const inst = await getInstanceConfig(req.query.instance_id);
+  if (!inst || !inst.internal_url) return null;
+  return { base: inst.internal_url.replace(/\/+$/, ''), key: inst.api_key || '', inst };
+}
 
 router.get('/api/monitoring/metrics', requireRole('admin', 'editor'), async (req, res) => {
   try {
@@ -104,7 +110,7 @@ async function startAllMetricsCollectors() {
       const store = getMetricsHistory(inst.id);
       if (!store.interval) {
         collectMetricsSnapshot(inst.id);
-        store.interval = setInterval(() => collectMetricsSnapshot(inst.id), 60000);
+        store.interval = setInterval(() => collectMetricsSnapshot(inst.id), 20000);
       }
     }
   } catch {}
@@ -135,7 +141,7 @@ router.get('/api/monitoring/health', requireRole('admin', 'editor'), async (req,
 
 // Workflows — cached per instance (60s TTL)
 const wfListCacheMap = {};
-const WF_LIST_TTL = 300000; // 5 minutes — workflow lists change infrequently
+const WF_LIST_TTL = 60000;
 
 router.get('/api/monitoring/workflows', requireRole('admin', 'editor'), async (req, res) => {
   try {
@@ -145,26 +151,8 @@ router.get('/api/monitoring/workflows', requireRole('admin', 'editor'), async (r
       return res.json({ data: cached.data });
     }
     const wfs = await fetchAllWorkflows(req.query.instance_id);
-    // Keep fields needed for filters + node flow preview (strip connections, settings, full parameters)
-    const light = wfs.map(wf => ({
-      id: wf.id, name: wf.name, active: wf.active,
-      tags: wf.tags || [], createdAt: wf.createdAt, updatedAt: wf.updatedAt,
-      nodes: (wf.nodes || []).map(n => ({ type: n.type, name: n.name, position: n.position, group: n.group })),
-    }));
-    wfListCacheMap[key] = { data: light, ts: Date.now() };
-    res.json({ data: light });
-  } catch (err) {
-    res.status(502).json({ error: 'Failed to reach n8n' });
-  }
-});
-
-// Full workflow data — single page for n8n Workflows panel (needs nodes for preview)
-router.get('/api/monitoring/workflows/page', requireRole('admin', 'editor'), async (req, res) => {
-  try {
-    let url = '/api/v1/workflows?limit=250';
-    if (req.query.cursor) url += '&cursor=' + encodeURIComponent(req.query.cursor);
-    const data = await n8nApiFetch(url, req.query.instance_id);
-    res.json({ data: data.data || [], nextCursor: data.nextCursor || null });
+    wfListCacheMap[key] = { data: wfs, ts: Date.now() };
+    res.json({ data: wfs });
   } catch (err) {
     res.status(502).json({ error: 'Failed to reach n8n' });
   }
@@ -331,19 +319,9 @@ router.get('/api/monitoring/stats', requireRole('admin', 'editor'), async (req, 
 
     let activeWorkflows = 0, totalWorkflows = 0;
     try {
-      // Use light cached workflow list instead of fetching all full workflows
-      const wfKey = req.query.instance_id || '_default';
-      const cachedWfs = wfListCacheMap[wfKey];
-      if (cachedWfs && cachedWfs.data) {
-        totalWorkflows = cachedWfs.data.length;
-        activeWorkflows = cachedWfs.data.filter(w => w.active).length;
-      } else {
-        // Fallback: trigger async cache population, return 0 for now
-        fetchAllWorkflows(req.query.instance_id).then(wfs => {
-          const light = wfs.map(wf => ({ id: wf.id, name: wf.name, active: wf.active, tags: wf.tags || [], createdAt: wf.createdAt, updatedAt: wf.updatedAt }));
-          wfListCacheMap[wfKey] = { data: light, ts: Date.now() };
-        }).catch(() => {});
-      }
+      const wfs = await fetchAllWorkflows(req.query.instance_id);
+      totalWorkflows = wfs.length;
+      activeWorkflows = wfs.filter(w => w.active).length;
     } catch (e) {}
 
     let health = 'unknown';
@@ -388,12 +366,8 @@ router.get('/api/monitoring/stream', requireRole('admin', 'editor'), (req, res) 
   const clientId = ++monSseCounter;
   const instanceId = req.query.instance_id || null;
   monSseClients.set(clientId, { res, instanceId });
-  startMonitoringPush(); // start interval if not already running
 
-  req.on('close', () => {
-    monSseClients.delete(clientId);
-    if (monSseClients.size === 0) stopMonitoringPush(); // stop when last client disconnects
-  });
+  req.on('close', () => { monSseClients.delete(clientId); });
 
   // Heartbeat
   const hb = setInterval(() => { res.write(':heartbeat\n\n'); }, 30000);
@@ -413,14 +387,15 @@ function broadcastMonitoringUpdate(instanceId, eventName, data) {
 // Server-side push loop — fetches stats + recent executions and broadcasts
 let monPushInterval = null;
 function startMonitoringPush() {
-  if (monPushInterval) return; // already running
+  if (monPushInterval) clearInterval(monPushInterval);
   monPushInterval = setInterval(async () => {
+    if (monSseClients.size === 0) return; // No listeners, skip work
     try {
       const instances = await getAllInstances();
       for (const inst of instances) {
         try {
-          // Fetch recent executions for stats (only need 50 for broadcast)
-          const data = await n8nApiFetch('/api/v1/executions?limit=50', inst.id);
+          // Fetch stats
+          const data = await n8nApiFetch('/api/v1/executions?limit=250', inst.id);
           const executions = data.data || [];
           const counts = { success: 0, error: 0, running: 0, waiting: 0, canceled: 0, new: 0 };
           let totalDuration = 0, durationCount = 0;
@@ -432,13 +407,7 @@ function startMonitoringPush() {
               if (dur > 0) { totalDuration += dur; durationCount++; }
             }
           }
-          // Use light workflow cache for name enrichment (avoid fetching all 2000+ workflows)
-          const key = inst.id || '_default';
-          const cachedWfs = wfListCacheMap[key];
-          const wfMap = {};
-          if (cachedWfs && cachedWfs.data) {
-            for (const wf of cachedWfs.data) wfMap[wf.id] = wf.name;
-          }
+          const wfMap = await getWorkflowNameMap(inst.id);
           const recent = executions.slice(0, 50);
           enrichExecutions(recent, wfMap);
 
@@ -454,14 +423,9 @@ function startMonitoringPush() {
         } catch {}
       }
     } catch {}
-  }, 30000); // Push every 30 seconds
+  }, 15000); // Push every 15 seconds
 }
-function stopMonitoringPush() {
-  if (monPushInterval) {
-    clearInterval(monPushInterval);
-    monPushInterval = null;
-  }
-}
+startMonitoringPush();
 
 // Workers status — polls configured worker URLs for health + metrics
 router.get('/api/monitoring/workers', requireRole('admin', 'editor'), async (req, res) => {
