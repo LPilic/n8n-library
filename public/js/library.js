@@ -127,16 +127,38 @@ async function loadN8nWorkflows() {
     return;
   }
 
-  container.innerHTML = '<div class="loading">Loading workflows from n8n...</div>';
+  container.innerHTML = '<div class="loading">Loading workflows from n8n...<div id="n8nLoadProgress" style="font-size:12px;color:var(--color-text-muted);margin-top:4px"></div></div>';
   try {
-    // Use the server-side monitoring endpoint which fetches all workflows
-    // efficiently (250/page, server-side pagination, 60s cache)
+    // Use server-side paginated endpoint (direct n8n API call, no proxy overhead)
     const ip = typeof getActiveInstanceParam === 'function' ? getActiveInstanceParam() : '';
-    const url = `${API}/api/monitoring/workflows` + (ip ? '?' + ip : '');
-    const wfRes = await fetch(url, { headers: CSRF_HEADERS });
-    if (!wfRes.ok) throw new Error('HTTP ' + wfRes.status);
-    const wfData = await wfRes.json();
-    const allWorkflows = wfData.data || [];
+    const allWorkflows = [];
+    let cursor = '';
+    let hasMore = true;
+    let page = 0;
+    while (hasMore) {
+      let url = `${API}/api/monitoring/workflows/page`;
+      const params = [];
+      if (cursor) params.push('cursor=' + encodeURIComponent(cursor));
+      if (ip) params.push(ip);
+      if (params.length) url += '?' + params.join('&');
+      const res = await fetch(url, { headers: CSRF_HEADERS });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      allWorkflows.push(...(data.data || []));
+      cursor = data.nextCursor || '';
+      hasMore = !!cursor;
+      page++;
+      // Show progress and render first page immediately
+      const prog = document.getElementById('n8nLoadProgress');
+      if (prog) prog.textContent = allWorkflows.length + ' workflows loaded...';
+      if (page === 1) {
+        n8nWorkflowsCache = allWorkflows;
+        n8nFilteredCache = allWorkflows;
+        n8nCurrentPage = 1;
+        document.getElementById('n8nCount').textContent = allWorkflows.length + '+ workflows';
+        renderN8nWorkflows();
+      }
+    }
     n8nWorkflowsCache = allWorkflows;
     n8nFilteredCache = allWorkflows;
     n8nCurrentPage = 1;

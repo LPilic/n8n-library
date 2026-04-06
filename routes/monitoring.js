@@ -135,7 +135,7 @@ router.get('/api/monitoring/health', requireRole('admin', 'editor'), async (req,
 
 // Workflows — cached per instance (60s TTL)
 const wfListCacheMap = {};
-const WF_LIST_TTL = 60000;
+const WF_LIST_TTL = 300000; // 5 minutes — workflow lists change infrequently
 
 router.get('/api/monitoring/workflows', requireRole('admin', 'editor'), async (req, res) => {
   try {
@@ -145,8 +145,25 @@ router.get('/api/monitoring/workflows', requireRole('admin', 'editor'), async (r
       return res.json({ data: cached.data });
     }
     const wfs = await fetchAllWorkflows(req.query.instance_id);
-    wfListCacheMap[key] = { data: wfs, ts: Date.now() };
-    res.json({ data: wfs });
+    // Strip heavy fields (nodes, connections, settings) to reduce memory and transfer size
+    const light = wfs.map(wf => ({
+      id: wf.id, name: wf.name, active: wf.active,
+      tags: wf.tags || [], createdAt: wf.createdAt, updatedAt: wf.updatedAt,
+    }));
+    wfListCacheMap[key] = { data: light, ts: Date.now() };
+    res.json({ data: light });
+  } catch (err) {
+    res.status(502).json({ error: 'Failed to reach n8n' });
+  }
+});
+
+// Full workflow data — single page for n8n Workflows panel (needs nodes for preview)
+router.get('/api/monitoring/workflows/page', requireRole('admin', 'editor'), async (req, res) => {
+  try {
+    let url = '/api/v1/workflows?limit=250';
+    if (req.query.cursor) url += '&cursor=' + encodeURIComponent(req.query.cursor);
+    const data = await n8nApiFetch(url, req.query.instance_id);
+    res.json({ data: data.data || [], nextCursor: data.nextCursor || null });
   } catch (err) {
     res.status(502).json({ error: 'Failed to reach n8n' });
   }
