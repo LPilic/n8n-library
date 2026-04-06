@@ -61,6 +61,8 @@ function renderMonExecutionsFromSse(executions) {
   var status = document.getElementById('monFilterStatus');
   var wfId = document.getElementById('monFilterWorkflow');
   if ((status && status.value) || (wfId && wfId.value)) return;
+  // Don't overwrite if user has loaded more data (via Load More / pagination)
+  if (monExecAllData.length > executions.length) return;
   var container = document.getElementById('monitoringContent');
   if (!container) return;
   monExecAllData = executions;
@@ -251,7 +253,7 @@ async function loadMonitoringWorkflows() {
     // If on workflows tab, re-render cards (skip if user is typing in search)
     var monSearch = document.getElementById('monWfSearch');
     if (monCurrentTab === 'workflows' && !(monSearch && monSearch === document.activeElement)) renderWorkflowCards();
-  } catch (e) {}
+  } catch (e) { console.error('Failed to load monitoring workflows:', e); }
 }
 
 var monWfFilter = 'all'; // 'all', 'active', 'inactive'

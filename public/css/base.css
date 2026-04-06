@@ -753,6 +753,13 @@
     position: relative;
     width: 100%;
   }
+  .custom-select select {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+  }
   .custom-select-trigger {
     display: flex;
     align-items: center;
