@@ -138,6 +138,11 @@ function setMonRefreshInterval() {
 
 async function loadMonitoringData(reset) {
   if (reset) populateMonInstanceFilter();
+  // Ensure sidebar filter selects get upgraded on first load
+  if (reset && typeof upgradeSelects === 'function') {
+    var filtersCard = document.getElementById('monFiltersCard');
+    if (filtersCard) upgradeSelects(filtersCard);
+  }
   loadMonitoringStats();
   if (reset) loadMonitoringWorkflows();
   if (!monViewingDetail && reset) {
@@ -224,8 +229,8 @@ function renderMonitoringStats(s, container) {
 function setMonFilter(status) {
   var sel = document.getElementById('monFilterStatus');
   sel.value = sel.value === status ? '' : status;
-  if (typeof syncCustomSelect === 'function') syncCustomSelect(sel);
-  applyMonFilters();
+  if (typeof refreshCustomSelect === 'function') refreshCustomSelect(sel);
+  loadMonitoringExecutions(true);
 }
 
 var monCurrentTab = 'executions';
@@ -309,7 +314,7 @@ function filterMonWfPicker(val) {
 function selectMonWorkflow(id) {
   monFilterWorkflowId = monFilterWorkflowId === id ? '' : id;
   renderMonWfPicker(document.getElementById('monWfPickerSearch')?.value || '');
-  applyMonFilters();
+  loadMonitoringExecutions(true);
 }
 
 function renderMonTagChips() {
@@ -341,7 +346,7 @@ function toggleMonTag(tagId) {
       if (!has) { monFilterWorkflowId = ''; renderMonWfPicker(document.getElementById('monWfPickerSearch')?.value || ''); }
     }
   }
-  applyMonFilters();
+  loadMonitoringExecutions(true);
 }
 
 var monWfFilter = 'all'; // 'all', 'active', 'inactive'
