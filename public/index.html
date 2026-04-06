@@ -20,7 +20,7 @@
 </script>
 <link rel="stylesheet" href="/css/base.css?v=3">
 <link rel="stylesheet" href="/css/responsive.css?v=1">
-<link rel="stylesheet" href="/css/monitoring.css?v=2">
+<link rel="stylesheet" href="/css/monitoring.css?v=3">
 <link rel="stylesheet" href="/css/tickets.css?v=1">
 <link rel="stylesheet" href="/css/comments.css?v=1">
 <link rel="stylesheet" href="/css/kb.css?v=2">
@@ -987,16 +987,7 @@
           <button class="btn btn-danger btn-sm" onclick="stopAllRunning()" style="font-size:11px;display:none" id="monStopAllBtn"><i class="fa fa-stop"></i> Stop All Running</button>
           <div class="mon-toolbar-filters" id="monToolbarFilters">
             <select id="monInstanceFilter" class="form-input" style="display:none;width:auto;min-width:130px" onchange="switchMonInstance(this.value)"></select>
-            <select id="monFilterStatus" class="form-input" style="width:auto;min-width:120px" onchange="loadMonitoringExecutions(true)">
-              <option value="">All Status</option>
-              <option value="success">Success</option>
-              <option value="error">Error</option>
-              <option value="running">Running</option>
-              <option value="waiting">Waiting</option>
-            </select>
-            <select id="monFilterWorkflow" class="form-input" style="width:auto;min-width:150px" onchange="loadMonitoringExecutions(true)">
-              <option value="">All Workflows</option>
-            </select>
+            <input type="text" id="monSearchInput" class="form-input" placeholder="Search executions..." style="width:200px;font-size:12px" oninput="onMonSearchInput(this.value)">
           </div>
           <div class="refresh-dropdown" id="monRefreshDropdown">
             <i class="fa fa-clock-o" style="color:var(--color-text-muted)"></i>
@@ -1032,6 +1023,43 @@
           </div>
           <div class="ticket-panel-sidebar" id="monitoringSidebar">
             <div id="monStatsContainer" style="display:flex;flex-direction:column;gap:12px"></div>
+            <div class="ticket-kpi-card kpi-filters" id="monFiltersCard">
+              <div class="kpi-header">Filters</div>
+              <div class="mon-sidebar-filters">
+                <div class="mon-filter-group">
+                  <label class="mon-filter-label">Status</label>
+                  <select id="monFilterStatus" class="form-input" onchange="applyMonFilters()">
+                    <option value="">All Status</option>
+                    <option value="success">Success</option>
+                    <option value="error">Error</option>
+                    <option value="running">Running</option>
+                    <option value="waiting">Waiting</option>
+                    <option value="canceled">Canceled</option>
+                  </select>
+                </div>
+                <div class="mon-filter-group">
+                  <label class="mon-filter-label">Mode</label>
+                  <select id="monFilterMode" class="form-input" onchange="applyMonFilters()">
+                    <option value="">All Modes</option>
+                    <option value="webhook">Webhook</option>
+                    <option value="trigger">Trigger</option>
+                    <option value="manual">Manual</option>
+                    <option value="retry">Retry</option>
+                    <option value="integrated">Integrated</option>
+                  </select>
+                </div>
+                <div class="mon-filter-group">
+                  <label class="mon-filter-label">Workflow</label>
+                  <input type="text" id="monWfPickerSearch" class="form-input" placeholder="Search workflows..." oninput="filterMonWfPicker(this.value)" style="font-size:12px">
+                  <div id="monWfPickerList" class="mon-wf-picker-list"></div>
+                </div>
+                <div class="mon-filter-group" id="monTagsContainer" style="display:none">
+                  <label class="mon-filter-label">Tags</label>
+                  <div id="monTagChips" class="mon-tag-chips"></div>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="clearMonFilters()" style="width:100%;margin-top:4px"><i class="fa fa-times"></i> Clear All Filters</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -2213,7 +2241,7 @@
 <script defer src="/js/library.js?v=5"></script>
 <script defer src="/js/ai.js?v=6"></script>
 <script defer src="/js/kb.js?v=7"></script>
-<script defer src="/js/monitoring.js?v=8"></script>
+<script defer src="/js/monitoring.js?v=9"></script>
 <script defer src="/js/observability.js?v=6"></script>
 <script defer src="/js/dashboard.js?v=3"></script>
 <script defer src="/js/notifications.js?v=1"></script>

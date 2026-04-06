@@ -3,6 +3,11 @@ var monAutoRefreshInterval = null;
 var monWorkflowCache = [];
 var monViewingDetail = false;
 var monSse = null;
+var monFilterWorkflowId = '';
+var monFilterTagId = '';
+var monSearchTerm = '';
+var monSearchTimer = null;
+var monAllTags = []; // unique tags from all workflows
 
 function connectMonSse() {
   if (monSse) { monSse.close(); monSse = null; }
@@ -57,16 +62,22 @@ function renderMonStatsFromSse(stats) {
 
 function renderMonExecutionsFromSse(executions) {
   if (monViewingDetail) return;
-  // Don't update if user has active filters
-  var status = document.getElementById('monFilterStatus');
-  var wfId = document.getElementById('monFilterWorkflow');
-  if ((status && status.value) || (wfId && wfId.value)) return;
+  // Don't update if user has any active filters
+  if (hasActiveMonFilters()) return;
   // Don't overwrite if user has loaded more data (via Load More / pagination)
   if (monExecAllData.length > executions.length) return;
   var container = document.getElementById('monitoringContent');
   if (!container) return;
   monExecAllData = executions;
   renderMonitoringExecutions(monExecAllData, container);
+}
+
+function hasActiveMonFilters() {
+  var status = document.getElementById('monFilterStatus');
+  var mode = document.getElementById('monFilterMode');
+  if ((status && status.value) || (mode && mode.value)) return true;
+  if (monFilterWorkflowId || monFilterTagId || monSearchTerm) return true;
+  return false;
 }
 
 // Append instance_id to a URL
@@ -213,7 +224,8 @@ function renderMonitoringStats(s, container) {
 function setMonFilter(status) {
   var sel = document.getElementById('monFilterStatus');
   sel.value = sel.value === status ? '' : status;
-  loadMonitoringExecutions(true);
+  if (typeof syncCustomSelect === 'function') syncCustomSelect(sel);
+  applyMonFilters();
 }
 
 var monCurrentTab = 'executions';
@@ -224,9 +236,11 @@ function switchMonTab(tab) {
   document.querySelectorAll('.mon-tab-panel').forEach(function(p) { p.classList.remove('active'); });
   document.querySelector('.mon-tab-panel#monTab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
   event.target.closest('.mon-tab').classList.add('active');
-  // Show/hide execution filters
+  // Show/hide execution filters in toolbar and sidebar
   var filters = document.getElementById('monToolbarFilters');
   if (filters) filters.style.display = tab === 'executions' ? '' : 'none';
+  var filtersCard = document.getElementById('monFiltersCard');
+  if (filtersCard) filtersCard.style.display = tab === 'executions' ? '' : 'none';
   if (tab === 'workflows') renderWorkflowCards();
 }
 
@@ -236,24 +250,98 @@ async function loadMonitoringWorkflows() {
     if (!res.ok) return;
     var data = await res.json();
     monWorkflowCache = data.data || [];
-    // Update filter dropdown
-    var sel = document.getElementById('monFilterWorkflow');
-    var current = sel.value;
-    sel.innerHTML = '<option value="">All Workflows</option>';
     monWorkflowCache.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+    // Build workflow picker list
+    renderMonWfPicker();
+    // Build unique tag list
+    var tagMap = {};
     for (var i = 0; i < monWorkflowCache.length; i++) {
-      var wf = monWorkflowCache[i];
-      var opt = document.createElement('option');
-      opt.value = wf.id;
-      opt.textContent = wf.name;
-      sel.appendChild(opt);
+      var tags = monWorkflowCache[i].tags || [];
+      for (var j = 0; j < tags.length; j++) {
+        if (tags[j].id && tags[j].name) tagMap[tags[j].id] = tags[j].name;
+      }
     }
-    sel.value = current;
-    refreshCustomSelect(sel);
+    monAllTags = Object.keys(tagMap).map(function(id) { return { id: id, name: tagMap[id] }; });
+    monAllTags.sort(function(a, b) { return a.name.localeCompare(b.name); });
+    renderMonTagChips();
     // If on workflows tab, re-render cards (skip if user is typing in search)
     var monSearch = document.getElementById('monWfSearch');
     if (monCurrentTab === 'workflows' && !(monSearch && monSearch === document.activeElement)) renderWorkflowCards();
   } catch (e) { console.error('Failed to load monitoring workflows:', e); }
+}
+
+function renderMonWfPicker(searchTerm) {
+  var list = document.getElementById('monWfPickerList');
+  if (!list) return;
+  var q = (searchTerm || '').toLowerCase();
+  // If a tag is active, only show workflows with that tag
+  var filtered = monWorkflowCache.filter(function(wf) {
+    if (q && (wf.name || '').toLowerCase().indexOf(q) === -1) return false;
+    if (monFilterTagId) {
+      var tags = wf.tags || [];
+      var hasTag = false;
+      for (var t = 0; t < tags.length; t++) { if (String(tags[t].id) === String(monFilterTagId)) { hasTag = true; break; } }
+      if (!hasTag) return false;
+    }
+    return true;
+  });
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="mon-wf-picker-empty">No workflows found</div>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < filtered.length; i++) {
+    var wf = filtered[i];
+    var selected = String(wf.id) === String(monFilterWorkflowId) ? ' selected' : '';
+    var dotClass = wf.active ? 'active' : 'inactive';
+    html += '<div class="mon-wf-picker-item' + selected + '" onclick="selectMonWorkflow(\'' + esc(String(wf.id)) + '\')">' +
+      '<span style="display:flex;align-items:center;gap:6px;min-width:0"><span class="mon-wf-active-dot ' + dotClass + '"></span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(wf.name) + '</span></span>' +
+      (selected ? '<i class="fa fa-check" style="color:var(--color-primary);font-size:10px;flex-shrink:0"></i>' : '') +
+    '</div>';
+  }
+  list.innerHTML = html;
+}
+
+function filterMonWfPicker(val) {
+  renderMonWfPicker(val);
+}
+
+function selectMonWorkflow(id) {
+  monFilterWorkflowId = monFilterWorkflowId === id ? '' : id;
+  renderMonWfPicker(document.getElementById('monWfPickerSearch')?.value || '');
+  applyMonFilters();
+}
+
+function renderMonTagChips() {
+  var container = document.getElementById('monTagChips');
+  var wrapper = document.getElementById('monTagsContainer');
+  if (!container || !wrapper) return;
+  if (monAllTags.length === 0) { wrapper.style.display = 'none'; return; }
+  wrapper.style.display = '';
+  var html = '';
+  for (var i = 0; i < monAllTags.length; i++) {
+    var tag = monAllTags[i];
+    var active = String(tag.id) === String(monFilterTagId) ? ' active' : '';
+    html += '<span class="mon-tag-chip' + active + '" onclick="toggleMonTag(\'' + esc(String(tag.id)) + '\')">' + esc(tag.name) + '</span>';
+  }
+  container.innerHTML = html;
+}
+
+function toggleMonTag(tagId) {
+  monFilterTagId = monFilterTagId === tagId ? '' : tagId;
+  renderMonTagChips();
+  renderMonWfPicker(document.getElementById('monWfPickerSearch')?.value || '');
+  // If a tag is selected and current workflow doesn't have it, clear workflow filter
+  if (monFilterTagId && monFilterWorkflowId) {
+    var wf = monWorkflowCache.find(function(w) { return String(w.id) === String(monFilterWorkflowId); });
+    if (wf) {
+      var tags = wf.tags || [];
+      var has = false;
+      for (var t = 0; t < tags.length; t++) { if (String(tags[t].id) === String(monFilterTagId)) { has = true; break; } }
+      if (!has) { monFilterWorkflowId = ''; renderMonWfPicker(document.getElementById('monWfPickerSearch')?.value || ''); }
+    }
+  }
+  applyMonFilters();
 }
 
 var monWfFilter = 'all'; // 'all', 'active', 'inactive'
@@ -401,18 +489,77 @@ async function toggleWorkflowActive(wfId, active) {
 
 var monExecCursor = null;
 var monExecAllData = [];
+var monExecRawData = []; // unfiltered data from API
 var monExecPage = 0;
 var monExecPerPage = 50;
 
+function applyMonFilters() {
+  monExecPage = 0;
+  var filtered = filterMonExecutions(monExecRawData);
+  monExecAllData = filtered;
+  var container = document.getElementById('monitoringContent');
+  if (container) renderMonitoringExecutions(monExecAllData, container);
+}
+
+function filterMonExecutions(executions) {
+  var mode = (document.getElementById('monFilterMode') || {}).value || '';
+  var q = monSearchTerm.toLowerCase();
+  // Build set of workflow IDs matching tag filter
+  var tagWfIds = null;
+  if (monFilterTagId) {
+    tagWfIds = {};
+    for (var i = 0; i < monWorkflowCache.length; i++) {
+      var tags = monWorkflowCache[i].tags || [];
+      for (var j = 0; j < tags.length; j++) {
+        if (String(tags[j].id) === String(monFilterTagId)) { tagWfIds[monWorkflowCache[i].id] = true; break; }
+      }
+    }
+  }
+  return executions.filter(function(ex) {
+    if (mode && ex.mode !== mode) return false;
+    if (monFilterWorkflowId && String(ex.workflowId) !== String(monFilterWorkflowId)) return false;
+    if (tagWfIds && !tagWfIds[ex.workflowId]) return false;
+    if (q) {
+      var name = (ex.workflowName || ex.workflowData?.name || '').toLowerCase();
+      if (name.indexOf(q) === -1 && String(ex.id).indexOf(q) === -1) return false;
+    }
+    return true;
+  });
+}
+
+function clearMonFilters() {
+  var status = document.getElementById('monFilterStatus');
+  if (status) { status.value = ''; if (typeof syncCustomSelect === 'function') syncCustomSelect(status); }
+  var mode = document.getElementById('monFilterMode');
+  if (mode) { mode.value = ''; if (typeof syncCustomSelect === 'function') syncCustomSelect(mode); }
+  monFilterWorkflowId = '';
+  monFilterTagId = '';
+  monSearchTerm = '';
+  var searchInput = document.getElementById('monSearchInput');
+  if (searchInput) searchInput.value = '';
+  var wfSearch = document.getElementById('monWfPickerSearch');
+  if (wfSearch) wfSearch.value = '';
+  renderMonWfPicker();
+  renderMonTagChips();
+  loadMonitoringExecutions(true);
+}
+
+function onMonSearchInput(val) {
+  clearTimeout(monSearchTimer);
+  monSearchTimer = setTimeout(function() {
+    monSearchTerm = (val || '').trim();
+    applyMonFilters();
+  }, 300);
+}
+
 async function loadMonitoringExecutions(reset) {
   var container = document.getElementById('monitoringContent');
-  if (reset) { monExecCursor = null; monExecAllData = []; monExecPage = 0; }
+  if (reset) { monExecCursor = null; monExecAllData = []; monExecRawData = []; monExecPage = 0; }
   try {
     var params = [];
-    var status = document.getElementById('monFilterStatus').value;
-    var wfId = document.getElementById('monFilterWorkflow').value;
+    var status = (document.getElementById('monFilterStatus') || {}).value || '';
     if (status) params.push('status=' + status);
-    if (wfId) params.push('workflowId=' + wfId);
+    if (monFilterWorkflowId) params.push('workflowId=' + monFilterWorkflowId);
     params.push('limit=250');
     if (monExecCursor) params.push('cursor=' + encodeURIComponent(monExecCursor));
     container.innerHTML = '<div class="loading">Loading executions...</div>';
@@ -421,8 +568,9 @@ async function loadMonitoringExecutions(reset) {
     var res = await fetch(API + '/api/monitoring/executions?' + params.join('&'));
     if (!res.ok) throw new Error('HTTP ' + res.status);
     var data = await res.json();
-    monExecAllData = data.data || [];
+    monExecRawData = data.data || [];
     monExecCursor = data.nextCursor || null;
+    monExecAllData = filterMonExecutions(monExecRawData);
     renderMonitoringExecutions(monExecAllData, container);
   } catch (e) {
     container.innerHTML = '<div style="padding:32px;text-align:center;color:var(--color-text-muted)">Could not load executions.<br>' + esc(e.message) + '</div>';
@@ -441,10 +589,9 @@ async function monExecLoadMore() {
   var container = document.getElementById('monitoringContent');
   try {
     var params = [];
-    var status = document.getElementById('monFilterStatus').value;
-    var wfId = document.getElementById('monFilterWorkflow').value;
+    var status = (document.getElementById('monFilterStatus') || {}).value || '';
     if (status) params.push('status=' + status);
-    if (wfId) params.push('workflowId=' + wfId);
+    if (monFilterWorkflowId) params.push('workflowId=' + monFilterWorkflowId);
     params.push('limit=250');
     params.push('cursor=' + encodeURIComponent(monExecCursor));
     var ip2 = typeof getActiveInstanceParam === 'function' ? getActiveInstanceParam() : '';
@@ -453,7 +600,8 @@ async function monExecLoadMore() {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     var data = await res.json();
     var newExecs = data.data || [];
-    monExecAllData = monExecAllData.concat(newExecs);
+    monExecRawData = monExecRawData.concat(newExecs);
+    monExecAllData = filterMonExecutions(monExecRawData);
     monExecCursor = data.nextCursor || null;
     monExecPage = Math.max(0, Math.ceil(monExecAllData.length / monExecPerPage) - 1);
     renderMonitoringExecutions(monExecAllData, container);
