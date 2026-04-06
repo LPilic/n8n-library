@@ -29,85 +29,6 @@
 <link rel="stylesheet" href="/css/cmdpalette.css?v=1">
 <link rel="stylesheet" href="/css/hitl.css?v=1">
 <link rel="stylesheet" href="/css/prompts.css?v=1">
-<style>.tag-wf-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid var(--color-border);border-radius:6px;margin-bottom:6px;font-size:13px}
-.security-category{border:1px solid var(--color-border);border-radius:10px;margin-bottom:12px;overflow:hidden}
-.security-category-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;cursor:pointer;background:var(--color-card);transition:background 0.15s}
-.security-category-header:hover{background:var(--color-bg-alt)}
-.security-cat-icon{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;background:var(--color-bg-alt);color:var(--color-text-muted)}
-.security-cat-name{font-weight:600;font-size:15px}
-.security-category-body{padding:4px 18px 18px}
-.security-section{margin-top:12px;padding:14px 16px;background:var(--color-card);border-radius:8px;border:1px solid var(--color-border)}
-.security-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.security-section-title{font-weight:600;font-size:14px}
-.security-section-count{font-size:11px;font-weight:700;min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:11px;color:#fff}
-.security-sev-pass{background:var(--color-success)}.security-sev-low{background:#f59e0b}.security-sev-medium{background:#f97316}.security-sev-high{background:var(--color-danger)}
-.security-section-desc{font-size:13px;color:var(--color-text-muted);line-height:1.5;margin-bottom:8px}
-.security-recommendation{font-size:12px;color:var(--color-primary);background:rgba(99,102,241,0.06);padding:10px 12px;border-radius:6px;margin-bottom:10px;display:flex;gap:8px;align-items:flex-start;line-height:1.5;border:1px solid rgba(99,102,241,0.12)}
-.security-items{margin-top:8px}
-.security-item-group{margin-bottom:10px}
-.security-item-group-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--color-text-muted);margin-bottom:6px}
-.security-item-list{display:flex;flex-direction:column;gap:3px}
-.security-item-list .security-item:nth-child(n+10){display:none}
-.security-item-list.expanded .security-item{display:flex!important}
-.security-item{display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 10px;background:var(--color-bg-alt);border-radius:5px;border:1px solid var(--color-border)}
-.security-item-icon{color:var(--color-text-muted);flex-shrink:0}
-.security-item-name{font-weight:500}
-.security-item-detail{color:var(--color-text-muted);font-size:11px;margin-left:auto}
-.security-item-type{font-size:10px;background:var(--color-bg-alt);padding:1px 6px;border-radius:3px;color:var(--color-text-muted);margin-left:auto}
-.security-item-more{cursor:pointer;color:var(--color-primary);font-weight:500;justify-content:center;border-style:dashed}
-.security-item-more:hover{background:rgba(99,102,241,0.06)}
-.security-badge{font-size:12px;font-weight:600;padding:4px 12px;border-radius:12px}
-.security-badge-pass{background:rgba(34,197,94,0.1);color:var(--color-success)}
-.security-badge-fail{background:rgba(239,68,68,0.1);color:var(--color-danger)}
-.security-chevron{transition:transform 0.2s;color:var(--color-text-muted)}
-.security-settings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-top:8px}
-.security-settings-group{background:var(--color-bg-alt);border:1px solid var(--color-border);border-radius:6px;padding:12px 14px}
-.security-settings-group-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--color-text-muted);margin-bottom:8px}
-.security-setting-row{display:flex;align-items:center;justify-content:space-between;padding:3px 0;font-size:12px}
-.security-setting-key{color:var(--color-text-muted)}
-.security-setting-val{font-weight:600}
-.security-val-on{color:var(--color-success)}.security-val-off{color:var(--color-text-muted)}
-.security-versions{margin-top:8px}
-.security-version-row{display:flex;align-items:center;gap:12px;padding:8px 10px;background:var(--color-surface);border:1px solid var(--color-border);border-radius:5px;margin-bottom:4px;font-size:13px}
-.security-version-name{font-weight:600;font-family:monospace}
-.security-version-meta{font-size:11px;color:var(--color-text-muted)}
-.security-version-desc{font-size:12px;color:var(--color-text-muted)}
-.cred-type-badge{font-size:11px;background:var(--color-bg-alt);padding:2px 8px;border-radius:4px;color:var(--color-text-muted)}
-.cred-json-input{font-family:'SF Mono','Fira Code',monospace;font-size:12px}
-.cred-type-list{max-height:320px;overflow-y:auto;border:1px solid var(--color-border);border-radius:8px;background:var(--color-card)}
-.cred-type-option{padding:11px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--color-border);transition:background 0.15s}
-.cred-type-option:last-child{border-bottom:none}
-.cred-type-option:hover{background:var(--color-bg-alt)}
-.cred-type-option-name{font-size:14px;font-weight:500}
-.cred-type-option-id{font-size:11px;color:var(--color-text-muted);background:var(--color-bg-alt);padding:2px 8px;border-radius:4px;font-family:'SF Mono','Fira Code',monospace}
-.cred-type-empty{padding:24px;text-align:center;color:var(--color-text-muted);font-size:13px}
-.cred-selected-type{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--color-bg-alt);border:1px solid var(--color-border);border-radius:8px;margin-bottom:16px;font-size:13px}
-.cred-field-group{margin-bottom:14px}
-.cred-field-group .form-label{margin-bottom:4px}
-.cred-input-wrap{position:relative;display:flex;align-items:center}
-.cred-input-wrap input{flex:1;padding-right:36px}
-.cred-toggle-vis{position:absolute;right:8px;background:none;border:none;cursor:pointer;color:var(--color-text-muted);padding:4px;display:flex}
-.cred-toggle-vis:hover{color:var(--color-text)}
-.cred-toggle{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}
-.cred-edit-notice{background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.12);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--color-primary);line-height:1.5}
-.cred-tabs{display:flex;gap:0;margin:0 16px}
-.cred-tab{background:none;border:none;padding:6px 14px;font-size:13px;font-weight:500;color:var(--color-text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s}
-.cred-tab:hover{color:var(--color-text)}
-.cred-tab.active{color:var(--color-primary);border-bottom-color:var(--color-primary)}
-.cred-store-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;padding:20px}
-.cred-store-card{background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:20px;cursor:pointer;transition:border-color 0.15s,box-shadow 0.15s}
-.cred-store-card:hover{border-color:var(--color-primary);box-shadow:0 2px 8px rgba(99,102,241,0.08)}
-.cred-store-card-title{font-size:15px;font-weight:600;color:var(--color-text-dark);margin-bottom:4px}
-.cred-store-card-type{font-size:12px;color:var(--color-text-muted);margin-bottom:8px}
-.cred-store-card-desc{font-size:13px;color:var(--color-text);line-height:1.5;margin-bottom:12px}
-.cred-store-card-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.cred-store-card-meta .kb-cat-badge{font-size:10px;padding:2px 8px}
-.cred-store-field-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:14px}
-.cred-store-field-row .form-group{flex:1;margin-bottom:0}
-.cred-store-field-row .cred-userfield-check{padding-top:28px;white-space:nowrap;font-size:12px;display:flex;align-items:center;gap:4px;color:var(--color-text-muted)}
-.cred-store-shared-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;background:var(--color-bg-alt);border:1px solid var(--color-border);border-radius:4px;padding:2px 8px;color:var(--color-text-muted)}
-.cred-store-shared-badge svg{width:12px;height:12px}
-</style>
 <script src="/vendor/js/purify.min.js"></script>
 <link rel="stylesheet" href="/vendor/css/github-highlight.min.css">
 <script src="/vendor/js/highlight.min.js"></script>
@@ -147,7 +68,9 @@
       <img id="loginLogo" class="login-logo" style="display:none" alt="">
       <h2><span class="login-brand-span" style="color:var(--color-primary)">n8n</span> <span class="login-app-name">Library</span></h2>
       <div class="login-subtitle">Sign in to manage templates</div>
+      <label for="loginEmail" class="sr-only">Email</label>
       <input type="email" id="loginEmail" placeholder="Email" autocomplete="email">
+      <label for="loginPass" class="sr-only">Password</label>
       <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password">
       <button onclick="doLogin()">Sign in</button>
       <div class="login-error" id="loginError"></div>
@@ -179,7 +102,7 @@
   </div>
 
   <!-- Sidebar -->
-  <div class="sidebar" id="appSidebar" style="display:none">
+  <nav class="sidebar" aria-label="Main navigation" id="appSidebar" style="display:none">
     <div class="sidebar-header">
       <h1><img id="sidebarLogo" class="sidebar-logo" style="display:none" alt=""><span id="sidebarBrandSpan">n8n</span> <span id="sidebarAppName">Library Manager</span></h1>
       <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">
@@ -198,92 +121,92 @@
     <div class="sidebar-nav">
       <!-- MAIN -->
       <div class="sidebar-section-label">Main</div>
-      <div class="nav-item active" data-panel="dashboard" onclick="switchPanel('dashboard')" data-tooltip="Dashboard">
+      <button type="button" class="nav-item active" data-panel="dashboard" onclick="switchPanel('dashboard')" data-tooltip="Dashboard">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
         <span>Dashboard</span>
-      </div>
-      <div class="nav-item" data-panel="library" onclick="switchPanel('library')" data-tooltip="Templates">
+      </button>
+      <button type="button" class="nav-item" data-panel="library" onclick="switchPanel('library')" data-tooltip="Templates">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         <span>Templates</span>
-      </div>
-      <div class="nav-item write-only" data-panel="n8n" onclick="switchPanel('n8n')" data-tooltip="n8n Workflows">
+      </button>
+      <button type="button" class="nav-item write-only" data-panel="n8n" onclick="switchPanel('n8n')" data-tooltip="n8n Workflows">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
         <span>Workflows</span>
-      </div>
+      </button>
 
       <!-- SUPPORT -->
       <div class="sidebar-section-divider"></div>
       <div class="sidebar-section-label">Support</div>
-      <div class="nav-item" data-panel="tickets" onclick="switchPanel('tickets')" data-tooltip="Service Desk">
+      <button type="button" class="nav-item" data-panel="tickets" onclick="switchPanel('tickets')" data-tooltip="Service Desk">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5H9a2 2 0 0 0-2 2v12l5-3 5 3V7a2 2 0 0 0-2-2z"/></svg>
         <span>Service Desk</span>
         <span class="ticket-nav-badge" id="ticketNavBadge" style="display:none">0</span>
-      </div>
-      <div class="nav-item" data-panel="kb" onclick="switchPanel('kb')" data-tooltip="Knowledge Base">
+      </button>
+      <button type="button" class="nav-item" data-panel="kb" onclick="switchPanel('kb')" data-tooltip="Knowledge Base">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         <span>Knowledge Base</span>
-      </div>
-      <div class="nav-item write-only" data-panel="prompts" onclick="switchPanel('prompts')" data-tooltip="Prompts">
+      </button>
+      <button type="button" class="nav-item write-only" data-panel="prompts" onclick="switchPanel('prompts')" data-tooltip="Prompts">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <span>Prompts</span>
-      </div>
+      </button>
 
       <!-- OPERATIONS -->
       <div class="sidebar-section-divider write-only"></div>
       <div class="sidebar-section-label write-only">Operations</div>
-      <div class="nav-item write-only" data-panel="approvals" onclick="switchPanel('approvals')" data-tooltip="Approvals">
+      <button type="button" class="nav-item write-only" data-panel="approvals" onclick="switchPanel('approvals')" data-tooltip="Approvals">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         <span>Approvals</span>
         <span class="hitl-nav-badge" id="hitlNavBadge" style="display:none">0</span>
-      </div>
-      <div class="nav-item write-only" data-panel="monitoring" onclick="switchPanel('monitoring')" data-tooltip="Monitoring">
+      </button>
+      <button type="button" class="nav-item write-only" data-panel="monitoring" onclick="switchPanel('monitoring')" data-tooltip="Monitoring">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         <span>Monitoring</span>
-      </div>
-      <div class="nav-item admin-only" data-panel="observability" onclick="switchPanel('observability')" data-tooltip="Observability">
+      </button>
+      <button type="button" class="nav-item admin-only" data-panel="observability" onclick="switchPanel('observability')" data-tooltip="Observability">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
         <span>Observability</span>
-      </div>
+      </button>
 
       <!-- ADMIN -->
       <div class="sidebar-section-divider admin-only"></div>
       <div class="sidebar-section-label admin-only">Admin</div>
-      <div class="nav-item admin-only" data-panel="ai" onclick="switchPanel('ai')" data-tooltip="AI Config">
+      <button type="button" class="nav-item admin-only" data-panel="ai" onclick="switchPanel('ai')" data-tooltip="AI Config">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
         <span>AI Config</span>
-      </div>
-      <div class="nav-item write-only" data-panel="tags" onclick="switchPanel('tags')" data-tooltip="Tags">
+      </button>
+      <button type="button" class="nav-item write-only" data-panel="tags" onclick="switchPanel('tags')" data-tooltip="Tags">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H2v7l6.29 6.29c.94.94 2.48.94 3.42 0l4.58-4.58c.94-.94.94-2.48 0-3.42L9 5Z"/><path d="M6 9.01V9"/></svg>
         <span>Tags</span>
-      </div>
-      <div class="nav-item admin-only" data-panel="credentials" onclick="switchPanel('credentials')" data-tooltip="Credentials">
+      </button>
+      <button type="button" class="nav-item admin-only" data-panel="credentials" onclick="switchPanel('credentials')" data-tooltip="Credentials">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         <span>Credentials</span>
-      </div>
-      <div class="nav-item admin-only" data-panel="security" onclick="switchPanel('security')" data-tooltip="Security Audit">
+      </button>
+      <button type="button" class="nav-item admin-only" data-panel="security" onclick="switchPanel('security')" data-tooltip="Security Audit">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <span>Security</span>
-      </div>
-      <div class="nav-item admin-only" data-panel="variables" onclick="switchPanel('variables')" data-tooltip="Variables">
+      </button>
+      <button type="button" class="nav-item admin-only" data-panel="variables" onclick="switchPanel('variables')" data-tooltip="Variables">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
         <span>Variables</span>
-      </div>
-      <div class="nav-item admin-only" data-panel="categories" onclick="switchPanel('categories')" data-tooltip="Categories">
+      </button>
+      <button type="button" class="nav-item admin-only" data-panel="categories" onclick="switchPanel('categories')" data-tooltip="Categories">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H2v7l6.29 6.29c.94.94 2.48.94 3.42 0l4.58-4.58c.94-.94.94-2.48 0-3.42L9 5Z"/><path d="M6 9.01V9"/></svg>
         <span>Categories</span>
-      </div>
-      <div class="nav-item" data-panel="settings" onclick="switchPanel('settings')" data-tooltip="Settings">
+      </button>
+      <button type="button" class="nav-item" data-panel="settings" onclick="switchPanel('settings')" data-tooltip="Settings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         <span>Settings</span>
-      </div>
-      <div class="nav-item admin-only" data-panel="audit" onclick="switchPanel('audit')" data-tooltip="Audit Log">
+      </button>
+      <button type="button" class="nav-item admin-only" data-panel="audit" onclick="switchPanel('audit')" data-tooltip="Audit Log">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         <span>Audit Log</span>
-      </div>
-      <div class="nav-item admin-only" data-panel="users" onclick="switchPanel('users')" data-tooltip="Users">
+      </button>
+      <button type="button" class="nav-item admin-only" data-panel="users" onclick="switchPanel('users')" data-tooltip="Users">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         <span>Users</span>
-      </div>
+      </button>
     </div>
     <button class="ai-chat-sidebar-btn" id="aiChatFab" onclick="toggleAiChat()" title="AI Chat">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -314,7 +237,7 @@
         <span id="connLabel">n8n not connected</span>
       </div>
     </div>
-  </div>
+  </nav>
 
   <!-- Mobile Nav — fixed bottom tab bar (visible only on small screens) -->
   <div class="mobile-nav" id="mobileNav" style="display:none">
@@ -394,7 +317,7 @@
   </div>
 
   <!-- Main -->
-  <div class="main" id="appMain" style="display:none">
+  <main class="main" id="appMain" style="display:none">
 
     <!-- Dashboard Panel -->
     <div class="panel active" id="panel-dashboard">
@@ -1920,7 +1843,7 @@
         <div id="usersTableContainer"></div>
       </div>
     </div>
-  </div>
+  </main>
 
   <!-- Ticket Create/Edit Modal -->
   <div class="modal-overlay" id="ticketModal" onclick="if(event.target===this)closeModal('ticketModal')">
@@ -2284,25 +2207,25 @@
   </div>
 
 
-<script src="/js/app.js?v=7"></script>
-<script src="/js/settings.js?v=8"></script>
-<script src="/js/tickets.js?v=8"></script>
-<script src="/js/library.js?v=5"></script>
-<script src="/js/ai.js?v=6"></script>
-<script src="/js/kb.js?v=7"></script>
-<script src="/js/monitoring.js?v=8"></script>
-<script src="/js/observability.js?v=6"></script>
-<script src="/js/dashboard.js?v=3"></script>
-<script src="/js/notifications.js?v=1"></script>
-<script src="/js/cmdpalette.js?v=1"></script>
-<script src="/js/audit.js?v=1"></script>
-<script src="/js/alerts.js?v=1"></script>
-<script src="/js/hitl.js?v=1"></script>
-<script src="/js/prompts.js?v=1"></script>
-<script src="/js/variables.js?v=1"></script>
-<script src="/js/tags.js?v=1"></script>
-<script src="/js/credentials.js?v=6"></script>
-<script src="/js/security.js?v=1"></script>
+<script defer src="/js/app.js?v=7"></script>
+<script defer src="/js/settings.js?v=8"></script>
+<script defer src="/js/tickets.js?v=8"></script>
+<script defer src="/js/library.js?v=5"></script>
+<script defer src="/js/ai.js?v=6"></script>
+<script defer src="/js/kb.js?v=7"></script>
+<script defer src="/js/monitoring.js?v=8"></script>
+<script defer src="/js/observability.js?v=6"></script>
+<script defer src="/js/dashboard.js?v=3"></script>
+<script defer src="/js/notifications.js?v=1"></script>
+<script defer src="/js/cmdpalette.js?v=1"></script>
+<script defer src="/js/audit.js?v=1"></script>
+<script defer src="/js/alerts.js?v=1"></script>
+<script defer src="/js/hitl.js?v=1"></script>
+<script defer src="/js/prompts.js?v=1"></script>
+<script defer src="/js/variables.js?v=1"></script>
+<script defer src="/js/tags.js?v=1"></script>
+<script defer src="/js/credentials.js?v=6"></script>
+<script defer src="/js/security.js?v=1"></script>
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then(function(regs) { regs.forEach(function(r) { r.unregister(); }); });
