@@ -19,6 +19,7 @@ import { VariablesPage } from '@/features/variables'
 import { TagsPage } from '@/features/tags'
 import { AuditPage } from '@/features/audit'
 import { SettingsPage } from '@/features/settings'
+import { AiConfigPage } from '@/features/ai-config'
 import { N8nWorkflowsPage } from '@/features/n8n-workflows'
 import { CredentialsPage } from '@/features/credentials'
 import { ApprovalsPage, ApprovalsBuilderPage } from '@/features/approvals'
@@ -78,6 +79,7 @@ export default function App() {
               <Route path="approvals" element={<ApprovalsPage />} />
               <Route path="approvals-builder" element={<ApprovalsBuilderPage />} />
               <Route path="settings/*" element={<SettingsPage />} />
+              <Route path="ai" element={<AiConfigPage />} />
               <Route path="alerts" element={<AlertsPage />} />
               <Route path="security" element={<SecurityPage />} />
               <Route path="variables" element={<VariablesPage />} />
