@@ -5,6 +5,7 @@ import { api, ApiError } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/hooks/useToast'
 import { esc, timeAgo, cn } from '@/lib/utils'
+import { markdownToHtml } from '@/lib/markdown'
 import { appConfirm } from '@/components/ConfirmDialog'
 import {
   Search,
@@ -857,7 +858,7 @@ export function KbArticlePage() {
           <div
             className="prose prose-sm max-w-none text-text-dark"
             // TODO: sanitize with DOMPurify
-            dangerouslySetInnerHTML={{ __html: article.body || article.content || '' }}
+            dangerouslySetInnerHTML={{ __html: markdownToHtml(article.body || article.content || '') }}
           />
         ) : (
           <p className="text-text-muted text-sm italic">No content available.</p>

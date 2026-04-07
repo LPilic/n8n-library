@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { api, ApiError } from '@/api/client'
 import { useToast } from '@/hooks/useToast'
 import { esc } from '@/lib/utils'
+import { markdownToHtml } from '@/lib/markdown'
 import { Loader2, BookOpen, ExternalLink } from 'lucide-react'
 
 interface Props {
@@ -30,7 +31,7 @@ export function DocsModal({ workflowName, nodes, connections, onClose }: Props) 
         connections,
       })
       .then((res) => {
-        setHtml(res.documentation || '')
+        setHtml(markdownToHtml(res.documentation || ''))
         setLoading(false)
       })
       .catch((err) => {
