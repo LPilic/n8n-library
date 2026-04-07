@@ -3,12 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/hooks/useToast'
-import { esc } from '@/lib/utils'
+import { esc, cn } from '@/lib/utils'
 import { appConfirm } from '@/components/ConfirmDialog'
 import { Search, History, Sparkles } from 'lucide-react'
 import { NodeFlow } from '@/components/NodeFlow'
 import { PreviewModal, N8nDemoPreview } from '@/components/PreviewModal'
 import { DocsModal } from '@/components/DocsModal'
+import { RichTextEditor } from '@/components/RichTextEditor'
 
 interface Template {
   id: number
@@ -141,8 +142,8 @@ function EditTemplateModal({
           <div className="flex-1 overflow-y-auto">
             {/* n8n-demo workflow preview — matches legacy #editPreviewBody */}
             {workflow && (
-              <div style={{ height: '300px', overflow: 'hidden' }}>
-                <N8nDemoPreview workflow={{ nodes: workflow.nodes || [], connections: workflow.connections || {} }} />
+              <div style={{ height: '350px', overflow: 'hidden', position: 'relative' }}>
+                <N8nDemoPreview workflow={{ nodes: workflow.nodes || [], connections: workflow.connections || {} }} minHeight="350px" />
               </div>
             )}
 
@@ -159,21 +160,30 @@ function EditTemplateModal({
                   </div>
                   <div>
                     <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Description</label>
-                    <textarea value={description ?? ''} onChange={(e) => setDescription(e.target.value)} rows={5}
-                      className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring resize-y"
-                      placeholder="Template description (HTML)" />
+                    <RichTextEditor
+                      content={description ?? ''}
+                      onChange={(html) => setDescription(html)}
+                      placeholder="Template description..."
+                    />
                   </div>
                   {allCategories.length > 0 && (
                     <div>
                       <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-2">Categories</label>
-                      <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto">
-                        {allCategories.map((c) => (
-                          <label key={c.id} className="flex items-center gap-2 text-xs text-text-dark cursor-pointer select-none">
-                            <input type="checkbox" checked={(selectedCategoryIds ?? []).includes(c.id)}
-                              onChange={() => toggleCategory(c.id)} className="rounded border-input-border" />
-                            {esc(c.name)}
-                          </label>
-                        ))}
+                      <div className="flex flex-wrap gap-2">
+                        {allCategories.map((c) => {
+                          const selected = (selectedCategoryIds ?? []).includes(c.id)
+                          return (
+                            <button key={c.id} type="button" onClick={() => toggleCategory(c.id)}
+                              className={cn(
+                                'text-[12px] font-semibold uppercase tracking-wide px-3 py-1.5 rounded-md border transition-colors',
+                                selected
+                                  ? 'bg-primary/10 border-primary text-primary'
+                                  : 'bg-bg-light border-border text-text-muted hover:border-text-muted',
+                              )}>
+                              {c.name}
+                            </button>
+                          )
+                        })}
                       </div>
                     </div>
                   )}
