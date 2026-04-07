@@ -6,6 +6,7 @@ import { useThemeStore } from '@/stores/theme'
 import { useBrandingStore } from '@/stores/branding'
 import { cn } from '@/lib/utils'
 import { CommandPalette } from './CommandPalette'
+import { AiChatPanel } from '@/features/ai-chat'
 import { NotificationDropdown } from './NotificationDropdown'
 import {
   LayoutDashboard,
@@ -94,6 +95,7 @@ export function AppLayout() {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false)
   const [cmdOpen, setCmdOpen] = useState(false)
+  const [aiChatOpen, setAiChatOpen] = useState(false)
 
   const role = user?.role ?? 'viewer'
   const visibleItems = NAV_ITEMS.filter((item) => hasAccess(role, item.minRole))
@@ -320,6 +322,7 @@ export function AppLayout() {
 
       {/* Command palette overlay */}
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
+      <AiChatPanel open={aiChatOpen} onToggle={() => setAiChatOpen((o) => !o)} />
     </div>
   )
 }

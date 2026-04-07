@@ -13,6 +13,9 @@ import {
   Variable,
   Copy,
   Check,
+  Pencil,
+  Sparkles,
+  RotateCcw,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -28,8 +31,10 @@ interface Prompt {
   status: PromptStatus
   category?: string
   variables?: string[]
+  tags?: string[]
   version?: number
   author_username?: string
+  created_by_name?: string
   created_at: string
   updated_at: string
 }
@@ -40,6 +45,7 @@ interface PromptVersion {
   version: number
   content: string
   variables?: string[]
+  change_note?: string
   message?: string
   author_username?: string
   created_at: string
@@ -66,6 +72,84 @@ function statusBadge(status: PromptStatus): string {
     case 'archived': return 'bg-border-light text-text-xmuted'
     default: return 'bg-border-light text-text-muted'
   }
+}
+
+// ─── Word-level diff ──────────────────────────────────────────────────────────
+
+type DiffToken = { text: string; type: 'same' | 'added' | 'removed' }
+
+function wordDiff(oldText: string, newText: string): { left: DiffToken[]; right: DiffToken[] } {
+  const oldWords = oldText.split(/(\s+)/)
+  const newWords = newText.split(/(\s+)/)
+
+  // Simple LCS-based diff
+  const m = oldWords.length
+  const n = newWords.length
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0))
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (oldWords[i - 1] === newWords[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1] + 1
+      } else {
+        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1])
+      }
+    }
+  }
+
+  const left: DiffToken[] = []
+  const right: DiffToken[] = []
+
+  let i = m
+  let j = n
+  const ops: Array<'same' | 'del' | 'ins'> = []
+  const opI: number[] = []
+  const opJ: number[] = []
+
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && oldWords[i - 1] === newWords[j - 1]) {
+      ops.push('same'); opI.push(i - 1); opJ.push(j - 1)
+      i--; j--
+    } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+      ops.push('ins'); opI.push(-1); opJ.push(j - 1)
+      j--
+    } else {
+      ops.push('del'); opI.push(i - 1); opJ.push(-1)
+      i--
+    }
+  }
+
+  ops.reverse(); opI.reverse(); opJ.reverse()
+
+  for (let k = 0; k < ops.length; k++) {
+    const op = ops[k]
+    if (op === 'same') {
+      left.push({ text: oldWords[opI[k]], type: 'same' })
+      right.push({ text: newWords[opJ[k]], type: 'same' })
+    } else if (op === 'del') {
+      left.push({ text: oldWords[opI[k]], type: 'removed' })
+    } else {
+      right.push({ text: newWords[opJ[k]], type: 'added' })
+    }
+  }
+
+  return { left, right }
+}
+
+function DiffPane({ tokens }: { tokens: DiffToken[] }) {
+  return (
+    <pre className="text-xs font-mono whitespace-pre-wrap break-words leading-relaxed">
+      {tokens.map((t, i) => {
+        if (t.type === 'added') {
+          return <mark key={i} className="bg-success-light text-success rounded px-0.5">{t.text}</mark>
+        }
+        if (t.type === 'removed') {
+          return <mark key={i} className="bg-danger-light text-danger line-through rounded px-0.5">{t.text}</mark>
+        }
+        return <span key={i}>{t.text}</span>
+      })}
+    </pre>
+  )
 }
 
 // ─── PromptsPage ──────────────────────────────────────────────────────────────
@@ -103,7 +187,6 @@ export function PromptsPage() {
 
   const prompts = data?.prompts ?? []
 
-  // Derive unique categories from results for a simple client-side filter hint
   const allCategories = Array.from(
     new Set(prompts.map((p) => p.category).filter(Boolean) as string[]),
   )
@@ -266,6 +349,11 @@ function PromptCard({
             <History size={10} /> v{prompt.version}
           </span>
         )}
+        {prompt.created_by_name && (
+          <span className="text-[10px] text-text-xmuted truncate max-w-[80px]" title={prompt.created_by_name}>
+            {esc(prompt.created_by_name)}
+          </span>
+        )}
         <span className="text-[10px] text-text-xmuted ml-auto">{timeAgo(prompt.updated_at)}</span>
       </div>
     </div>
@@ -377,6 +465,289 @@ function CreatePromptModal({ onClose, onCreated }: { onClose: () => void; onCrea
   )
 }
 
+// ─── EditPromptModal ──────────────────────────────────────────────────────────
+
+function EditPromptModal({
+  prompt,
+  allCategories,
+  onClose,
+  onSaved,
+}: {
+  prompt: Prompt
+  allCategories: string[]
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const { error: showError } = useToast()
+  const [name, setName] = useState(prompt.name)
+  const [content, setContent] = useState(prompt.content ?? '')
+  const [category, setCategory] = useState(prompt.category ?? '')
+  const [status, setStatus] = useState<PromptStatus>(prompt.status)
+  const [variables, setVariables] = useState((prompt.variables ?? []).join(', '))
+  const [tags, setTags] = useState((prompt.tags ?? []).join(', '))
+  const [changeNote, setChangeNote] = useState('')
+
+  const saveMut = useMutation({
+    mutationFn: () => {
+      const vars = variables
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean)
+      const tagArr = tags
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean)
+      return api.put(`/api/prompts/${prompt.id}`, {
+        name,
+        content,
+        category,
+        status,
+        variables: vars,
+        tags: tagArr,
+        change_note: changeNote,
+      })
+    },
+    onSuccess: onSaved,
+    onError: (err) => showError(err instanceof ApiError ? err.message : 'Save failed'),
+  })
+
+  const catlistId = `edit-categories-${prompt.id}`
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-card border border-border rounded-md w-full max-w-2xl shadow-lg flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+          <h2 className="text-sm font-semibold text-text-dark">Edit Prompt</h2>
+          <button onClick={onClose} className="text-text-xmuted hover:text-text-dark text-lg leading-none">&times;</button>
+        </div>
+        <div className="p-4 space-y-3 overflow-y-auto">
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-text-muted mb-1">Name *</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus"
+              />
+            </div>
+            <div className="w-32">
+              <label className="block text-xs font-medium text-text-muted mb-1">Status</label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as PromptStatus)}
+                className="w-full text-sm px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark"
+              >
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-text-muted mb-1">Category</label>
+              <input
+                type="text"
+                list={catlistId}
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus"
+                placeholder="e.g. Support"
+              />
+              {allCategories.length > 0 && (
+                <datalist id={catlistId}>
+                  {allCategories.map((c) => <option key={c} value={c} />)}
+                </datalist>
+              )}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-muted mb-1">Variables <span className="font-normal text-text-xmuted">(comma-separated)</span></label>
+            <input
+              type="text"
+              value={variables}
+              onChange={(e) => setVariables(e.target.value)}
+              className="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm font-mono text-text-dark focus:outline-none focus:border-input-focus"
+              placeholder="customer_name, product_id"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-muted mb-1">Tags <span className="font-normal text-text-xmuted">(comma-separated)</span></label>
+            <input
+              type="text"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              className="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus"
+              placeholder="support, v2"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-muted mb-1">Content</label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={10}
+              className="w-full px-3 py-2 border border-input-border rounded-sm bg-input-bg text-sm font-mono text-text-dark focus:outline-none focus:border-input-focus resize-y"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-muted mb-1">Change Note <span className="font-normal text-text-xmuted">(optional)</span></label>
+            <input
+              type="text"
+              value={changeNote}
+              onChange={(e) => setChangeNote(e.target.value)}
+              className="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus"
+              placeholder="Describe what changed..."
+            />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 px-4 py-3 border-t border-border shrink-0">
+          <button
+            onClick={onClose}
+            className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover"
+          >
+            Cancel
+          </button>
+          <button
+            disabled={!name.trim() || saveMut.isPending}
+            onClick={() => saveMut.mutate()}
+            className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+          >
+            {saveMut.isPending ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── AIImproveModal ───────────────────────────────────────────────────────────
+
+function AIImproveModal({
+  prompt,
+  onClose,
+  onAccepted,
+}: {
+  prompt: Prompt
+  onClose: () => void
+  onAccepted: () => void
+}) {
+  const { error: showError, success: showSuccess } = useToast()
+  const [instruction, setInstruction] = useState('')
+  const [improved, setImproved] = useState<string | null>(null)
+
+  const improveMut = useMutation({
+    mutationFn: () =>
+      api.post<{ content: string }>('/api/ai/improve', {
+        promptId: prompt.id,
+        content: prompt.content ?? '',
+        instruction,
+      }),
+    onSuccess: (data) => setImproved(data.content),
+    onError: (err) => showError(err instanceof ApiError ? err.message : 'AI improve failed'),
+  })
+
+  const acceptMut = useMutation({
+    mutationFn: () =>
+      api.put(`/api/prompts/${prompt.id}`, {
+        name: prompt.name,
+        content: improved,
+        category: prompt.category,
+        status: prompt.status,
+        variables: prompt.variables,
+        tags: prompt.tags,
+        change_note: 'AI-improved content',
+      }),
+    onSuccess: () => {
+      showSuccess('Improved content saved')
+      onAccepted()
+    },
+    onError: (err) => showError(err instanceof ApiError ? err.message : 'Save failed'),
+  })
+
+  const diff = improved != null ? wordDiff(prompt.content ?? '', improved) : null
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-card border border-border rounded-md w-full max-w-4xl shadow-lg flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+          <h2 className="text-sm font-semibold text-text-dark flex items-center gap-1.5">
+            <Sparkles size={14} className="text-primary" /> AI Improve
+          </h2>
+          <button onClick={onClose} className="text-text-xmuted hover:text-text-dark text-lg leading-none">&times;</button>
+        </div>
+
+        <div className="p-4 space-y-3 overflow-y-auto flex-1">
+          {/* Original content */}
+          {improved === null && (
+            <div>
+              <div className="text-xs font-medium text-text-muted mb-1">Current content</div>
+              <pre className="p-3 bg-bg border border-border-light rounded-sm text-xs font-mono text-text-muted whitespace-pre-wrap break-words leading-relaxed max-h-48 overflow-y-auto">
+                {prompt.content || '(empty)'}
+              </pre>
+            </div>
+          )}
+
+          {/* Side-by-side after improvement */}
+          {diff !== null && (
+            <div className="grid grid-cols-2 divide-x divide-border-light border border-border-light rounded-sm overflow-hidden">
+              <div className="p-3">
+                <div className="text-[10px] font-semibold text-text-muted uppercase mb-2">Original</div>
+                <DiffPane tokens={diff.left} />
+              </div>
+              <div className="p-3">
+                <div className="text-[10px] font-semibold text-success uppercase mb-2">Improved</div>
+                <DiffPane tokens={diff.right} />
+              </div>
+            </div>
+          )}
+
+          {/* Instruction */}
+          <div>
+            <label className="block text-xs font-medium text-text-muted mb-1">
+              How should this prompt be improved?
+            </label>
+            <textarea
+              value={instruction}
+              onChange={(e) => setInstruction(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus resize-y"
+              placeholder="e.g. Make it more concise, add clearer instructions for formatting, improve tone..."
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 px-4 py-3 border-t border-border shrink-0">
+          <button
+            onClick={onClose}
+            className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover"
+          >
+            Cancel
+          </button>
+          {improved !== null && (
+            <button
+              disabled={acceptMut.isPending}
+              onClick={() => acceptMut.mutate()}
+              className="text-xs px-3 py-1.5 bg-success text-white rounded-sm hover:opacity-90 disabled:opacity-50"
+            >
+              {acceptMut.isPending ? 'Saving...' : 'Accept & Save'}
+            </button>
+          )}
+          <button
+            disabled={!instruction.trim() || improveMut.isPending}
+            onClick={() => improveMut.mutate()}
+            className="flex items-center gap-1 text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+          >
+            <Sparkles size={11} />
+            {improveMut.isPending ? 'Improving...' : improved !== null ? 'Re-improve' : 'Improve'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── PromptDetailPage ─────────────────────────────────────────────────────────
 
 export function PromptDetailPage() {
@@ -388,6 +759,8 @@ export function PromptDetailPage() {
   const [diffFrom, setDiffFrom] = useState<number | null>(null)
   const [diffTo, setDiffTo] = useState<number | null>(null)
   const [copied, setCopied] = useState(false)
+  const [showEdit, setShowEdit] = useState(false)
+  const [showAI, setShowAI] = useState(false)
 
   const { data: prompt, isLoading } = useQuery({
     queryKey: ['prompt-detail', slug],
@@ -433,6 +806,18 @@ export function PromptDetailPage() {
     onError: (err) => showError(err instanceof ApiError ? err.message : 'Delete failed'),
   })
 
+  const revertMut = useMutation({
+    mutationFn: (version: number) =>
+      api.post(`/api/prompts/${prompt?.id}/revert/${version}`, {}),
+    onSuccess: () => {
+      showSuccess('Version restored')
+      queryClient.invalidateQueries({ queryKey: ['prompt-detail', slug] })
+      queryClient.invalidateQueries({ queryKey: ['prompt-versions', prompt?.id] })
+      queryClient.invalidateQueries({ queryKey: ['prompts'] })
+    },
+    onError: (err) => showError(err instanceof ApiError ? err.message : 'Restore failed'),
+  })
+
   const copyContent = () => {
     if (!prompt?.content) return
     navigator.clipboard.writeText(prompt.content).then(() => {
@@ -441,10 +826,23 @@ export function PromptDetailPage() {
     })
   }
 
+  const invalidatePrompt = () => {
+    queryClient.invalidateQueries({ queryKey: ['prompt-detail', slug] })
+    queryClient.invalidateQueries({ queryKey: ['prompt-versions', prompt?.id] })
+    queryClient.invalidateQueries({ queryKey: ['prompts'] })
+  }
+
   if (isLoading) return <div className="text-text-muted text-sm">Loading prompt...</div>
   if (!prompt) return <div className="text-danger text-sm">Prompt not found</div>
 
   const varList = prompt.variables ?? []
+
+  // Derive categories from version list for datalist in edit modal
+  const editCategories = prompt.category ? [prompt.category] : []
+
+  // Compute diff tokens if diff data available
+  const diffTokens =
+    diff != null ? wordDiff(diff.from.content, diff.to.content) : null
 
   return (
     <div>
@@ -455,6 +853,23 @@ export function PromptDetailPage() {
       >
         &larr; Back to Prompts
       </button>
+
+      {/* Modals */}
+      {showEdit && (
+        <EditPromptModal
+          prompt={prompt}
+          allCategories={editCategories}
+          onClose={() => setShowEdit(false)}
+          onSaved={() => { setShowEdit(false); invalidatePrompt() }}
+        />
+      )}
+      {showAI && (
+        <AIImproveModal
+          prompt={prompt}
+          onClose={() => setShowAI(false)}
+          onAccepted={() => { setShowAI(false); invalidatePrompt() }}
+        />
+      )}
 
       <div className="flex gap-6 flex-col lg:flex-row">
         {/* Main */}
@@ -472,6 +887,20 @@ export function PromptDetailPage() {
                 <span className={cn('text-xs px-2 py-0.5 rounded capitalize', statusBadge(prompt.status))}>
                   {prompt.status}
                 </span>
+                <button
+                  onClick={() => setShowEdit(true)}
+                  className="p-1.5 text-text-xmuted hover:text-primary rounded-sm"
+                  title="Edit prompt"
+                >
+                  <Pencil size={14} />
+                </button>
+                <button
+                  onClick={() => setShowAI(true)}
+                  className="p-1.5 text-text-xmuted hover:text-primary rounded-sm"
+                  title="AI Improve"
+                >
+                  <Sparkles size={14} />
+                </button>
                 <button
                   onClick={() => { if (confirm('Delete this prompt?')) deleteMut.mutate() }}
                   className="p-1.5 text-text-xmuted hover:text-danger rounded-sm"
@@ -570,25 +999,21 @@ export function PromptDetailPage() {
                   </select>
                 </div>
               </div>
-              {diff ? (
+              {diff && diffTokens ? (
                 <div className="grid grid-cols-2 divide-x divide-border-light">
                   <div className="p-3">
                     <div className="text-[10px] font-semibold text-text-muted uppercase mb-2">
                       v{diff.from.version}
                       {diff.from.created_at && <span className="font-normal ml-1">({timeAgo(diff.from.created_at)})</span>}
                     </div>
-                    <pre className="text-xs font-mono text-text-muted whitespace-pre-wrap break-words leading-relaxed">
-                      {diff.from.content}
-                    </pre>
+                    <DiffPane tokens={diffTokens.left} />
                   </div>
                   <div className="p-3">
                     <div className="text-[10px] font-semibold text-text-muted uppercase mb-2">
                       v{diff.to.version}
                       {diff.to.created_at && <span className="font-normal ml-1">({timeAgo(diff.to.created_at)})</span>}
                     </div>
-                    <pre className="text-xs font-mono text-text-dark whitespace-pre-wrap break-words leading-relaxed">
-                      {diff.to.content}
-                    </pre>
+                    <DiffPane tokens={diffTokens.right} />
                   </div>
                 </div>
               ) : (
@@ -637,13 +1062,29 @@ export function PromptDetailPage() {
                   <div key={v.id} className="px-3 py-2">
                     <div className="flex items-center justify-between mb-0.5">
                       <span className="text-xs font-medium text-text-dark">v{v.version}</span>
-                      <span className="text-[10px] text-text-xmuted">{timeAgo(v.created_at)}</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-text-xmuted">{timeAgo(v.created_at)}</span>
+                        {v.version !== prompt.version && (
+                          <button
+                            onClick={() => {
+                              if (confirm(`Restore to v${v.version}?`)) revertMut.mutate(v.version)
+                            }}
+                            disabled={revertMut.isPending}
+                            title={`Restore v${v.version}`}
+                            className="p-0.5 text-text-xmuted hover:text-primary rounded-sm disabled:opacity-40"
+                          >
+                            <RotateCcw size={10} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                     {v.author_username && (
                       <div className="text-[10px] text-text-muted">{v.author_username}</div>
                     )}
-                    {v.message && (
-                      <div className="text-[10px] text-text-muted italic truncate">{esc(v.message)}</div>
+                    {(v.change_note || v.message) && (
+                      <div className="text-[10px] text-text-muted italic truncate">
+                        {esc(v.change_note ?? v.message ?? '')}
+                      </div>
                     )}
                     {(v.variables ?? []).length > 0 && (
                       <div className="text-[10px] text-text-xmuted flex items-center gap-0.5 mt-0.5">

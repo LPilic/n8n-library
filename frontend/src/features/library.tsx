@@ -4,6 +4,7 @@ import { api, ApiError } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/hooks/useToast'
 import { esc } from '@/lib/utils'
+import { appConfirm } from '@/components/ConfirmDialog'
 import { Search, Trash2, History, Pencil, Sparkles } from 'lucide-react'
 import { NodeFlow } from '@/components/NodeFlow'
 
@@ -23,6 +24,280 @@ interface Category {
   description?: string
 }
 
+interface TemplateVersion {
+  id: number
+  name: string
+  version_note?: string
+  created_at: string
+  edited_by_name?: string
+}
+
+// ─── EditTemplateModal ────────────────────────────────────────────────────────
+
+interface EditTemplateModalProps {
+  templateId: number
+  allCategories: Category[]
+  onClose: () => void
+  onSaved: () => void
+}
+
+function EditTemplateModal({ templateId, allCategories, onClose, onSaved }: EditTemplateModalProps) {
+  const { error: showError, success: showSuccess } = useToast()
+
+  // Fetch full template metadata
+  const { data: tplData, isLoading } = useQuery({
+    queryKey: ['template-meta', templateId],
+    queryFn: () => api.get<{ workflow: Template }>(`/templates/workflows/${templateId}`),
+  })
+
+  const template = tplData?.workflow
+
+  const [name, setName] = useState<string | null>(null)
+  const [description, setDescription] = useState<string | null>(null)
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[] | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  // Once template is loaded, initialise form state (only on first load)
+  if (template && name === null) {
+    setName(template.name)
+    setDescription(template.description ?? '')
+    setSelectedCategoryIds((template.categories ?? []).map((c) => c.id))
+  }
+
+  function toggleCategory(id: number) {
+    setSelectedCategoryIds((prev) =>
+      prev == null
+        ? [id]
+        : prev.includes(id)
+        ? prev.filter((x) => x !== id)
+        : [...prev, id],
+    )
+  }
+
+  async function handleSave() {
+    if (!name?.trim()) {
+      showError('Name is required')
+      return
+    }
+    setSaving(true)
+    try {
+      await api.put(`/api/templates/${templateId}`, {
+        name: name.trim(),
+        description: description ?? '',
+        categories: selectedCategoryIds ?? [],
+      })
+      showSuccess('Template updated')
+      onSaved()
+      onClose()
+    } catch (err) {
+      showError(err instanceof ApiError ? err.message : 'Save failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center modal-overlay bg-black/30">
+      <div className="bg-card border border-border rounded-lg shadow-lg w-full max-w-xl mx-4 flex flex-col max-h-[85vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border-light">
+          <h2 className="text-sm font-semibold text-text-dark">Edit Template</h2>
+          <button
+            onClick={onClose}
+            className="text-text-xmuted hover:text-text-muted text-lg leading-none"
+          >
+            &times;
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+          {isLoading || name === null ? (
+            <p className="text-text-muted text-sm">Loading template…</p>
+          ) : (
+            <>
+              {/* Name */}
+              <div>
+                <label className="block text-xs font-medium text-text-muted mb-1">Name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus"
+                  placeholder="Template name"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-medium text-text-muted mb-1">
+                  Description {/* TODO: replace with TipTap editor in Phase 6 */}
+                </label>
+                <textarea
+                  value={description ?? ''}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={5}
+                  className="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus resize-y"
+                  placeholder="Template description (HTML)"
+                />
+              </div>
+
+              {/* Categories */}
+              {allCategories.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-text-muted mb-2">Categories</label>
+                  <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto">
+                    {allCategories.map((c) => (
+                      <label
+                        key={c.id}
+                        className="flex items-center gap-2 text-xs text-text-dark cursor-pointer select-none"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={(selectedCategoryIds ?? []).includes(c.id)}
+                          onChange={() => toggleCategory(c.id)}
+                          className="rounded border-input-border"
+                        />
+                        {esc(c.name)}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border-light">
+          <button
+            onClick={onClose}
+            className="px-4 py-1.5 text-sm text-text-muted hover:text-text-dark border border-input-border rounded-sm bg-input-bg hover:bg-card-hover"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving || isLoading || name === null}
+            className="px-4 py-1.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-sm disabled:opacity-50"
+          >
+            {saving ? 'Saving…' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── VersionHistoryModal ───────────────────────────────────────────────────────
+
+interface VersionHistoryModalProps {
+  templateId: number
+  onClose: () => void
+  onRestored: () => void
+}
+
+function VersionHistoryModal({ templateId, onClose, onRestored }: VersionHistoryModalProps) {
+  const { error: showError, success: showSuccess } = useToast()
+  const [restoringId, setRestoringId] = useState<number | null>(null)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['template-versions', templateId],
+    queryFn: () =>
+      api.get<{ versions: TemplateVersion[] }>(`/api/templates/${templateId}/versions`),
+  })
+
+  const versions = data?.versions ?? []
+
+  async function handleRestore(versionId: number) {
+    const ok = await appConfirm(
+      'Restore this version? The current template will be replaced.',
+      { okLabel: 'Restore' },
+    )
+    if (!ok) return
+    setRestoringId(versionId)
+    try {
+      await api.post(`/api/templates/${templateId}/versions/${versionId}/restore`, {})
+      showSuccess('Version restored')
+      onRestored()
+      onClose()
+    } catch (err) {
+      showError(err instanceof ApiError ? err.message : 'Restore failed')
+    } finally {
+      setRestoringId(null)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center modal-overlay bg-black/30">
+      <div className="bg-card border border-border rounded-lg shadow-lg w-full max-w-lg mx-4 flex flex-col max-h-[80vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border-light">
+          <h2 className="text-sm font-semibold text-text-dark">Version History</h2>
+          <button
+            onClick={onClose}
+            className="text-text-xmuted hover:text-text-muted text-lg leading-none"
+          >
+            &times;
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          {isLoading ? (
+            <p className="text-text-muted text-sm">Loading versions…</p>
+          ) : versions.length === 0 ? (
+            <p className="text-text-muted text-sm">No version history found.</p>
+          ) : (
+            <div className="space-y-2">
+              {versions.map((v) => (
+                <div
+                  key={v.id}
+                  className="flex items-center justify-between gap-3 py-2 border-b border-border-light last:border-0"
+                >
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-medium text-text-dark truncate block">
+                      {esc(v.name)}
+                    </span>
+                    {v.version_note && (
+                      <span className="text-[11px] text-text-muted block truncate">
+                        {esc(v.version_note)}
+                      </span>
+                    )}
+                    <div className="text-[11px] text-text-xmuted mt-0.5 flex gap-2">
+                      {v.edited_by_name && <span>by {esc(v.edited_by_name)}</span>}
+                      <span>{new Date(v.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleRestore(v.id)}
+                    disabled={restoringId === v.id}
+                    className="text-xs px-2.5 py-1 border border-input-border rounded-sm text-text-muted hover:text-primary hover:border-primary bg-input-bg disabled:opacity-50 shrink-0"
+                  >
+                    {restoringId === v.id ? 'Restoring…' : 'Restore'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end px-5 py-3 border-t border-border-light">
+          <button
+            onClick={onClose}
+            className="px-4 py-1.5 text-sm text-text-muted hover:text-text-dark border border-input-border rounded-sm bg-input-bg hover:bg-card-hover"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── LibraryPage ──────────────────────────────────────────────────────────────
+
 export function LibraryPage() {
   const user = useAuthStore((s) => s.user)
   const { error: showError, success: showSuccess } = useToast()
@@ -32,6 +307,8 @@ export function LibraryPage() {
 
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [editingTemplateId, setEditingTemplateId] = useState<number | null>(null)
+  const [historyTemplateId, setHistoryTemplateId] = useState<number | null>(null)
 
   // Check if AI is configured
   const { data: aiStatus } = useQuery({
@@ -75,6 +352,18 @@ export function LibraryPage() {
       t.categories?.some((c) => c.name === selectedCategory),
     )
   }, [templates, selectedCategory])
+
+  async function handleDelete(id: number) {
+    const ok = await appConfirm('Delete this template? This action cannot be undone.', {
+      danger: true,
+      okLabel: 'Delete',
+    })
+    if (ok) deleteMut.mutate(id)
+  }
+
+  function handleTemplateSaved() {
+    queryClient.invalidateQueries({ queryKey: ['library-templates'] })
+  }
 
   return (
     <div className="flex gap-6">
@@ -138,17 +427,38 @@ export function LibraryPage() {
                 isWriter={isWriter}
                 isAdmin={isAdmin}
                 aiEnabled={aiEnabled}
-                onDelete={() => {
-                  if (confirm('Delete this template?')) deleteMut.mutate(t.id)
-                }}
+                onDelete={() => handleDelete(t.id)}
+                onEdit={() => setEditingTemplateId(t.id)}
+                onHistory={() => setHistoryTemplateId(t.id)}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Edit modal */}
+      {editingTemplateId != null && (
+        <EditTemplateModal
+          templateId={editingTemplateId}
+          allCategories={categories}
+          onClose={() => setEditingTemplateId(null)}
+          onSaved={handleTemplateSaved}
+        />
+      )}
+
+      {/* Version history modal */}
+      {historyTemplateId != null && (
+        <VersionHistoryModal
+          templateId={historyTemplateId}
+          onClose={() => setHistoryTemplateId(null)}
+          onRestored={handleTemplateSaved}
+        />
+      )}
     </div>
   )
 }
+
+// ─── TemplateCard ─────────────────────────────────────────────────────────────
 
 function TemplateCard({
   template,
@@ -156,12 +466,16 @@ function TemplateCard({
   isAdmin,
   aiEnabled,
   onDelete,
+  onEdit,
+  onHistory,
 }: {
   template: Template
   isWriter: boolean
   isAdmin: boolean
   aiEnabled: boolean
   onDelete: () => void
+  onEdit: () => void
+  onHistory: () => void
 }) {
   const { success: showSuccess, error: showError } = useToast()
   const [docsLoading, setDocsLoading] = useState(false)
@@ -205,6 +519,7 @@ function TemplateCard({
         {template.description && (
           <p
             className="text-xs text-text-muted mt-1 line-clamp-2"
+            // TODO: sanitize with DOMPurify
             dangerouslySetInnerHTML={{ __html: template.description }}
           />
         )}
@@ -226,10 +541,16 @@ function TemplateCard({
         <div className="flex items-center gap-1 px-3 py-2 border-t border-border-light">
           {isWriter && (
             <>
-              <button className="text-xs px-2 py-1 text-text-muted hover:text-text-dark hover:bg-card-hover rounded-sm flex items-center gap-1">
+              <button
+                onClick={onEdit}
+                className="text-xs px-2 py-1 text-text-muted hover:text-text-dark hover:bg-card-hover rounded-sm flex items-center gap-1"
+              >
                 <Pencil size={12} /> Edit
               </button>
-              <button className="text-xs px-2 py-1 text-text-muted hover:text-text-dark hover:bg-card-hover rounded-sm flex items-center gap-1">
+              <button
+                onClick={onHistory}
+                className="text-xs px-2 py-1 text-text-muted hover:text-text-dark hover:bg-card-hover rounded-sm flex items-center gap-1"
+              >
                 <History size={12} /> History
               </button>
               {aiEnabled && (

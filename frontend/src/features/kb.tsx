@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api, ApiError } from '@/api/client'
+import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/hooks/useToast'
 import { esc, timeAgo, cn } from '@/lib/utils'
+import { appConfirm } from '@/components/ConfirmDialog'
 import {
   Search,
   Eye,
@@ -13,6 +15,11 @@ import {
   ChevronRight,
   Tag,
   BookOpen,
+  Plus,
+  Pencil,
+  Trash2,
+  History,
+  Star,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -29,6 +36,7 @@ interface KbArticle {
   tags?: string[]
   view_count: number
   pinned?: boolean
+  featured?: boolean
   author_username?: string
   created_at: string
   updated_at: string
@@ -62,16 +70,296 @@ interface KbListResponse {
   pages: number
 }
 
+interface KbVersion {
+  id: number
+  version_number: number
+  author_username?: string
+  created_at: string
+  title?: string
+}
+
+// ─── ArticleFormModal ─────────────────────────────────────────────────────────
+
+interface ArticleFormModalProps {
+  categories: KbCategory[]
+  initial?: KbArticle | null
+  onClose: () => void
+  onSaved: () => void
+}
+
+function ArticleFormModal({ categories, initial, onClose, onSaved }: ArticleFormModalProps) {
+  const { error: showError, success: showSuccess } = useToast()
+  const isEdit = !!initial
+
+  const [title, setTitle] = useState(initial?.title ?? '')
+  const [categoryId, setCategoryId] = useState<string>(
+    initial?.category_id != null ? String(initial.category_id) : '',
+  )
+  const [status, setStatus] = useState(initial?.status ?? 'draft')
+  const [content, setContent] = useState(initial?.content ?? '')
+  const [tags, setTags] = useState((initial?.tags ?? []).join(', '))
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    if (!title.trim()) {
+      showError('Title is required')
+      return
+    }
+    setSaving(true)
+    try {
+      const payload = {
+        title: title.trim(),
+        status,
+        content,
+        tags: tags
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean),
+        ...(categoryId ? { category_id: Number(categoryId) } : {}),
+      }
+      if (isEdit && initial) {
+        await api.put(`/api/kb/articles/${initial.id}`, payload)
+        showSuccess('Article updated')
+      } else {
+        await api.post('/api/kb/articles', payload)
+        showSuccess('Article created')
+      }
+      onSaved()
+      onClose()
+    } catch (err) {
+      showError(err instanceof ApiError ? err.message : 'Save failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center modal-overlay bg-black/30">
+      <div className="bg-card border border-border rounded-lg shadow-lg w-full max-w-2xl mx-4 flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border-light">
+          <h2 className="text-sm font-semibold text-text-dark">
+            {isEdit ? 'Edit Article' : 'New Article'}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-text-xmuted hover:text-text-muted text-lg leading-none"
+          >
+            &times;
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+          {/* Title */}
+          <div>
+            <label className="block text-xs font-medium text-text-muted mb-1">Title</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus"
+              placeholder="Article title"
+            />
+          </div>
+
+          {/* Category + Status row */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-text-muted mb-1">Category</label>
+              <select
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                className="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus"
+              >
+                <option value="">No category</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-text-muted mb-1">Status</label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus"
+              >
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div>
+            <label className="block text-xs font-medium text-text-muted mb-1">
+              Content {/* TipTap rich editor comes in Phase 6 */}
+            </label>
+            {/* TODO: replace with TipTap editor in Phase 6 */}
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={12}
+              className="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus font-mono resize-y"
+              placeholder="Article content (HTML)"
+            />
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label className="block text-xs font-medium text-text-muted mb-1">
+              Tags <span className="text-text-xmuted font-normal">(comma-separated)</span>
+            </label>
+            <input
+              type="text"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              className="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus"
+              placeholder="e.g. automation, n8n, api"
+            />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border-light">
+          <button
+            onClick={onClose}
+            className="px-4 py-1.5 text-sm text-text-muted hover:text-text-dark border border-input-border rounded-sm bg-input-bg hover:bg-card-hover"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-4 py-1.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-sm disabled:opacity-50"
+          >
+            {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Article'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── VersionHistoryModal ───────────────────────────────────────────────────────
+
+interface VersionHistoryModalProps {
+  articleId: number
+  onClose: () => void
+  onRestored: () => void
+}
+
+function VersionHistoryModal({ articleId, onClose, onRestored }: VersionHistoryModalProps) {
+  const { error: showError, success: showSuccess } = useToast()
+  const [restoringId, setRestoringId] = useState<number | null>(null)
+
+  const { data: versions, isLoading } = useQuery({
+    queryKey: ['kb-versions', articleId],
+    queryFn: () => api.get<KbVersion[]>(`/api/kb/articles/${articleId}/versions`),
+  })
+
+  async function handleRestore(versionId: number) {
+    const ok = await appConfirm('Restore this version? The current content will be replaced.', {
+      okLabel: 'Restore',
+    })
+    if (!ok) return
+    setRestoringId(versionId)
+    try {
+      await api.post(`/api/kb/articles/${articleId}/restore/${versionId}`, {})
+      showSuccess('Version restored')
+      onRestored()
+      onClose()
+    } catch (err) {
+      showError(err instanceof ApiError ? err.message : 'Restore failed')
+    } finally {
+      setRestoringId(null)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center modal-overlay bg-black/30">
+      <div className="bg-card border border-border rounded-lg shadow-lg w-full max-w-lg mx-4 flex flex-col max-h-[80vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border-light">
+          <h2 className="text-sm font-semibold text-text-dark">Version History</h2>
+          <button
+            onClick={onClose}
+            className="text-text-xmuted hover:text-text-muted text-lg leading-none"
+          >
+            &times;
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          {isLoading ? (
+            <p className="text-text-muted text-sm">Loading versions…</p>
+          ) : !versions || versions.length === 0 ? (
+            <p className="text-text-muted text-sm">No version history found.</p>
+          ) : (
+            <div className="space-y-2">
+              {versions.map((v) => (
+                <div
+                  key={v.id}
+                  className="flex items-center justify-between gap-3 py-2 border-b border-border-light last:border-0"
+                >
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-medium text-text-dark">
+                      v{v.version_number}
+                      {v.title ? ` — ${esc(v.title)}` : ''}
+                    </span>
+                    <div className="text-[11px] text-text-xmuted mt-0.5">
+                      {v.author_username && (
+                        <span className="mr-2">by {esc(v.author_username)}</span>
+                      )}
+                      <span>{timeAgo(v.created_at)}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleRestore(v.id)}
+                    disabled={restoringId === v.id}
+                    className="text-xs px-2.5 py-1 border border-input-border rounded-sm text-text-muted hover:text-primary hover:border-primary bg-input-bg disabled:opacity-50 shrink-0"
+                  >
+                    {restoringId === v.id ? 'Restoring…' : 'Restore'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end px-5 py-3 border-t border-border-light">
+          <button
+            onClick={onClose}
+            className="px-4 py-1.5 text-sm text-text-muted hover:text-text-dark border border-input-border rounded-sm bg-input-bg hover:bg-card-hover"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── KbPage ───────────────────────────────────────────────────────────────────
 
 export function KbPage() {
   const navigate = useNavigate()
+  const user = useAuthStore((s) => s.user)
+  const isWriter = user?.role === 'admin' || user?.role === 'editor'
+  const queryClient = useQueryClient()
 
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [tagFilter, setTagFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('published')
   const [page, setPage] = useState(1)
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   const { data, isLoading } = useQuery({
     queryKey: ['kb-articles', page, search, categoryFilter, tagFilter, statusFilter],
@@ -101,6 +389,12 @@ export function KbPage() {
   })
 
   const articles = data?.articles ?? []
+
+  function handleArticleSaved() {
+    queryClient.invalidateQueries({ queryKey: ['kb-articles'] })
+    queryClient.invalidateQueries({ queryKey: ['kb-stats'] })
+    queryClient.invalidateQueries({ queryKey: ['kb-categories'] })
+  }
 
   return (
     <div className="flex gap-6">
@@ -202,7 +496,7 @@ export function KbPage() {
 
       {/* Main */}
       <div className="flex-1 min-w-0">
-        {/* Search bar */}
+        {/* Search bar + Create button */}
         <div className="flex items-center gap-2 mb-4 flex-wrap">
           <div className="relative flex-1 min-w-0 max-w-sm">
             <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-xmuted" />
@@ -214,9 +508,17 @@ export function KbPage() {
               className="w-full pl-8 pr-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus"
             />
           </div>
-          <span className="text-xs text-text-muted ml-auto">
+          <span className="text-xs text-text-muted">
             {data?.total ?? 0} article{(data?.total ?? 0) !== 1 ? 's' : ''}
           </span>
+          {isWriter && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover ml-auto"
+            >
+              <Plus size={13} /> New Article
+            </button>
+          )}
         </div>
 
         {/* Mobile: category + tag filters */}
@@ -284,6 +586,16 @@ export function KbPage() {
           </div>
         )}
       </div>
+
+      {/* Create article modal */}
+      {showCreateModal && (
+        <ArticleFormModal
+          categories={categories ?? []}
+          initial={null}
+          onClose={() => setShowCreateModal(false)}
+          onSaved={handleArticleSaved}
+        />
+      )}
     </div>
   )
 }
@@ -337,11 +649,22 @@ export function KbArticlePage() {
   const navigate = useNavigate()
   const { error: showError, success: showSuccess } = useToast()
   const queryClient = useQueryClient()
+  const user = useAuthStore((s) => s.user)
+  const isWriter = user?.role === 'admin' || user?.role === 'editor'
+  const isAdmin = user?.role === 'admin'
+
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showVersionModal, setShowVersionModal] = useState(false)
 
   const { data: article, isLoading } = useQuery({
     queryKey: ['kb-article', slug],
     queryFn: () => api.get<KbArticle>(`/api/kb/articles/${slug}`),
     enabled: !!slug,
+  })
+
+  const { data: categories } = useQuery({
+    queryKey: ['kb-categories'],
+    queryFn: () => api.get<KbCategory[]>('/api/kb/categories'),
   })
 
   const feedbackMut = useMutation({
@@ -359,6 +682,39 @@ export function KbArticlePage() {
     },
     onError: (err) => showError(err instanceof ApiError ? err.message : 'Update failed'),
   })
+
+  const featureMut = useMutation({
+    mutationFn: () => api.patch(`/api/kb/articles/${article?.id}/feature`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kb-article', slug] })
+      queryClient.invalidateQueries({ queryKey: ['kb-articles'] })
+      showSuccess(article?.featured ? 'Removed from featured' : 'Marked as featured')
+    },
+    onError: (err) => showError(err instanceof ApiError ? err.message : 'Update failed'),
+  })
+
+  const deleteMut = useMutation({
+    mutationFn: () => api.delete(`/api/kb/articles/${article?.id}`),
+    onSuccess: () => {
+      showSuccess('Article deleted')
+      queryClient.invalidateQueries({ queryKey: ['kb-articles'] })
+      navigate('/kb')
+    },
+    onError: (err) => showError(err instanceof ApiError ? err.message : 'Delete failed'),
+  })
+
+  async function handleDelete() {
+    const ok = await appConfirm('Delete this article? This action cannot be undone.', {
+      danger: true,
+      okLabel: 'Delete',
+    })
+    if (ok) deleteMut.mutate()
+  }
+
+  function handleArticleSaved() {
+    queryClient.invalidateQueries({ queryKey: ['kb-article', slug] })
+    queryClient.invalidateQueries({ queryKey: ['kb-articles'] })
+  }
 
   if (isLoading) return <div className="text-text-muted text-sm">Loading article...</div>
   if (!article) return <div className="text-danger text-sm">Article not found</div>
@@ -392,19 +748,75 @@ export function KbArticlePage() {
             </div>
             <h1 className="text-xl font-semibold text-text-dark leading-snug">{esc(article.title)}</h1>
           </div>
-          <button
-            onClick={() => pinMut.mutate()}
-            disabled={pinMut.isPending}
-            title={article.pinned ? 'Unpin article' : 'Pin article'}
-            className={cn(
-              'p-1.5 rounded-sm transition-colors shrink-0',
-              article.pinned
-                ? 'text-warning bg-warning-light hover:bg-warning-light'
-                : 'text-text-xmuted hover:text-warning hover:bg-warning-light',
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Pin */}
+            <button
+              onClick={() => pinMut.mutate()}
+              disabled={pinMut.isPending}
+              title={article.pinned ? 'Unpin article' : 'Pin article'}
+              className={cn(
+                'p-1.5 rounded-sm transition-colors',
+                article.pinned
+                  ? 'text-warning bg-warning-light hover:bg-warning-light'
+                  : 'text-text-xmuted hover:text-warning hover:bg-warning-light',
+              )}
+            >
+              <Pin size={16} />
+            </button>
+
+            {/* Feature toggle (writer/admin) */}
+            {isWriter && (
+              <button
+                onClick={() => featureMut.mutate()}
+                disabled={featureMut.isPending}
+                title={article.featured ? 'Remove from featured' : 'Mark as featured'}
+                className={cn(
+                  'p-1.5 rounded-sm transition-colors',
+                  article.featured
+                    ? 'text-warning bg-warning-light'
+                    : 'text-text-xmuted hover:text-warning hover:bg-warning-light',
+                )}
+              >
+                <Star size={16} />
+              </button>
             )}
-          >
-            <Pin size={16} />
-          </button>
+
+            {/* Edit (writer/admin) */}
+            {isWriter && (
+              <button
+                onClick={() => setShowEditModal(true)}
+                title="Edit article"
+                className="p-1.5 rounded-sm text-text-xmuted hover:text-primary hover:bg-primary-light transition-colors"
+              >
+                <Pencil size={16} />
+              </button>
+            )}
+
+            {/* Version history (writer/admin) */}
+            {isWriter && (
+              <button
+                onClick={() => setShowVersionModal(true)}
+                title="Version history"
+                className="p-1.5 rounded-sm text-text-xmuted hover:text-text-dark hover:bg-card-hover transition-colors"
+              >
+                <History size={16} />
+              </button>
+            )}
+
+            {/* Delete (admin only) */}
+            {isAdmin && (
+              <button
+                onClick={handleDelete}
+                disabled={deleteMut.isPending}
+                title="Delete article"
+                className="p-1.5 rounded-sm text-text-xmuted hover:text-danger hover:bg-danger-light transition-colors disabled:opacity-50"
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-3 text-xs text-text-xmuted flex-wrap mb-4">
@@ -432,6 +844,7 @@ export function KbArticlePage() {
         {article.content ? (
           <div
             className="prose prose-sm max-w-none text-text-dark"
+            // TODO: sanitize with DOMPurify
             dangerouslySetInnerHTML={{ __html: article.content }}
           />
         ) : (
@@ -487,6 +900,25 @@ export function KbArticlePage() {
           )}
         </div>
       </div>
+
+      {/* Edit modal */}
+      {showEditModal && (
+        <ArticleFormModal
+          categories={categories ?? []}
+          initial={article}
+          onClose={() => setShowEditModal(false)}
+          onSaved={handleArticleSaved}
+        />
+      )}
+
+      {/* Version history modal */}
+      {showVersionModal && (
+        <VersionHistoryModal
+          articleId={article.id}
+          onClose={() => setShowVersionModal(false)}
+          onRestored={handleArticleSaved}
+        />
+      )}
     </div>
   )
 }
