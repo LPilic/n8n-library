@@ -1,10 +1,12 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
+import { useState, useMemo, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import { useToast } from '@/hooks/useToast'
 import { esc, timeAgo, cn } from '@/lib/utils'
-import { Search, Download, ChevronLeft, ChevronRight, Sparkles, FileText, Loader2 } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, Sparkles, FileText, Loader2 } from 'lucide-react'
 import { NodeFlow } from '@/components/NodeFlow'
+import { PreviewModal, N8nDemoPreview } from '@/components/PreviewModal'
+import { DocsModal } from '@/components/DocsModal'
 
 // --- Types ---
 
@@ -42,69 +44,19 @@ interface Category {
   name: string
 }
 
-// --- N8nDemo preview wrapper ---
+// N8nDemoPreview/PreviewModal/DocsModal imported from shared components
 
-function N8nDemoPreview({ workflow }: { workflow: { nodes: unknown[]; connections: unknown } }) {
-  const containerRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!containerRef.current) return
-    // Clear previous content
-    containerRef.current.innerHTML = ''
-    // Create the web component imperatively (same as legacy)
-    const demo = document.createElement('n8n-demo')
-    demo.setAttribute('workflow', JSON.stringify(workflow))
-    demo.setAttribute('frame', 'true')
-    demo.style.width = '100%'
-    demo.style.height = '100%'
-    demo.style.display = 'block'
-    containerRef.current.appendChild(demo)
-
-    return () => {
-      if (containerRef.current) containerRef.current.innerHTML = ''
-    }
-  }, [workflow])
-
-  return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
-}
-
-// --- Preview Modal ---
-
-function PreviewModal({
-  title,
-  workflowData,
-  onClose,
-}: {
-  title: string
-  workflowData: { nodes: unknown[]; connections: unknown }
-  onClose: () => void
-}) {
-  return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center modal-overlay bg-black/30" onClick={onClose}>
-      <div
-        className="bg-card border border-border rounded-lg shadow-lg mx-4 flex flex-col overflow-hidden"
-        style={{ width: '94vw', maxWidth: '1400px', height: '90vh' }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
-          <h2 className="text-sm font-semibold text-text-dark truncate">{title}</h2>
-          <button onClick={onClose} className="text-text-xmuted hover:text-text-dark text-lg">&times;</button>
-        </div>
-        <div className="flex-1 overflow-hidden p-4">
-          <N8nDemoPreview workflow={workflowData} />
-        </div>
-      </div>
-    </div>
-  )
-}
+// Local N8nDemoPreview and PreviewModal removed — using shared components from @/components/PreviewModal
 
 // --- Import Modal ---
 
 function ImportModal({
   workflow,
+  aiEnabled,
   onClose,
 }: {
   workflow: N8nWorkflowFull
+  aiEnabled: boolean
   onClose: () => void
 }) {
   const { error: showError, success: showSuccess } = useToast()
@@ -112,6 +64,8 @@ function ImportModal({
   const [name, setName] = useState(workflow.name)
   const [description, setDescription] = useState('')
   const [selectedCats, setSelectedCats] = useState<number[]>([])
+  const [genNameLoading, setGenNameLoading] = useState(false)
+  const [genDescLoading, setGenDescLoading] = useState(false)
 
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
@@ -121,72 +75,96 @@ function ImportModal({
   const importMut = useMutation({
     mutationFn: () =>
       api.post('/api/templates', {
-        name,
-        description,
-        categories: selectedCats,
-        workflow: {
-          nodes: workflow.nodes,
-          connections: workflow.connections,
-          settings: workflow.settings || {},
-          pinData: workflow.pinData || {},
-        },
+        name, description, categories: selectedCats,
+        workflow: { nodes: workflow.nodes, connections: workflow.connections, settings: workflow.settings || {}, pinData: workflow.pinData || {} },
       }),
-    onSuccess: () => {
-      showSuccess('Workflow imported to library!')
-      queryClient.invalidateQueries({ queryKey: ['library-templates'] })
-      onClose()
-    },
+    onSuccess: () => { showSuccess('Workflow imported to library!'); queryClient.invalidateQueries({ queryKey: ['library-templates'] }); onClose() },
     onError: (err) => showError(err instanceof ApiError ? err.message : 'Import failed'),
   })
 
+  async function generateName() {
+    setGenNameLoading(true)
+    try {
+      const res = await api.post<{ name: string }>('/api/ai/name-workflow', { nodes: workflow.nodes, connections: workflow.connections })
+      if (res.name) setName(res.name)
+    } catch (err) { showError(err instanceof ApiError ? err.message : 'Name generation failed') }
+    finally { setGenNameLoading(false) }
+  }
+
+  async function generateDescription() {
+    setGenDescLoading(true)
+    try {
+      const res = await api.post<{ description: string }>('/api/ai/describe-workflow', { nodes: workflow.nodes, connections: workflow.connections })
+      if (res.description) setDescription(res.description)
+    } catch (err) { showError(err instanceof ApiError ? err.message : 'Description generation failed') }
+    finally { setGenDescLoading(false) }
+  }
+
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center modal-overlay bg-black/30" onClick={onClose}>
-      <div className="bg-card border border-border rounded-lg shadow-lg w-full max-w-lg mx-4" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-          <h2 className="text-sm font-semibold text-text-dark">Import: {esc(workflow.name)}</h2>
-          <button onClick={onClose} className="text-text-xmuted hover:text-text-dark text-lg">&times;</button>
+      <div className="bg-bg-light border border-border rounded-lg shadow-lg mx-4 flex flex-col overflow-hidden"
+        style={{ width: '90vw', maxWidth: '1100px', maxHeight: '90vh' }} onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-3 border-b border-border shrink-0">
+          <h3 className="text-[15px] font-bold text-text-dark">Import: {esc(workflow.name)}</h3>
+          <div className="flex items-center gap-2">
+            <button onClick={onClose} className="text-[12px] font-semibold px-3 py-1.5 bg-bg-light border border-border text-text-base rounded-md hover:bg-bg">Cancel</button>
+            <button onClick={() => importMut.mutate()} disabled={!name.trim() || importMut.isPending}
+              className="text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover disabled:opacity-50 flex items-center gap-1.5">
+              {importMut.isPending ? 'Saving...' : 'Import'}
+            </button>
+          </div>
         </div>
-        <div className="px-5 py-4 space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-text-muted mb-1">Name</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-text-muted mb-1">Description</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3}
-              placeholder="Describe what this workflow does..."
-              className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring resize-none" />
-          </div>
-          {/* Workflow preview */}
-          <div className="border border-border-light rounded-md overflow-hidden" style={{ height: '200px' }}>
+        <div className="flex-1 overflow-y-auto">
+          {/* n8n-demo workflow preview */}
+          <div style={{ height: '300px', overflow: 'hidden' }}>
             <N8nDemoPreview workflow={{ nodes: workflow.nodes, connections: workflow.connections }} />
           </div>
-          {categories.length > 0 && (
+          <div className="px-6 py-4 space-y-4">
             <div>
-              <label className="block text-xs font-medium text-text-muted mb-2">Categories</label>
-              <div className="flex flex-wrap gap-2">
-                {categories.map((c) => (
-                  <label key={c.id} className="flex items-center gap-1.5 cursor-pointer">
-                    <input type="checkbox" checked={selectedCats.includes(c.id)}
-                      onChange={() => setSelectedCats(prev => prev.includes(c.id) ? prev.filter(x => x !== c.id) : [...prev, c.id])}
-                      className="accent-primary" />
-                    <span className="text-xs text-text-muted">{c.name}</span>
-                  </label>
-                ))}
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[12px] font-semibold uppercase tracking-wide text-text-muted">Name</label>
+                {aiEnabled && (
+                  <button onClick={generateName} disabled={genNameLoading}
+                    className="text-[11px] text-primary hover:text-primary-hover flex items-center gap-1 disabled:opacity-50">
+                    {genNameLoading ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                    {genNameLoading ? 'Generating...' : 'Generate'}
+                  </button>
+                )}
               </div>
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+                className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring" />
             </div>
-          )}
-        </div>
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border">
-          <button onClick={onClose} className="px-4 py-1.5 text-sm text-text-muted hover:text-text-dark border border-input-border rounded-md bg-input-bg">
-            Cancel
-          </button>
-          <button onClick={() => importMut.mutate()} disabled={!name.trim() || importMut.isPending}
-            className="px-4 py-1.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-md disabled:opacity-50 flex items-center gap-1.5">
-            <Download size={14} />
-            {importMut.isPending ? 'Saving...' : 'Save to Library'}
-          </button>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[12px] font-semibold uppercase tracking-wide text-text-muted">Description</label>
+                {aiEnabled && (
+                  <button onClick={generateDescription} disabled={genDescLoading}
+                    className="text-[11px] text-primary hover:text-primary-hover flex items-center gap-1 disabled:opacity-50">
+                    {genDescLoading ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                    {genDescLoading ? 'Generating...' : 'Generate'}
+                  </button>
+                )}
+              </div>
+              <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4}
+                placeholder="Describe what this workflow does..."
+                className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring resize-y" />
+            </div>
+            {categories.length > 0 && (
+              <div>
+                <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-2">Categories</label>
+                <div className="grid grid-cols-2 gap-1.5 max-h-32 overflow-y-auto">
+                  {categories.map((c) => (
+                    <label key={c.id} className="flex items-center gap-2 text-xs text-text-dark cursor-pointer select-none">
+                      <input type="checkbox" checked={selectedCats.includes(c.id)}
+                        onChange={() => setSelectedCats(prev => prev.includes(c.id) ? prev.filter(x => x !== c.id) : [...prev, c.id])}
+                        className="rounded border-input-border" />
+                      {c.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -266,7 +244,7 @@ export function N8nWorkflowsPage() {
   const [importingWf, setImportingWf] = useState<N8nWorkflowFull | null>(null)
   const [previewWf, setPreviewWf] = useState<{ title: string; data: { nodes: unknown[]; connections: unknown } } | null>(null)
   const [renamingId, setRenamingId] = useState<string | null>(null)
-  const [docsId, setDocsId] = useState<string | null>(null)
+  const [docsTarget, setDocsTarget] = useState<{ name: string; nodes: unknown[]; connections: unknown } | null>(null)
 
   const { data: aiStatus } = useQuery({
     queryKey: ['ai-status'],
@@ -336,22 +314,10 @@ export function N8nWorkflowsPage() {
     }
   }
 
-  async function handleDocs(id: string, name: string) {
+  function handleDocs(id: string, name: string) {
     const wf = getFullWf(id)
     if (!wf) return showError('Workflow data not available')
-    setDocsId(id)
-    try {
-      await api.post('/api/ai/document-workflow', {
-        workflowName: name,
-        nodes: wf.nodes || [],
-        connections: wf.connections || {},
-      })
-      showSuccess('Documentation generated — check Knowledge Base')
-    } catch (err) {
-      showError(err instanceof ApiError ? err.message : 'Docs generation failed')
-    } finally {
-      setDocsId(null)
-    }
+    setDocsTarget({ name, nodes: wf.nodes || [], connections: wf.connections || {} })
   }
 
   const filtered = useMemo(() => {
@@ -393,7 +359,7 @@ export function N8nWorkflowsPage() {
               workflow={w}
               aiEnabled={aiEnabled}
               renaming={renamingId === w.id}
-              docsGenerating={docsId === w.id}
+              docsGenerating={false}
               onPreview={() => handlePreview(w.id, w.name)}
               onImport={() => handleImport(w.id)}
               onRename={() => handleRename(w.id)}
@@ -440,7 +406,12 @@ export function N8nWorkflowsPage() {
 
       {/* Import modal */}
       {importingWf && (
-        <ImportModal workflow={importingWf} onClose={() => setImportingWf(null)} />
+        <ImportModal workflow={importingWf} aiEnabled={aiEnabled} onClose={() => setImportingWf(null)} />
+      )}
+
+      {/* Docs modal */}
+      {docsTarget && (
+        <DocsModal workflowName={docsTarget.name} nodes={docsTarget.nodes} connections={docsTarget.connections} onClose={() => setDocsTarget(null)} />
       )}
     </>
   )
