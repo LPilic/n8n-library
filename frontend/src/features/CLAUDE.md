@@ -15,4 +15,10 @@
 | #2663 | 11:09 PM | ✅ | Added instance context to N8nWorkflowsPage | ~213 |
 | #2650 | 11:06 PM | 🔵 | Monitoring Feature API Pattern and Real-Time Data Integration | ~387 |
 | #2646 | 10:57 PM | 🔵 | React Hooks Error in Execution Detail View | ~292 |
+
+### Apr 8, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #2701 | 12:07 AM | ✅ | Metrics API response format transformation for multi-instance support | ~305 |
 </claude-mem-context>

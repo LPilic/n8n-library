@@ -16,6 +16,21 @@ interface HistoryPoint {
   metrics: Record<string, number>
 }
 
+// Map API history field names to standard metric names used in charts
+function normalizeHistory(raw: Array<Record<string, unknown>>): HistoryPoint[] {
+  return raw.map((p) => ({
+    ts: (p.timestamp as number) || 0,
+    metrics: {
+      process_cpu_seconds_total: (p.cpu as number) || 0,
+      process_resident_memory_bytes: (p.memoryRss as number) || 0,
+      nodejs_heap_size_used_bytes: (p.heapUsed as number) || 0,
+      nodejs_heap_size_total_bytes: (p.heapTotal as number) || 0,
+      nodejs_eventloop_lag_seconds: (p.eventLoopLag as number) || 0,
+      nodejs_active_handles_total: (p.activeHandles as number) || 0,
+    },
+  }))
+}
+
 interface Worker {
   id: string
   host?: string
@@ -46,13 +61,26 @@ export function ObservabilityPage() {
 
   const { data: metrics, isLoading: metricsLoading } = useQuery({
     queryKey: ['obs-metrics'],
-    queryFn: () => api.get<MetricEntry[]>('/api/monitoring/metrics'),
+    queryFn: async () => {
+      const raw = await api.get<Record<string, Array<{ labels?: Record<string, string>; value: number }>>>('/api/monitoring/metrics')
+      // Convert dict-of-arrays to flat MetricEntry array
+      const entries: MetricEntry[] = []
+      for (const [name, samples] of Object.entries(raw)) {
+        for (const s of samples) {
+          entries.push({ name, value: s.value, type: 'gauge', labels: s.labels, help: '' })
+        }
+      }
+      return entries
+    },
     refetchInterval: refreshInterval * 1000,
   })
 
   const { data: history } = useQuery({
     queryKey: ['obs-history'],
-    queryFn: () => api.get<HistoryPoint[]>('/api/monitoring/metrics/history'),
+    queryFn: async () => {
+      const raw = await api.get<Array<Record<string, unknown>>>('/api/monitoring/metrics/history')
+      return normalizeHistory(raw)
+    },
     refetchInterval: refreshInterval * 1000,
   })
 
