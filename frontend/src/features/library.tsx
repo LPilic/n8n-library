@@ -4,7 +4,8 @@ import { api, ApiError } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/hooks/useToast'
 import { esc } from '@/lib/utils'
-import { Search, Trash2, History, Pencil } from 'lucide-react'
+import { Search, Trash2, History, Pencil, Sparkles } from 'lucide-react'
+import { NodeFlow } from '@/components/NodeFlow'
 
 interface Template {
   id: number
@@ -31,6 +32,13 @@ export function LibraryPage() {
 
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+
+  // Check if AI is configured
+  const { data: aiStatus } = useQuery({
+    queryKey: ['ai-status'],
+    queryFn: () => api.get<{ configured: boolean }>('/api/ai/status'),
+  })
+  const aiEnabled = aiStatus?.configured ?? false
 
   // Fetch templates
   const { data: templatesData, isLoading } = useQuery({
@@ -129,6 +137,7 @@ export function LibraryPage() {
                 template={t}
                 isWriter={isWriter}
                 isAdmin={isAdmin}
+                aiEnabled={aiEnabled}
                 onDelete={() => {
                   if (confirm('Delete this template?')) deleteMut.mutate(t.id)
                 }}
@@ -145,14 +154,38 @@ function TemplateCard({
   template,
   isWriter,
   isAdmin,
+  aiEnabled,
   onDelete,
 }: {
   template: Template
   isWriter: boolean
   isAdmin: boolean
+  aiEnabled: boolean
   onDelete: () => void
 }) {
+  const { success: showSuccess, error: showError } = useToast()
+  const [docsLoading, setDocsLoading] = useState(false)
   const nodes = template.nodes ?? []
+
+  async function generateDocs() {
+    setDocsLoading(true)
+    try {
+      const wfRes = await api.get<{ workflow: Record<string, unknown> }>(`/workflows/templates/${template.id}`)
+      const wf = wfRes.workflow || {}
+      const res = await api.post<{ documentation: string }>('/api/ai/document-workflow', {
+        workflowName: template.name,
+        nodes: wf.nodes || [],
+        connections: wf.connections || {},
+      })
+      if (res.documentation) {
+        showSuccess('Documentation generated — check Knowledge Base')
+      }
+    } catch (err) {
+      showError(err instanceof ApiError ? err.message : 'Failed to generate docs')
+    } finally {
+      setDocsLoading(false)
+    }
+  }
 
   return (
     <div className="bg-card border border-border rounded-md overflow-hidden hover:border-border transition-colors">
@@ -199,6 +232,15 @@ function TemplateCard({
               <button className="text-xs px-2 py-1 text-text-muted hover:text-text-dark hover:bg-card-hover rounded-sm flex items-center gap-1">
                 <History size={12} /> History
               </button>
+              {aiEnabled && (
+                <button
+                  onClick={generateDocs}
+                  disabled={docsLoading}
+                  className="text-xs px-2 py-1 text-primary hover:bg-primary-light rounded-sm flex items-center gap-1 disabled:opacity-50"
+                >
+                  <Sparkles size={12} /> {docsLoading ? 'Generating...' : 'Docs'}
+                </button>
+              )}
             </>
           )}
           {isAdmin && (
@@ -215,54 +257,4 @@ function TemplateCard({
   )
 }
 
-// --- Node flow preview (simplified version) ---
-
-const TRIGGER_KW = ['trigger', 'webhook', 'cron', 'schedule', 'start', 'event', 'formtrigger', 'chattrigger']
-
-function isTrigger(node: { type?: string; name?: string; group?: string }): boolean {
-  const g = (node.group || '').toLowerCase()
-  if (g.includes('trigger')) return true
-  const s = ((node.type || '') + (node.name || '')).toLowerCase()
-  return TRIGGER_KW.some((k) => s.includes(k))
-}
-
-function getNodeLabel(node: { displayName?: string; name?: string; type?: string }): string {
-  const name = node.displayName || node.name || node.type?.split('.').pop() || '?'
-  return name.length > 16 ? name.slice(0, 14) + '\u2026' : name
-}
-
-function NodeFlow({ nodes }: { nodes: Array<{ type?: string; name?: string; displayName?: string; group?: string; position?: number[] }> }) {
-  if (nodes.length === 0) {
-    return <span className="text-text-xmuted text-xs">No nodes</span>
-  }
-
-  const sorted = [...nodes].sort((a, b) => {
-    const at = isTrigger(a) ? 0 : 1
-    const bt = isTrigger(b) ? 0 : 1
-    if (at !== bt) return at - bt
-    return (a.position?.[0] ?? 0) - (b.position?.[0] ?? 0)
-  })
-
-  const show = sorted.slice(0, 8)
-  const remaining = nodes.length - 8
-
-  return (
-    <div className="flex items-center gap-1 flex-nowrap">
-      {show.map((node, i) => (
-        <div key={i} className="flex items-center gap-1">
-          <span
-            className={`inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded ${
-              isTrigger(node) ? 'bg-success-light text-success' : 'bg-border-light text-text-muted'
-            }`}
-          >
-            {getNodeLabel(node)}
-          </span>
-          {i < show.length - 1 && <span className="text-text-xmuted text-[10px]">&rarr;</span>}
-        </div>
-      ))}
-      {remaining > 0 && (
-        <span className="text-text-xmuted text-[10px] ml-1">+{remaining} more</span>
-      )}
-    </div>
-  )
-}
+// NodeFlow is imported from @/components/NodeFlow
