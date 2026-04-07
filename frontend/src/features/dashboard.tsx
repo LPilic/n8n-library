@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '@/api/client'
 import type { DashboardData } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
+import { useInstanceStore } from '@/stores/instance'
 import { esc, timeAgo } from '@/lib/utils'
-import { useState } from 'react'
+// useState removed — instance selection is now global
 import {
   Activity,
   Ticket as TicketIcon,
@@ -20,14 +21,12 @@ export function DashboardPage() {
   const user = useAuthStore((s) => s.user)
   const navigate = useNavigate()
   const isWriter = user?.role === 'admin' || user?.role === 'editor'
-  const [instanceId, setInstanceId] = useState<number | null>(null)
+  const activeInstanceId = useInstanceStore((s) => s.activeId)
+  const iUrl = useInstanceStore((s) => s.url)
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['dashboard', instanceId],
-    queryFn: () => {
-      const url = instanceId ? `/api/dashboard?instance_id=${instanceId}` : '/api/dashboard'
-      return api.get<DashboardData>(url)
-    },
+    queryKey: ['dashboard', activeInstanceId],
+    queryFn: () => api.get<DashboardData>(iUrl('/api/dashboard')),
   })
 
   if (isLoading) return <div className="text-text-muted">Loading dashboard...</div>
@@ -46,23 +45,7 @@ export function DashboardPage() {
         <p className="text-sm text-text-muted">Here's what's happening across your n8n environment</p>
       </div>
 
-      {/* Instance selector */}
-      {isWriter && data.instances && data.instances.length > 1 && (
-        <div className="mb-4 flex items-center gap-2">
-          <label className="text-xs font-semibold text-text-muted">Instance:</label>
-          <select
-            value={instanceId ?? data.selectedInstance ?? ''}
-            onChange={(e) => setInstanceId(parseInt(e.target.value, 10))}
-            className="text-sm px-2 py-1 border border-input-border rounded-sm bg-input-bg text-text-dark"
-          >
-            {data.instances.map((inst) => (
-              <option key={inst.id} value={inst.id}>
-                {inst.name}{inst.is_default ? ' (default)' : ''}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+      {/* Instance is now selected globally via the topbar InstanceSelector */}
 
       {/* KPI row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-6">

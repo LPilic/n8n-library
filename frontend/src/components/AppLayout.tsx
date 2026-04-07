@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { CommandPalette } from './CommandPalette'
 import { AiChatPanel } from '@/features/ai-chat'
 import { NotificationDropdown } from './NotificationDropdown'
+import { InstanceSelector } from './InstanceSelector'
 import {
   LayoutDashboard,
   Library,
@@ -208,6 +209,9 @@ export function AppLayout() {
           </button>
 
           <div className="flex-1" />
+
+          {/* Instance selector */}
+          <InstanceSelector />
 
           {/* Theme toggle */}
           <button

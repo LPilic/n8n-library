@@ -8,6 +8,7 @@ import { NodeFlow } from '@/components/NodeFlow'
 import { PreviewModal, N8nDemoPreview } from '@/components/PreviewModal'
 import { DocsModal } from '@/components/DocsModal'
 import { RichTextEditor } from '@/components/RichTextEditor'
+import { useInstanceStore } from '@/stores/instance'
 
 // --- Types ---
 
@@ -249,6 +250,8 @@ const PAGE_SIZE = 20
 export function N8nWorkflowsPage() {
   const { success: showSuccess, error: showError } = useToast()
   const queryClient = useQueryClient()
+  const iUrl = useInstanceStore((s) => s.url)
+  const activeInstanceId = useInstanceStore((s) => s.activeId)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [importingWf, setImportingWf] = useState<N8nWorkflowFull | null>(null)
@@ -266,9 +269,9 @@ export function N8nWorkflowsPage() {
   const fullDataRef = useRef<N8nWorkflowFull[]>([])
 
   const { data: workflows = [], isLoading } = useQuery({
-    queryKey: ['n8n-workflows-light'],
+    queryKey: ['n8n-workflows-light', activeInstanceId],
     queryFn: async () => {
-      const res = await api.get<{ data: N8nWorkflowFull[] }>('/api/monitoring/workflows')
+      const res = await api.get<{ data: N8nWorkflowFull[] }>(iUrl('/api/monitoring/workflows'))
       const all = res.data || []
       fullDataRef.current = all // cache full data for AI actions
       return all.map((w): N8nWorkflowLight => ({
@@ -315,7 +318,7 @@ export function N8nWorkflowsPage() {
         showSuccess(`Suggested name: ${res.name}`)
         // Update cached name
         wf.name = res.name
-        queryClient.invalidateQueries({ queryKey: ['n8n-workflows-light'] })
+        queryClient.invalidateQueries({ queryKey: ['n8n-workflows-light', activeInstanceId] })
       }
     } catch (err) {
       showError(err instanceof ApiError ? err.message : 'Rename failed')

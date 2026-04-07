@@ -8,6 +8,7 @@ import { appConfirm } from '@/components/ConfirmDialog'
 import { NodeFlow } from '@/components/NodeFlow'
 import { PreviewModal } from '@/components/PreviewModal'
 import { esc, formatDuration, timeAgo, cn } from '@/lib/utils'
+import { useInstanceStore } from '@/stores/instance'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -77,6 +78,8 @@ export function MonitoringPage() {
   const navigate = useNavigate()
   const { error: showError, success: showSuccess } = useToast()
   const queryClient = useQueryClient()
+  const iUrl = useInstanceStore((s) => s.url)
+  const activeInstanceId = useInstanceStore((s) => s.activeId)
   const [tab, setTab] = useState<'executions' | 'workflows'>('executions')
   const [statusFilter, setStatusFilter] = useState('')
   const [workflowFilter, setWorkflowFilter] = useState('')
@@ -101,33 +104,33 @@ export function MonitoringPage() {
     }
   }, [queryClient, statusFilter, workflowFilter])
 
-  useSse('/api/monitoring/stream', { onMessage: handleSse })
+  useSse(iUrl('/api/monitoring/stream'), { onMessage: handleSse })
 
   // Stats query
   const { data: fetchedStats } = useQuery({
-    queryKey: ['monitoring-stats'],
-    queryFn: () => api.get<MonStats>('/api/monitoring/stats'),
+    queryKey: ['monitoring-stats', activeInstanceId],
+    queryFn: () => api.get<MonStats>(iUrl('/api/monitoring/stats')),
     refetchInterval: autoRefresh || 30_000,
   })
   const stats = sseStats || fetchedStats
 
   // Executions query
   const { data: execData, isLoading: execLoading } = useQuery({
-    queryKey: ['monitoring-executions', statusFilter, workflowFilter],
+    queryKey: ['monitoring-executions', statusFilter, workflowFilter, activeInstanceId],
     queryFn: () => {
       const params = new URLSearchParams()
       if (statusFilter) params.set('status', statusFilter)
       if (workflowFilter) params.set('workflowId', workflowFilter)
       params.set('limit', String(50 * page))
-      return api.get<{ data: Execution[] }>(`/api/monitoring/executions?${params}`)
+      return api.get<{ data: Execution[] }>(iUrl(`/api/monitoring/executions?${params}`))
     },
     refetchInterval: autoRefresh || undefined,
   })
 
   // Workflows query
   const { data: wfData } = useQuery({
-    queryKey: ['monitoring-workflows'],
-    queryFn: () => api.get<{ data: Workflow[] }>('/api/monitoring/workflows'),
+    queryKey: ['monitoring-workflows', activeInstanceId],
+    queryFn: () => api.get<{ data: Workflow[] }>(iUrl('/api/monitoring/workflows')),
     refetchInterval: autoRefresh || undefined,
   })
 
@@ -148,7 +151,7 @@ export function MonitoringPage() {
 
   // Retry execution
   const retryMut = useMutation({
-    mutationFn: (id: string) => api.post(`/api/monitoring/executions/${id}/retry`),
+    mutationFn: (id: string) => api.post(iUrl(`/api/monitoring/executions/${id}/retry`)),
     onSuccess: () => {
       showSuccess('Execution retried')
       queryClient.invalidateQueries({ queryKey: ['monitoring-executions'] })
@@ -158,7 +161,7 @@ export function MonitoringPage() {
 
   // Stop single execution
   const stopMut = useMutation({
-    mutationFn: (id: string) => api.post(`/api/monitoring/executions/${id}/stop`),
+    mutationFn: (id: string) => api.post(iUrl(`/api/monitoring/executions/${id}/stop`)),
     onSuccess: () => {
       showSuccess('Execution stopped')
       queryClient.invalidateQueries({ queryKey: ['monitoring-executions'] })
@@ -168,7 +171,7 @@ export function MonitoringPage() {
 
   // Stop all running
   const stopAllMut = useMutation({
-    mutationFn: (ids: string[]) => api.post('/api/monitoring/executions/stop', { ids }),
+    mutationFn: (ids: string[]) => api.post(iUrl('/api/monitoring/executions/stop'), { ids }),
     onSuccess: () => {
       showSuccess('All running executions stopped')
       queryClient.invalidateQueries({ queryKey: ['monitoring-executions'] })
@@ -180,7 +183,7 @@ export function MonitoringPage() {
   // Toggle workflow active
   const toggleActiveMut = useMutation({
     mutationFn: ({ id, active }: { id: string; active: boolean }) =>
-      api.post(`/api/monitoring/workflows/${id}/activate`, { active }),
+      api.post(iUrl(`/api/monitoring/workflows/${id}/activate`), { active }),
     onSuccess: () => {
       showSuccess('Workflow updated')
       queryClient.invalidateQueries({ queryKey: ['monitoring-workflows'] })
@@ -523,16 +526,17 @@ export function ExecutionDetailPage() {
   const navigate = useNavigate()
   const { error: showError, success: showSuccess } = useToast()
   const queryClient = useQueryClient()
+  const iUrl = useInstanceStore((s) => s.url)
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set())
 
   const { data: exec, isLoading } = useQuery({
     queryKey: ['execution-detail', id],
-    queryFn: () => api.get<Record<string, unknown>>(`/api/monitoring/executions/${id}`),
+    queryFn: () => api.get<Record<string, unknown>>(iUrl(`/api/monitoring/executions/${id}`)),
     enabled: !!id,
   })
 
   const retryMut = useMutation({
-    mutationFn: () => api.post(`/api/monitoring/executions/${id}/retry`),
+    mutationFn: () => api.post(iUrl(`/api/monitoring/executions/${id}/retry`)),
     onSuccess: () => {
       showSuccess('Execution retried')
       queryClient.invalidateQueries({ queryKey: ['execution-detail', id] })
@@ -541,7 +545,7 @@ export function ExecutionDetailPage() {
   })
 
   const stopMut = useMutation({
-    mutationFn: () => api.post(`/api/monitoring/executions/${id}/stop`),
+    mutationFn: () => api.post(iUrl(`/api/monitoring/executions/${id}/stop`)),
     onSuccess: () => {
       showSuccess('Execution stopped')
       queryClient.invalidateQueries({ queryKey: ['execution-detail', id] })
