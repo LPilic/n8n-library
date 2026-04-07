@@ -349,18 +349,42 @@ export function LibraryPage() {
   return (
     <div className="flex gap-6">
       {/* Sidebar */}
-      <aside className="w-48 shrink-0 hidden lg:block">
-        <h3 className="text-xs font-semibold text-text-muted uppercase mb-2">Categories</h3>
-        <button onClick={() => setSelectedCategory(null)}
-          className={`block w-full text-left text-sm px-2 py-1 rounded-sm mb-0.5 ${!selectedCategory ? 'bg-primary-light text-primary font-medium' : 'text-text-muted hover:bg-card-hover'}`}>
-          All
-        </button>
-        {categories.map((c) => (
-          <button key={c.id} onClick={() => setSelectedCategory(c.name)}
-            className={`block w-full text-left text-sm px-2 py-1 rounded-sm mb-0.5 truncate ${selectedCategory === c.name ? 'bg-primary-light text-primary font-medium' : 'text-text-muted hover:bg-card-hover'}`}>
-            {c.name}
-          </button>
-        ))}
+      <aside className="w-56 shrink-0 hidden lg:block space-y-3">
+        {/* Template count */}
+        <div className="bg-card border border-border rounded-lg p-4 text-center">
+          <div className="text-3xl font-extrabold text-primary">{templates.length}</div>
+          <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wide mt-0.5">Templates</div>
+        </div>
+
+        {/* Categories */}
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
+          <div className="px-3 py-2 border-b border-border-light">
+            <h3 className="text-[10px] font-bold text-text-xmuted uppercase tracking-[0.08em]">Categories</h3>
+          </div>
+          <div className="p-1">
+            <button onClick={() => setSelectedCategory(null)}
+              className={cn(
+                'w-full flex items-center justify-between text-[12px] px-2.5 py-1.5 rounded-md transition-colors',
+                !selectedCategory ? 'bg-primary-light text-primary font-semibold' : 'text-text-muted hover:bg-bg',
+              )}>
+              <span>All</span>
+              <span className="text-[10px] font-bold tabular-nums text-text-xmuted">{templates.length}</span>
+            </button>
+            {categories.map((c) => {
+              const count = templates.filter((t) => t.categories?.some((tc) => tc.name === c.name)).length
+              return (
+                <button key={c.id} onClick={() => setSelectedCategory(c.name)}
+                  className={cn(
+                    'w-full flex items-center justify-between text-[12px] px-2.5 py-1.5 rounded-md transition-colors truncate',
+                    selectedCategory === c.name ? 'bg-primary-light text-primary font-semibold' : 'text-text-muted hover:bg-bg',
+                  )}>
+                  <span className="truncate">{c.name}</span>
+                  {count > 0 && <span className="text-[10px] font-bold tabular-nums text-text-xmuted shrink-0 ml-1">{count}</span>}
+                </button>
+              )
+            })}
+          </div>
+        </div>
       </aside>
 
       <div className="flex-1 min-w-0">

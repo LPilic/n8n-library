@@ -7,6 +7,7 @@ import { Search, ChevronLeft, ChevronRight, Sparkles, FileText, Loader2 } from '
 import { NodeFlow } from '@/components/NodeFlow'
 import { PreviewModal, N8nDemoPreview } from '@/components/PreviewModal'
 import { DocsModal } from '@/components/DocsModal'
+import { RichTextEditor } from '@/components/RichTextEditor'
 
 // --- Types ---
 
@@ -116,8 +117,8 @@ function ImportModal({
         </div>
         <div className="flex-1 overflow-y-auto">
           {/* n8n-demo workflow preview */}
-          <div style={{ height: '300px', overflow: 'hidden' }}>
-            <N8nDemoPreview workflow={{ nodes: workflow.nodes, connections: workflow.connections }} />
+          <div style={{ height: '350px', overflow: 'hidden', position: 'relative' }}>
+            <N8nDemoPreview workflow={{ nodes: workflow.nodes, connections: workflow.connections }} minHeight="350px" />
           </div>
           <div className="px-6 py-4 space-y-4">
             <div>
@@ -145,22 +146,31 @@ function ImportModal({
                   </button>
                 )}
               </div>
-              <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4}
+              <RichTextEditor
+                content={description}
+                onChange={(html) => setDescription(html)}
                 placeholder="Describe what this workflow does..."
-                className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring resize-y" />
+              />
             </div>
             {categories.length > 0 && (
               <div>
                 <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-2">Categories</label>
-                <div className="grid grid-cols-2 gap-1.5 max-h-32 overflow-y-auto">
-                  {categories.map((c) => (
-                    <label key={c.id} className="flex items-center gap-2 text-xs text-text-dark cursor-pointer select-none">
-                      <input type="checkbox" checked={selectedCats.includes(c.id)}
-                        onChange={() => setSelectedCats(prev => prev.includes(c.id) ? prev.filter(x => x !== c.id) : [...prev, c.id])}
-                        className="rounded border-input-border" />
-                      {c.name}
-                    </label>
-                  ))}
+                <div className="flex flex-wrap gap-2">
+                  {categories.map((c) => {
+                    const selected = selectedCats.includes(c.id)
+                    return (
+                      <button key={c.id} type="button"
+                        onClick={() => setSelectedCats(prev => prev.includes(c.id) ? prev.filter(x => x !== c.id) : [...prev, c.id])}
+                        className={cn(
+                          'text-[12px] font-semibold uppercase tracking-wide px-3 py-1.5 rounded-md border transition-colors',
+                          selected
+                            ? 'bg-primary/10 border-primary text-primary'
+                            : 'bg-bg-light border-border text-text-muted hover:border-text-muted',
+                        )}>
+                        {c.name}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             )}
