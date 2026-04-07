@@ -1,10 +1,23 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api, ApiError } from '@/api/client'
 import { useSse } from '@/hooks/useSse'
 import { useToast } from '@/hooks/useToast'
+import { appConfirm } from '@/components/ConfirmDialog'
+import { NodeFlow } from '@/components/NodeFlow'
+import { PreviewModal } from '@/components/PreviewModal'
 import { esc, formatDuration, timeAgo, cn } from '@/lib/utils'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  Tooltip,
+  Legend,
+} from 'chart.js'
+import { Bar, Doughnut } from 'react-chartjs-2'
 import {
   CheckCircle,
   XCircle,
@@ -14,7 +27,18 @@ import {
   RotateCcw,
   AlertTriangle,
   Zap,
+  RefreshCw,
+  Search,
+  ChevronDown,
+  StopCircle,
+  ArrowLeft,
 } from 'lucide-react'
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend)
+
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
 
 interface MonStats {
   health: string
@@ -40,8 +64,14 @@ interface Workflow {
   id: string
   name: string
   active: boolean
-  nodes?: Array<{ type: string; name: string }>
+  nodes?: Array<{ type?: string; name?: string; displayName?: string; position?: number[]; group?: string }>
+  tags?: Array<{ name: string }>
+  updatedAt?: string
 }
+
+/* ------------------------------------------------------------------ */
+/*  MonitoringPage                                                     */
+/* ------------------------------------------------------------------ */
 
 export function MonitoringPage() {
   const navigate = useNavigate()
@@ -51,51 +81,70 @@ export function MonitoringPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [workflowFilter, setWorkflowFilter] = useState('')
   const [sseStats, setSseStats] = useState<MonStats | null>(null)
+  const [autoRefresh, setAutoRefresh] = useState(0)
+  const [wfSearch, setWfSearch] = useState('')
+  const [wfActiveFilter, setWfActiveFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [previewWf, setPreviewWf] = useState<Workflow | null>(null)
+  const [page, setPage] = useState(1)
 
   // SSE for live updates
   const handleSse = useCallback((event: string, data: unknown) => {
-    if (event === 'stats') {
-      setSseStats(data as MonStats)
-    }
+    if (event === 'stats') setSseStats(data as MonStats)
     if (event === 'executions') {
-      queryClient.setQueryData(['monitoring-executions', '', ''], (old: { data: Execution[] } | undefined) => {
-        const newData = data as { data: Execution[] }
-        return old ? { ...old, data: newData.data || old.data } : newData
-      })
+      queryClient.setQueryData(
+        ['monitoring-executions', statusFilter, workflowFilter],
+        (old: { data: Execution[] } | undefined) => {
+          const newData = data as { data: Execution[] }
+          return old ? { ...old, data: newData.data || old.data } : newData
+        },
+      )
     }
-  }, [queryClient])
+  }, [queryClient, statusFilter, workflowFilter])
 
   useSse('/api/monitoring/stream', { onMessage: handleSse })
 
-  // Fetch stats (fallback when SSE hasn't delivered yet)
+  // Stats query
   const { data: fetchedStats } = useQuery({
     queryKey: ['monitoring-stats'],
     queryFn: () => api.get<MonStats>('/api/monitoring/stats'),
-    refetchInterval: 30_000,
+    refetchInterval: autoRefresh || 30_000,
   })
-
   const stats = sseStats || fetchedStats
 
-  // Fetch executions
+  // Executions query
   const { data: execData, isLoading: execLoading } = useQuery({
     queryKey: ['monitoring-executions', statusFilter, workflowFilter],
     queryFn: () => {
       const params = new URLSearchParams()
       if (statusFilter) params.set('status', statusFilter)
       if (workflowFilter) params.set('workflowId', workflowFilter)
-      params.set('limit', '50')
+      params.set('limit', String(50 * page))
       return api.get<{ data: Execution[] }>(`/api/monitoring/executions?${params}`)
     },
+    refetchInterval: autoRefresh || undefined,
   })
 
-  // Fetch workflows
+  // Workflows query
   const { data: wfData } = useQuery({
     queryKey: ['monitoring-workflows'],
     queryFn: () => api.get<{ data: Workflow[] }>('/api/monitoring/workflows'),
+    refetchInterval: autoRefresh || undefined,
   })
 
   const executions = execData?.data ?? []
   const workflows = wfData?.data ?? []
+
+  // Filtered workflows for the tab
+  const filteredWorkflows = useMemo(() => {
+    let list = workflows
+    if (wfActiveFilter === 'active') list = list.filter((w) => w.active)
+    if (wfActiveFilter === 'inactive') list = list.filter((w) => !w.active)
+    if (wfSearch.trim()) {
+      const q = wfSearch.toLowerCase()
+      list = list.filter((w) => w.name.toLowerCase().includes(q))
+    }
+    return list
+  }, [workflows, wfActiveFilter, wfSearch])
 
   // Retry execution
   const retryMut = useMutation({
@@ -107,7 +156,7 @@ export function MonitoringPage() {
     onError: (err) => showError(err instanceof ApiError ? err.message : 'Retry failed'),
   })
 
-  // Stop execution
+  // Stop single execution
   const stopMut = useMutation({
     mutationFn: (id: string) => api.post(`/api/monitoring/executions/${id}/stop`),
     onSuccess: () => {
@@ -117,117 +166,220 @@ export function MonitoringPage() {
     onError: (err) => showError(err instanceof ApiError ? err.message : 'Stop failed'),
   })
 
+  // Stop all running
+  const stopAllMut = useMutation({
+    mutationFn: (ids: string[]) => api.post('/api/monitoring/executions/stop', { ids }),
+    onSuccess: () => {
+      showSuccess('All running executions stopped')
+      queryClient.invalidateQueries({ queryKey: ['monitoring-executions'] })
+      queryClient.invalidateQueries({ queryKey: ['monitoring-stats'] })
+    },
+    onError: (err) => showError(err instanceof ApiError ? err.message : 'Stop all failed'),
+  })
+
+  // Toggle workflow active
+  const toggleActiveMut = useMutation({
+    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
+      api.post(`/api/monitoring/workflows/${id}/activate`, { active }),
+    onSuccess: () => {
+      showSuccess('Workflow updated')
+      queryClient.invalidateQueries({ queryKey: ['monitoring-workflows'] })
+      queryClient.invalidateQueries({ queryKey: ['monitoring-stats'] })
+    },
+    onError: (err) => showError(err instanceof ApiError ? err.message : 'Toggle failed'),
+  })
+
+  const runningIds = executions.filter((e) => e.status === 'running').map((e) => e.id)
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['monitoring-stats'] })
+    queryClient.invalidateQueries({ queryKey: ['monitoring-executions'] })
+    queryClient.invalidateQueries({ queryKey: ['monitoring-workflows'] })
+  }
+
+  const handleStopAll = async () => {
+    if (runningIds.length === 0) return
+    const ok = await appConfirm(`Stop all ${runningIds.length} running execution(s)?`, { danger: true, okLabel: 'Stop All' })
+    if (ok) stopAllMut.mutate(runningIds)
+  }
+
+  const handleRetry = async (id: string) => {
+    const ok = await appConfirm('Retry this execution?', { okLabel: 'Retry' })
+    if (ok) retryMut.mutate(id)
+  }
+
+  const handleStop = async (id: string) => {
+    const ok = await appConfirm('Stop this execution?', { danger: true, okLabel: 'Stop' })
+    if (ok) stopMut.mutate(id)
+  }
+
+  // Chart data: execution history (last 24h grouped by hour)
+  const barData = useMemo(() => {
+    const now = Date.now()
+    const hours = Array.from({ length: 24 }, (_, i) => {
+      const d = new Date(now - (23 - i) * 3600_000)
+      return { label: `${d.getHours()}:00`, ts: d.getTime(), success: 0, error: 0, running: 0 }
+    })
+    for (const exec of executions) {
+      const t = new Date(exec.startedAt).getTime()
+      for (let i = hours.length - 1; i >= 0; i--) {
+        if (t >= hours[i].ts) {
+          if (exec.status === 'success') hours[i].success++
+          else if (exec.status === 'error') hours[i].error++
+          else hours[i].running++
+          break
+        }
+      }
+    }
+    return {
+      labels: hours.map((h) => h.label),
+      datasets: [
+        { label: 'Success', data: hours.map((h) => h.success), backgroundColor: 'rgba(34,197,94,0.7)' },
+        { label: 'Error', data: hours.map((h) => h.error), backgroundColor: 'rgba(239,68,68,0.7)' },
+        { label: 'Running', data: hours.map((h) => h.running), backgroundColor: 'rgba(59,130,246,0.7)' },
+      ],
+    }
+  }, [executions])
+
+  const doughnutData = useMemo(() => {
+    if (!stats) return null
+    const c = stats.counts
+    return {
+      labels: ['Success', 'Error', 'Running', 'Waiting'],
+      datasets: [{
+        data: [c.success, c.error, c.running, c.waiting],
+        backgroundColor: ['#22c55e', '#ef4444', '#3b82f6', '#f59e0b'],
+        borderWidth: 0,
+      }],
+    }
+  }, [stats])
+
+  const hasMore = executions.length === 50 * page
+
   return (
     <div>
       {/* Stats bar */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-          <StatCard
-            label="Health"
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-2 mb-4">
+          <StatCard label="Health" color={stats.health === 'healthy' ? 'success' : stats.health === 'unhealthy' ? 'warning' : 'danger'}
             value={stats.health === 'healthy' ? 'Healthy' : stats.health === 'unhealthy' ? 'Unhealthy' : 'Unreachable'}
-            color={stats.health === 'healthy' ? 'success' : stats.health === 'unhealthy' ? 'warning' : 'danger'}
-          />
-          <StatCard
-            label="Success"
-            value={String(stats.counts.success)}
-            color="success"
-            onClick={() => setStatusFilter(statusFilter === 'success' ? '' : 'success')}
-            active={statusFilter === 'success'}
-          />
-          <StatCard
-            label="Error"
-            value={String(stats.counts.error)}
+            dot={stats.health === 'healthy' ? 'pulse' : 'static'} />
+          <StatCard label="Success" value={String(stats.counts.success)} color="success"
+            onClick={() => setStatusFilter(statusFilter === 'success' ? '' : 'success')} active={statusFilter === 'success'} />
+          <StatCard label="Error" value={String(stats.counts.error)}
             color={stats.counts.error > 0 ? 'danger' : 'muted'}
-            onClick={() => setStatusFilter(statusFilter === 'error' ? '' : 'error')}
-            active={statusFilter === 'error'}
-          />
-          <StatCard
-            label="Running"
-            value={String(stats.counts.running)}
-            color="primary"
-            onClick={() => setStatusFilter(statusFilter === 'running' ? '' : 'running')}
-            active={statusFilter === 'running'}
-          />
-          <StatCard
-            label="Success Rate"
-            value={`${stats.successRate}%`}
-            color={stats.successRate >= 80 ? 'success' : stats.successRate >= 50 ? 'warning' : 'danger'}
-          />
-          <StatCard
-            label="Active Workflows"
-            value={`${stats.activeWorkflows} / ${stats.totalWorkflows}`}
-            color="primary"
-          />
+            onClick={() => setStatusFilter(statusFilter === 'error' ? '' : 'error')} active={statusFilter === 'error'} />
+          <StatCard label="Running" value={String(stats.counts.running)} color="primary"
+            onClick={() => setStatusFilter(statusFilter === 'running' ? '' : 'running')} active={statusFilter === 'running'} />
+          <StatCard label="Waiting" value={String(stats.counts.waiting)} color="warning"
+            onClick={() => setStatusFilter(statusFilter === 'waiting' ? '' : 'waiting')} active={statusFilter === 'waiting'} />
+          <StatCard label="Success Rate" value={`${stats.successRate}%`}
+            color={stats.successRate >= 80 ? 'success' : stats.successRate >= 50 ? 'warning' : 'danger'} />
+          <StatCard label="Active / Total" value={`${stats.activeWorkflows} / ${stats.totalWorkflows}`} color="primary" />
+          <StatCard label="Avg Duration" value={formatDuration(stats.avgDurationMs)} color="muted" />
+          <StatCard label="Total Executions" value={String(stats.total)} color="muted" />
+        </div>
+      )}
+
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <div className="relative">
+          <select
+            value={autoRefresh}
+            onChange={(e) => setAutoRefresh(Number(e.target.value))}
+            className="text-[12px] font-semibold px-2.5 py-[5px] rounded-md border border-input-border bg-input-bg text-text-dark appearance-none pr-6"
+          >
+            <option value={0}>Auto-refresh: Off</option>
+            <option value={10000}>Auto-refresh: 10s</option>
+            <option value={30000}>Auto-refresh: 30s</option>
+            <option value={60000}>Auto-refresh: 60s</option>
+          </select>
+          <ChevronDown size={12} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+        </div>
+        <button onClick={handleRefresh}
+          className="text-[12px] font-semibold px-2.5 py-[5px] rounded-md border border-input-border bg-input-bg text-text-dark hover:bg-card-hover flex items-center gap-1">
+          <RefreshCw size={12} /> Refresh
+        </button>
+        {runningIds.length > 0 && (
+          <button onClick={handleStopAll}
+            className="text-[12px] font-semibold px-2.5 py-[5px] rounded-md bg-danger text-white hover:bg-danger/90 flex items-center gap-1">
+            <StopCircle size={12} /> Stop All Running ({runningIds.length})
+          </button>
+        )}
+      </div>
+
+      {/* Charts row */}
+      {stats && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4">
+          <div className="lg:col-span-2 bg-card border border-border rounded-lg p-3">
+            <h4 className="text-[11px] font-semibold uppercase tracking-wide text-text-muted mb-2">Execution History (24h)</h4>
+            <div className="h-[180px]">
+              <Bar data={barData} options={{ responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }} />
+            </div>
+          </div>
+          {doughnutData && (
+            <div className="bg-card border border-border rounded-lg p-3 flex flex-col items-center justify-center">
+              <h4 className="text-[11px] font-semibold uppercase tracking-wide text-text-muted mb-2">Status Breakdown</h4>
+              <div className="w-[160px] h-[160px]">
+                <Doughnut data={doughnutData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }} />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* Tabs */}
       <div className="flex items-center gap-4 border-b border-border mb-4">
-        <button
-          onClick={() => setTab('executions')}
-          className={cn(
-            'pb-2 text-sm font-medium border-b-2 transition-colors',
-            tab === 'executions' ? 'border-primary text-primary' : 'border-transparent text-text-muted hover:text-text-dark',
-          )}
-        >
+        <button onClick={() => setTab('executions')}
+          className={cn('pb-2 text-sm font-medium border-b-2 transition-colors',
+            tab === 'executions' ? 'border-primary text-primary' : 'border-transparent text-text-muted hover:text-text-dark')}>
           Executions
         </button>
-        <button
-          onClick={() => setTab('workflows')}
-          className={cn(
-            'pb-2 text-sm font-medium border-b-2 transition-colors',
-            tab === 'workflows' ? 'border-primary text-primary' : 'border-transparent text-text-muted hover:text-text-dark',
-          )}
-        >
+        <button onClick={() => setTab('workflows')}
+          className={cn('pb-2 text-sm font-medium border-b-2 transition-colors',
+            tab === 'workflows' ? 'border-primary text-primary' : 'border-transparent text-text-muted hover:text-text-dark')}>
           Workflows
         </button>
+      </div>
 
-        {/* Filters (executions tab only) */}
-        {tab === 'executions' && (
-          <div className="flex items-center gap-2 ml-auto pb-2">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="text-xs px-2 py-1 border border-input-border rounded-sm bg-input-bg text-text-dark"
-            >
+      {/* Executions tab */}
+      {tab === 'executions' && (
+        <div>
+          {/* Filters row */}
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+              className="text-xs px-2 py-1 border border-input-border rounded-sm bg-input-bg text-text-dark">
               <option value="">All Statuses</option>
               <option value="success">Success</option>
               <option value="error">Error</option>
               <option value="running">Running</option>
               <option value="waiting">Waiting</option>
             </select>
-            <select
-              value={workflowFilter}
-              onChange={(e) => setWorkflowFilter(e.target.value)}
-              className="text-xs px-2 py-1 border border-input-border rounded-sm bg-input-bg text-text-dark max-w-[200px]"
-            >
+            <select value={workflowFilter} onChange={(e) => setWorkflowFilter(e.target.value)}
+              className="text-xs px-2 py-1 border border-input-border rounded-sm bg-input-bg text-text-dark max-w-[200px]">
               <option value="">All Workflows</option>
               {workflows.map((wf) => (
                 <option key={wf.id} value={wf.id}>{wf.name}</option>
               ))}
             </select>
           </div>
-        )}
-      </div>
 
-      {/* Executions tab */}
-      {tab === 'executions' && (
-        <div>
           {execLoading ? (
-            <div className="text-text-muted text-sm">Loading executions...</div>
+            <div className="text-text-muted text-sm flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Loading executions...</div>
           ) : executions.length === 0 ? (
             <div className="text-center py-8 text-text-muted text-sm">No executions found</div>
           ) : (
-            <div className="bg-card border border-border rounded-md overflow-hidden">
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-bg">
-                    <th className="text-left px-3 py-2 text-text-muted font-medium text-xs">Status</th>
-                    <th className="text-left px-3 py-2 text-text-muted font-medium text-xs">Workflow</th>
-                    <th className="text-left px-3 py-2 text-text-muted font-medium text-xs hidden md:table-cell">Mode</th>
-                    <th className="text-left px-3 py-2 text-text-muted font-medium text-xs hidden lg:table-cell">Duration</th>
-                    <th className="text-left px-3 py-2 text-text-muted font-medium text-xs">Started</th>
-                    <th className="text-right px-3 py-2 text-text-muted font-medium text-xs">Actions</th>
+                    <th className="text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">Status</th>
+                    <th className="text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">ID</th>
+                    <th className="text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">Workflow</th>
+                    <th className="text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted hidden md:table-cell">Mode</th>
+                    <th className="text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted hidden lg:table-cell">Duration</th>
+                    <th className="text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">Started</th>
+                    <th className="text-right px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-light">
@@ -236,14 +388,10 @@ export function MonitoringPage() {
                       ? new Date(exec.stoppedAt).getTime() - new Date(exec.startedAt).getTime()
                       : 0
                     return (
-                      <tr
-                        key={exec.id}
-                        className="hover:bg-card-hover cursor-pointer"
-                        onClick={() => navigate(`/monitoring/${exec.id}`)}
-                      >
-                        <td className="px-3 py-2">
-                          <StatusIcon status={exec.status} />
-                        </td>
+                      <tr key={exec.id} className="hover:bg-card-hover cursor-pointer"
+                        onClick={() => navigate(`/monitoring/${exec.id}`)}>
+                        <td className="px-3 py-2"><StatusIcon status={exec.status} /></td>
+                        <td className="px-3 py-2 text-text-muted text-xs font-mono">#{exec.id}</td>
                         <td className="px-3 py-2 text-text-dark truncate max-w-[200px]">
                           {esc(exec.workflowName || `Workflow #${exec.workflowId}`)}
                         </td>
@@ -255,20 +403,12 @@ export function MonitoringPage() {
                         <td className="px-3 py-2 text-right">
                           <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                             {exec.status === 'error' && (
-                              <button
-                                onClick={() => retryMut.mutate(exec.id)}
-                                className="p-1 text-text-muted hover:text-primary"
-                                title="Retry"
-                              >
+                              <button onClick={() => handleRetry(exec.id)} className="p-1 text-text-muted hover:text-primary" title="Retry">
                                 <RotateCcw size={14} />
                               </button>
                             )}
-                            {exec.status === 'running' && (
-                              <button
-                                onClick={() => stopMut.mutate(exec.id)}
-                                className="p-1 text-text-muted hover:text-danger"
-                                title="Stop"
-                              >
+                            {(exec.status === 'running' || exec.status === 'waiting') && (
+                              <button onClick={() => handleStop(exec.id)} className="p-1 text-text-muted hover:text-danger" title="Stop">
                                 <Square size={14} />
                               </button>
                             )}
@@ -279,6 +419,15 @@ export function MonitoringPage() {
                   })}
                 </tbody>
               </table>
+              <div className="flex items-center justify-between px-3 py-2 border-t border-border text-xs text-text-muted">
+                <span>Showing 1-{executions.length}</span>
+                {hasMore && (
+                  <button onClick={() => setPage((p) => p + 1)}
+                    className="text-[12px] font-semibold px-2.5 py-[5px] rounded-md border border-input-border bg-input-bg text-text-dark hover:bg-card-hover">
+                    Load More
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -286,34 +435,95 @@ export function MonitoringPage() {
 
       {/* Workflows tab */}
       {tab === 'workflows' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {workflows.map((wf) => (
-            <div key={wf.id} className="bg-card border border-border rounded-md p-3">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="text-sm font-medium text-text-dark truncate">{esc(wf.name)}</h3>
-                <span className={cn(
-                  'text-[10px] font-medium px-1.5 py-0.5 rounded',
-                  wf.active ? 'bg-success-light text-success' : 'bg-border-light text-text-muted',
-                )}>
-                  {wf.active ? 'Active' : 'Inactive'}
-                </span>
-              </div>
-              <div className="text-xs text-text-muted">
-                {wf.nodes?.length ?? 0} nodes
-              </div>
+        <div>
+          {/* KPI row */}
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-xs text-text-muted">Total: <strong className="text-text-dark">{workflows.length}</strong></span>
+            <span className="text-xs text-text-muted">Active: <strong className="text-success">{workflows.filter((w) => w.active).length}</strong></span>
+            <span className="text-xs text-text-muted">Inactive: <strong className="text-text-dark">{workflows.filter((w) => !w.active).length}</strong></span>
+          </div>
+
+          {/* Search and filter */}
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <div className="relative">
+              <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
+              <input value={wfSearch} onChange={(e) => setWfSearch(e.target.value)}
+                placeholder="Search workflows..."
+                className="text-xs pl-6 pr-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark w-[200px]" />
             </div>
-          ))}
+            {(['all', 'active', 'inactive'] as const).map((f) => (
+              <button key={f} onClick={() => setWfActiveFilter(f)}
+                className={cn('text-[12px] font-semibold px-2.5 py-[5px] rounded-md border capitalize',
+                  wfActiveFilter === f ? 'border-primary bg-primary/10 text-primary' : 'border-input-border bg-input-bg text-text-dark hover:bg-card-hover')}>
+                {f}
+              </button>
+            ))}
+          </div>
+
+          {/* Workflow grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {filteredWorkflows.map((wf) => (
+              <div key={wf.id} className="bg-card border border-border rounded-lg p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-text-dark truncate mr-2">{esc(wf.name)}</h3>
+                  <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0',
+                    wf.active ? 'bg-success-light text-success' : 'bg-border-light text-text-muted')}>
+                    {wf.active ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-text-muted mb-2">
+                  <span>{wf.nodes?.length ?? 0} nodes</span>
+                  {wf.updatedAt && <span>{timeAgo(wf.updatedAt)}</span>}
+                </div>
+
+                {/* Active toggle */}
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-text-muted">Active</span>
+                  <button onClick={() => toggleActiveMut.mutate({ id: wf.id, active: !wf.active })}
+                    className={cn('relative w-9 h-5 rounded-full transition-colors',
+                      wf.active ? 'bg-success' : 'bg-border')}>
+                    <div className={cn('absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform',
+                      wf.active ? 'translate-x-4' : 'translate-x-0.5')} />
+                  </button>
+                </div>
+
+                {/* NodeFlow preview */}
+                {wf.nodes && wf.nodes.length > 0 && (
+                  <div className="cursor-pointer" onClick={() => setPreviewWf(wf)}>
+                    <NodeFlow nodes={wf.nodes} compact />
+                  </div>
+                )}
+              </div>
+            ))}
+            {filteredWorkflows.length === 0 && (
+              <div className="col-span-full text-center py-8 text-text-muted text-sm">No workflows match the filter</div>
+            )}
+          </div>
         </div>
+      )}
+
+      {/* Preview modal */}
+      {previewWf && (
+        <PreviewModal
+          title={previewWf.name}
+          workflowData={{ nodes: previewWf.nodes || [], connections: {} }}
+          onClose={() => setPreviewWf(null)}
+        />
       )}
     </div>
   )
 }
 
-// Execution detail page
+/* ------------------------------------------------------------------ */
+/*  ExecutionDetailPage                                                */
+/* ------------------------------------------------------------------ */
+
 export function ExecutionDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { error: showError, success: showSuccess } = useToast()
+  const queryClient = useQueryClient()
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set())
 
   const { data: exec, isLoading } = useQuery({
     queryKey: ['execution-detail', id],
@@ -323,97 +533,189 @@ export function ExecutionDetailPage() {
 
   const retryMut = useMutation({
     mutationFn: () => api.post(`/api/monitoring/executions/${id}/retry`),
-    onSuccess: () => showSuccess('Execution retried'),
+    onSuccess: () => {
+      showSuccess('Execution retried')
+      queryClient.invalidateQueries({ queryKey: ['execution-detail', id] })
+    },
     onError: (err) => showError(err instanceof ApiError ? err.message : 'Retry failed'),
   })
 
-  if (isLoading) return <div className="text-text-muted text-sm">Loading execution...</div>
-  if (!exec) return <div className="text-danger text-sm">Execution not found</div>
+  const stopMut = useMutation({
+    mutationFn: () => api.post(`/api/monitoring/executions/${id}/stop`),
+    onSuccess: () => {
+      showSuccess('Execution stopped')
+      queryClient.invalidateQueries({ queryKey: ['execution-detail', id] })
+    },
+    onError: (err) => showError(err instanceof ApiError ? err.message : 'Stop failed'),
+  })
+
+  const handleRetry = async () => {
+    const ok = await appConfirm('Retry this execution?', { okLabel: 'Retry' })
+    if (ok) retryMut.mutate()
+  }
+
+  const handleStop = async () => {
+    const ok = await appConfirm('Stop this execution?', { danger: true, okLabel: 'Stop' })
+    if (ok) stopMut.mutate()
+  }
+
+  const toggleNode = (name: string) => {
+    setExpandedNodes((prev) => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name)
+      else next.add(name)
+      return next
+    })
+  }
+
+  if (isLoading) {
+    return <div className="text-text-muted text-sm flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Loading execution...</div>
+  }
+  if (!exec) {
+    return <div className="text-danger text-sm">Execution not found</div>
+  }
 
   const status = exec.status as string
   const workflowName = (exec.workflowName as string) || `Workflow #${exec.workflowId}`
   const startedAt = exec.startedAt as string
   const stoppedAt = exec.stoppedAt as string | undefined
-  const duration = stoppedAt
-    ? new Date(stoppedAt).getTime() - new Date(startedAt).getTime()
-    : 0
+  const mode = exec.mode as string
+  const duration = stoppedAt ? new Date(stoppedAt).getTime() - new Date(startedAt).getTime() : 0
   const nodeData = (exec.data as Record<string, unknown>)?.resultData as Record<string, unknown> | undefined
   const runData = nodeData?.runData as Record<string, Array<Record<string, unknown>>> | undefined
+  const globalError = nodeData?.error as Record<string, string> | undefined
+
+  // Sort nodes by startTime
+  const sortedNodes = useMemo(() => {
+    if (!runData) return []
+    return Object.entries(runData).sort(([, aRuns], [, bRuns]) => {
+      const aTime = (aRuns[0]?.startTime as number) || 0
+      const bTime = (bRuns[0]?.startTime as number) || 0
+      return aTime - bTime
+    })
+  }, [runData])
 
   return (
     <div>
-      <button
-        onClick={() => navigate('/monitoring')}
-        className="text-sm text-primary hover:text-primary-hover mb-4"
-      >
-        &larr; Back to Monitoring
+      <button onClick={() => navigate('/monitoring')}
+        className="text-sm text-primary hover:text-primary-hover mb-4 flex items-center gap-1">
+        <ArrowLeft size={14} /> Back to Monitoring
       </button>
 
-      {/* Header */}
-      <div className="bg-card border border-border rounded-md p-4 mb-4">
-        <div className="flex items-center gap-3 mb-2">
+      {/* Header card */}
+      <div className="bg-card border border-border rounded-lg p-4 mb-4">
+        <div className="flex items-center gap-3 mb-3">
           <StatusIcon status={status} />
-          <h2 className="text-lg font-semibold text-text-dark">{esc(workflowName)}</h2>
+          <h2 className="text-lg font-semibold text-text-dark">Execution #{id}</h2>
+          <span className="text-sm text-text-muted">- {esc(workflowName)}</span>
+          <StatusBadge status={status} />
         </div>
-        <div className="flex flex-wrap gap-4 text-sm text-text-muted">
-          <span>Status: <strong className="text-text-dark capitalize">{status}</strong></span>
-          <span>Mode: <strong className="text-text-dark capitalize">{exec.mode as string}</strong></span>
-          {duration > 0 && <span>Duration: <strong className="text-text-dark">{formatDuration(duration)}</strong></span>}
-          <span>Started: <strong className="text-text-dark">{timeAgo(startedAt)}</strong></span>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-3">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Started</div>
+            <div className="text-text-dark">{startedAt ? new Date(startedAt).toLocaleString() : '-'}</div>
+          </div>
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Finished</div>
+            <div className="text-text-dark">{stoppedAt ? new Date(stoppedAt).toLocaleString() : '-'}</div>
+          </div>
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Duration</div>
+            <div className="text-text-dark">{duration > 0 ? formatDuration(duration) : status === 'running' ? 'running...' : '-'}</div>
+          </div>
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Mode</div>
+            <div className="text-text-dark capitalize">{mode}</div>
+          </div>
         </div>
-        <div className="mt-3 flex gap-2">
+        <div className="flex gap-2">
           {status === 'error' && (
-            <button
-              onClick={() => retryMut.mutate()}
-              className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover flex items-center gap-1"
-            >
+            <button onClick={handleRetry}
+              className="text-[12px] font-semibold px-2.5 py-[5px] rounded-md bg-primary text-white hover:bg-primary-hover flex items-center gap-1">
               <RotateCcw size={12} /> Retry
             </button>
           )}
-          <button
-            onClick={() => navigate(`/tickets?from_execution=${id}`)}
-            className="text-xs px-3 py-1.5 border border-border text-text-muted rounded-sm hover:bg-card-hover flex items-center gap-1"
-          >
+          {(status === 'running' || status === 'waiting') && (
+            <button onClick={handleStop}
+              className="text-[12px] font-semibold px-2.5 py-[5px] rounded-md bg-danger text-white hover:bg-danger/90 flex items-center gap-1">
+              <Square size={12} /> Stop
+            </button>
+          )}
+          <button onClick={() => navigate(`/tickets?from_execution=${id}`)}
+            className="text-[12px] font-semibold px-2.5 py-[5px] rounded-md border border-border text-text-muted hover:bg-card-hover flex items-center gap-1">
             <AlertTriangle size={12} /> Report Issue
           </button>
         </div>
       </div>
 
-      {/* Node execution data */}
-      {runData && (
-        <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-text-dark mb-2">Node Executions</h3>
-          {Object.entries(runData).map(([nodeName, runs]) => {
-            const lastRun = runs[runs.length - 1]
-            const nodeStatus = lastRun?.error ? 'error' : 'success'
-            const nodeError = lastRun?.error as Record<string, string> | undefined
-            return (
-              <div
-                key={nodeName}
-                className={cn(
-                  'bg-card border rounded-md p-3',
-                  nodeStatus === 'error' ? 'border-danger/30' : 'border-border',
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  <StatusIcon status={nodeStatus} />
-                  <span className="text-sm font-medium text-text-dark">{esc(nodeName)}</span>
-                </div>
-                {nodeError && (
-                  <div className="mt-2 text-xs text-danger bg-danger-light rounded p-2">
-                    {esc(nodeError.message || JSON.stringify(nodeError))}
+      {/* Global error block */}
+      {globalError && (
+        <div className="bg-danger-light border border-danger/30 rounded-lg p-4 mb-4">
+          <div className="flex items-center gap-2 mb-1">
+            <XCircle size={16} className="text-danger shrink-0" />
+            <h3 className="text-sm font-semibold text-danger">Execution Error</h3>
+          </div>
+          <p className="text-sm text-danger/90">{esc(globalError.message || JSON.stringify(globalError))}</p>
+        </div>
+      )}
+
+      {/* Node timeline */}
+      {sortedNodes.length > 0 && (
+        <div>
+          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-text-muted mb-3">Node Timeline</h3>
+          <div className="space-y-2">
+            {sortedNodes.map(([nodeName, runs]) => {
+              const lastRun = runs[runs.length - 1]
+              const nodeStatus = lastRun?.error ? 'error' : 'success'
+              const nodeError = lastRun?.error as Record<string, string> | undefined
+              const startTime = lastRun?.startTime as number | undefined
+              const endTime = lastRun?.executionTime as number | undefined
+              const executionMs = endTime ?? (startTime ? Date.now() - startTime : 0)
+              const outputData = lastRun?.data as Record<string, unknown> | undefined
+              const mainOutput = outputData?.main as Array<Array<Record<string, unknown>>> | undefined
+              const itemCount = mainOutput ? mainOutput.flat().length : 0
+              const isExpanded = expandedNodes.has(nodeName)
+
+              return (
+                <div key={nodeName}
+                  className={cn('bg-card border rounded-lg p-3', nodeStatus === 'error' ? 'border-danger/30' : 'border-border')}>
+                  <div className="flex items-center gap-2">
+                    <StatusIcon status={nodeStatus} />
+                    <span className="text-sm font-medium text-text-dark flex-1">{esc(nodeName)}</span>
+                    <span className="text-xs text-text-muted">{executionMs}ms</span>
                   </div>
-                )}
-              </div>
-            )
-          })}
+                  {nodeError && (
+                    <div className="mt-2 text-xs text-danger bg-danger-light rounded p-2">
+                      {esc(nodeError.message || JSON.stringify(nodeError))}
+                    </div>
+                  )}
+                  {itemCount > 0 && (
+                    <div className="mt-2">
+                      <button onClick={() => toggleNode(nodeName)}
+                        className="text-xs text-primary hover:text-primary-hover flex items-center gap-1">
+                        <ChevronDown size={12} className={cn('transition-transform', isExpanded && 'rotate-180')} />
+                        {itemCount} item{itemCount !== 1 ? 's' : ''} output
+                      </button>
+                      {isExpanded && mainOutput && (
+                        <pre className="mt-2 text-[11px] text-text-muted bg-bg rounded p-2 overflow-x-auto max-h-[300px]">
+                          {JSON.stringify(mainOutput, null, 2)}
+                        </pre>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
     </div>
   )
 }
 
-// --- Sub-components ---
+/* ------------------------------------------------------------------ */
+/*  Sub-components                                                     */
+/* ------------------------------------------------------------------ */
 
 function StatCard({
   label,
@@ -421,12 +723,14 @@ function StatCard({
   color,
   onClick,
   active,
+  dot,
 }: {
   label: string
   value: string
   color: string
   onClick?: () => void
   active?: boolean
+  dot?: 'pulse' | 'static'
 }) {
   const colorMap: Record<string, string> = {
     success: 'text-success',
@@ -435,17 +739,26 @@ function StatCard({
     primary: 'text-primary',
     muted: 'text-text-muted',
   }
+  const dotColorMap: Record<string, string> = {
+    success: 'bg-success',
+    danger: 'bg-danger',
+    warning: 'bg-warning',
+    primary: 'bg-primary',
+    muted: 'bg-text-muted',
+  }
   return (
-    <div
-      onClick={onClick}
-      className={cn(
-        'bg-card border rounded-md p-3 text-center',
+    <div onClick={onClick}
+      className={cn('bg-card border rounded-lg p-3 text-center',
         onClick ? 'cursor-pointer hover:bg-card-hover' : '',
-        active ? 'border-primary' : 'border-border',
+        active ? 'border-primary ring-1 ring-primary/30' : 'border-border')}>
+      {dot && (
+        <div className="flex justify-center mb-1">
+          <span className={cn('inline-block w-2.5 h-2.5 rounded-full', dotColorMap[color] || 'bg-text-muted',
+            dot === 'pulse' && 'animate-pulse')} />
+        </div>
       )}
-    >
-      <div className={`text-xl font-bold ${colorMap[color] || ''}`}>{value}</div>
-      <div className="text-xs text-text-muted mt-0.5">{label}</div>
+      <div className={cn('text-lg font-bold leading-tight', colorMap[color] || '')}>{value}</div>
+      <div className="text-[10px] text-text-muted mt-0.5 leading-tight">{label}</div>
     </div>
   )
 }
@@ -463,4 +776,18 @@ function StatusIcon({ status }: { status: string }) {
     default:
       return <Zap size={16} className="text-text-muted shrink-0" />
   }
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    success: 'bg-success-light text-success',
+    error: 'bg-danger-light text-danger',
+    running: 'bg-primary/10 text-primary',
+    waiting: 'bg-warning/10 text-warning',
+  }
+  return (
+    <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded capitalize', map[status] || 'bg-border-light text-text-muted')}>
+      {status}
+    </span>
+  )
 }
