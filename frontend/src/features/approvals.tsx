@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
+import { appConfirm } from '@/components/ConfirmDialog'
 import { useSse } from '@/hooks/useSse'
 import { useToast } from '@/hooks/useToast'
 import { esc, timeAgo, cn } from '@/lib/utils'
@@ -11,15 +13,16 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Copy,
   ToggleLeft,
   ToggleRight,
   ChevronLeft,
   ChevronRight,
   Inbox,
+  ArrowLeft,
+  Wrench,
 } from 'lucide-react'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// --- Types --------------------------------------------------------------------
 
 type RequestStatus = 'pending' | 'approved' | 'rejected' | 'expired'
 
@@ -32,6 +35,7 @@ interface HitlTemplate {
   request_count: number
   pending_count: number
   created_at: string
+  updated_at: string
   schema?: SchemaComponent[]
 }
 
@@ -44,6 +48,8 @@ interface HitlRequest {
   response_data?: Record<string, unknown>
   created_at: string
   responded_at?: string
+  responded_by_name?: string
+  response_comment?: string
   schema?: SchemaComponent[]
 }
 
@@ -53,7 +59,7 @@ interface RequestsResponse {
   pending_count: number
 }
 
-// ─── Schema types ─────────────────────────────────────────────────────────────
+// --- Schema types -------------------------------------------------------------
 
 type ComponentType =
   | 'heading' | 'text' | 'data-display' | 'json-viewer' | 'image' | 'badge' | 'divider' | 'spacer'
@@ -78,7 +84,7 @@ interface SchemaComponent {
   required?: boolean
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// --- Helpers ------------------------------------------------------------------
 
 function statusColor(status: RequestStatus): string {
   switch (status) {
@@ -102,7 +108,15 @@ function slugify(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
-// ─── HitlFormRenderer ─────────────────────────────────────────────────────────
+const TAB_EMPTY_MESSAGES: Record<StatusTab, string> = {
+  pending: 'No pending requests',
+  approved: 'No approved requests',
+  rejected: 'No rejected requests',
+  expired: 'No expired requests',
+  all: 'No requests found',
+}
+
+// --- HitlFormRenderer ---------------------------------------------------------
 
 interface FormRendererProps {
   schema: SchemaComponent[]
@@ -149,7 +163,7 @@ function RenderComponent({
       return (
         <div className="flex flex-col gap-0.5">
           {comp.label && <span className="text-[10px] font-semibold uppercase text-text-xmuted">{comp.label}</span>}
-          <span className="text-sm text-text-dark">{displayValue || <span className="text-text-xmuted italic">—</span>}</span>
+          <span className="text-sm text-text-dark">{displayValue || <span className="text-text-xmuted italic">--</span>}</span>
         </div>
       )
 
@@ -230,7 +244,7 @@ function RenderComponent({
             disabled={readOnly}
             className="w-full text-sm px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark disabled:opacity-60"
           >
-            <option value="">Select…</option>
+            <option value="">Select...</option>
             {(comp.options ?? []).map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
@@ -335,19 +349,20 @@ function HitlFormRenderer({ schema, data, responseData, onChange, readOnly }: Fo
   )
 }
 
-// ─── ApprovalsPage ────────────────────────────────────────────────────────────
+// --- ApprovalsPage ------------------------------------------------------------
 
-type StatusTab = 'pending' | 'completed' | 'all'
+type StatusTab = 'pending' | 'approved' | 'rejected' | 'expired' | 'all'
 
 export function ApprovalsPage() {
   const { error: showError, success: showSuccess } = useToast()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
 
   const [tab, setTab] = useState<StatusTab>('pending')
   const [page, setPage] = useState(1)
   const [selectedRequest, setSelectedRequest] = useState<HitlRequest | null>(null)
 
-  const statusParam = tab === 'pending' ? 'pending' : tab === 'completed' ? 'completed' : ''
+  const statusParam = tab === 'all' ? '' : tab
 
   const { data, isLoading } = useQuery({
     queryKey: ['hitl-requests', statusParam, page],
@@ -381,7 +396,9 @@ export function ApprovalsPage() {
 
   const TABS: { key: StatusTab; label: string }[] = [
     { key: 'pending', label: 'Pending' },
-    { key: 'completed', label: 'Completed' },
+    { key: 'approved', label: 'Approved' },
+    { key: 'rejected', label: 'Rejected' },
+    { key: 'expired', label: 'Expired' },
     { key: 'all', label: 'All' },
   ]
 
@@ -397,6 +414,12 @@ export function ApprovalsPage() {
               {pendingCount}
             </span>
           )}
+          <button
+            onClick={() => navigate('/approvals-builder')}
+            className="ml-auto flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-[5px] rounded-md border border-input-border text-text-muted hover:bg-card-hover"
+          >
+            <Wrench size={13} /> Form Builder
+          </button>
         </div>
 
         {/* Tabs */}
@@ -422,7 +445,7 @@ export function ApprovalsPage() {
         ) : requests.length === 0 ? (
           <div className="text-center py-12">
             <Inbox size={32} className="mx-auto text-text-xmuted mb-2" />
-            <p className="text-text-muted text-sm">No requests found</p>
+            <p className="text-text-muted text-sm">{TAB_EMPTY_MESSAGES[tab]}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -477,7 +500,7 @@ export function ApprovalsPage() {
   )
 }
 
-// ─── RequestCard ──────────────────────────────────────────────────────────────
+// --- RequestCard --------------------------------------------------------------
 
 function RequestCard({
   request,
@@ -524,7 +547,7 @@ function RequestCard({
   )
 }
 
-// ─── RequestDetailPanel ───────────────────────────────────────────────────────
+// --- RequestDetailPanel -------------------------------------------------------
 
 function RequestDetailPanel({
   request,
@@ -551,6 +574,11 @@ function RequestDetailPanel({
     onError: (err) => onError(err instanceof ApiError ? err.message : 'Response failed'),
   })
 
+  const handleReject = async () => {
+    const ok = await appConfirm('Reject this request?', { danger: true, okLabel: 'Reject' })
+    if (ok) respondMut.mutate('reject')
+  }
+
   const req = detail ?? request
   const schema = req.schema ?? []
   const isPending = req.status === 'pending'
@@ -558,6 +586,8 @@ function RequestDetailPanel({
   const handleChange = (field: string, value: unknown) => {
     setResponseData((prev) => ({ ...prev, [field]: value }))
   }
+
+  const hasResponseData = req.response_data && Object.keys(req.response_data).length > 0
 
   return (
     <div className="w-96 shrink-0">
@@ -571,7 +601,7 @@ function RequestDetailPanel({
         </div>
 
         <div className="p-4 max-h-[70vh] overflow-y-auto space-y-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className={cn('text-[10px] px-1.5 py-0.5 rounded capitalize', statusColor(req.status))}>
               {req.status}
             </span>
@@ -580,6 +610,22 @@ function RequestDetailPanel({
               <span className="text-[10px] text-text-xmuted">· responded {timeAgo(req.responded_at)}</span>
             )}
           </div>
+
+          {/* Responded-by info */}
+          {!isPending && req.responded_at && (
+            <div className="text-xs text-text-muted">
+              {req.status === 'approved' ? 'Approved' : req.status === 'rejected' ? 'Rejected' : 'Expired'}
+              {req.responded_by_name && <> by <strong className="font-semibold text-text-dark">{req.responded_by_name}</strong></>}
+              {req.responded_at && <> on {new Date(req.responded_at).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</>}
+            </div>
+          )}
+
+          {/* Response comment */}
+          {req.response_comment && (
+            <div className="text-xs text-text-muted bg-bg border border-border-light rounded-sm px-3 py-2 italic">
+              {req.response_comment}
+            </div>
+          )}
 
           {isLoading ? (
             <div className="text-text-muted text-sm">Loading details...</div>
@@ -604,17 +650,21 @@ function RequestDetailPanel({
           )}
 
           {/* Response data (for completed requests) */}
-          {!isPending && req.response_data && Object.keys(req.response_data).length > 0 && (
+          {!isPending && (
             <div className="border-t border-border-light pt-3">
               <div className="text-[10px] font-semibold uppercase text-text-xmuted mb-2">Reviewer Response</div>
-              <div className="space-y-1">
-                {Object.entries(req.response_data).map(([k, v]) => (
-                  <div key={k} className="flex gap-2 text-xs">
-                    <span className="text-text-xmuted">{k}:</span>
-                    <span className="text-text-dark">{String(v)}</span>
-                  </div>
-                ))}
-              </div>
+              {hasResponseData ? (
+                <div className="space-y-1">
+                  {Object.entries(req.response_data!).map(([k, v]) => (
+                    <div key={k} className="flex gap-2 text-xs">
+                      <span className="text-text-xmuted">{k}:</span>
+                      <span className="text-text-dark">{String(v)}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-text-xmuted italic">No additional data</p>
+              )}
             </div>
           )}
         </div>
@@ -624,7 +674,7 @@ function RequestDetailPanel({
           <div className="flex gap-2 px-4 py-3 border-t border-border bg-bg">
             <button
               disabled={respondMut.isPending}
-              onClick={() => respondMut.mutate('reject')}
+              onClick={handleReject}
               className="flex-1 text-xs px-3 py-2 border border-danger text-danger rounded-sm hover:bg-danger-light disabled:opacity-50 flex items-center justify-center gap-1"
             >
               <XCircle size={13} /> Reject
@@ -643,11 +693,12 @@ function RequestDetailPanel({
   )
 }
 
-// ─── ApprovalsBuilderPage ─────────────────────────────────────────────────────
+// --- ApprovalsBuilderPage -----------------------------------------------------
 
 export function ApprovalsBuilderPage() {
   const { error: showError, success: showSuccess } = useToast()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const [modal, setModal] = useState<null | 'create' | HitlTemplate>(null)
 
   const { data: templates = [], isLoading } = useQuery({
@@ -671,40 +722,125 @@ export function ApprovalsBuilderPage() {
     onError: (err) => showError(err instanceof ApiError ? err.message : 'Delete failed'),
   })
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const handleDelete = async (tpl: HitlTemplate) => {
+    const ok = await appConfirm(`Delete template "${tpl.name}"?`, { danger: true, okLabel: 'Delete' })
+    if (ok) deleteMut.mutate(tpl.id)
+  }
 
   return (
     <div>
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-4">
-        <span className="text-xs text-text-muted">
-          {templates.length} template{templates.length !== 1 ? 's' : ''}
-        </span>
+        <button
+          onClick={() => navigate('/approvals')}
+          className="flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-[5px] rounded-md border border-input-border text-text-muted hover:bg-card-hover"
+        >
+          <ArrowLeft size={13} /> Back to Approvals
+        </button>
         <button
           onClick={() => setModal('create')}
-          className="flex items-center gap-1 text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover"
+          className="flex items-center gap-1 text-[12px] font-semibold px-2.5 py-[5px] rounded-md bg-primary text-white hover:bg-primary-hover"
         >
           <Plus size={12} /> New Template
         </button>
       </div>
 
-      {/* List */}
+      {/* Template table */}
       {isLoading ? (
         <div className="text-text-muted text-sm">Loading templates...</div>
       ) : templates.length === 0 ? (
         <div className="text-center py-12 text-text-muted text-sm">No templates yet</div>
       ) : (
-        <div className="space-y-2">
-          {templates.map((tpl) => (
-            <TemplateCard
-              key={tpl.id}
-              template={tpl}
-              webhookUrl={`${origin}/api/hitl/webhook/${tpl.slug}`}
-              onEdit={() => setModal(tpl)}
-              onToggle={() => toggleMut.mutate(tpl.id)}
-              onDelete={() => { if (confirm('Delete this template?')) deleteMut.mutate(tpl.id) }}
-            />
-          ))}
+        <div className="border border-border rounded-md overflow-hidden">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-bg border-b border-border">
+                <th className="text-[11px] font-semibold uppercase tracking-wide text-text-xmuted px-3 py-2 w-12">Active</th>
+                <th className="text-[11px] font-semibold uppercase tracking-wide text-text-xmuted px-3 py-2">Template</th>
+                <th className="text-[11px] font-semibold uppercase tracking-wide text-text-xmuted px-3 py-2">Slug</th>
+                <th className="text-[11px] font-semibold uppercase tracking-wide text-text-xmuted px-3 py-2 text-center">Requests</th>
+                <th className="text-[11px] font-semibold uppercase tracking-wide text-text-xmuted px-3 py-2">Status</th>
+                <th className="text-[11px] font-semibold uppercase tracking-wide text-text-xmuted px-3 py-2">Updated</th>
+                <th className="text-[11px] font-semibold uppercase tracking-wide text-text-xmuted px-3 py-2 w-20 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border-light">
+              {templates.map((tpl) => (
+                <tr key={tpl.id} className="hover:bg-card-hover transition-colors">
+                  {/* Active toggle */}
+                  <td className="px-3 py-2">
+                    <button
+                      onClick={() => toggleMut.mutate(tpl.id)}
+                      className="text-text-xmuted hover:text-primary"
+                      title={tpl.is_active ? 'Deactivate' : 'Activate'}
+                    >
+                      {tpl.is_active
+                        ? <ToggleRight size={18} className="text-success" />
+                        : <ToggleLeft size={18} />}
+                    </button>
+                  </td>
+                  {/* Template name + description */}
+                  <td className="px-3 py-2">
+                    <div className="text-sm font-medium text-text-dark">{esc(tpl.name)}</div>
+                    {tpl.description && (
+                      <div className="text-[11px] text-text-xmuted truncate max-w-xs">{esc(tpl.description)}</div>
+                    )}
+                  </td>
+                  {/* Slug */}
+                  <td className="px-3 py-2">
+                    <span className="text-xs font-mono text-text-muted">{tpl.slug}</span>
+                  </td>
+                  {/* Requests count + pending badge */}
+                  <td className="px-3 py-2 text-center">
+                    <span className="text-xs text-text-dark">{tpl.request_count}</span>
+                    {tpl.pending_count > 0 && (
+                      <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-warning text-white font-semibold">
+                        {tpl.pending_count}
+                      </span>
+                    )}
+                  </td>
+                  {/* Status badge */}
+                  <td className="px-3 py-2">
+                    <span className={cn(
+                      'text-[10px] px-1.5 py-0.5 rounded',
+                      tpl.is_active ? 'bg-success-light text-success' : 'bg-border-light text-text-xmuted',
+                    )}>
+                      {tpl.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  {/* Updated */}
+                  <td className="px-3 py-2">
+                    <span className="text-xs text-text-xmuted">{timeAgo(tpl.updated_at)}</span>
+                  </td>
+                  {/* Actions */}
+                  <td className="px-3 py-2 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => setModal(tpl)}
+                        className="p-1.5 text-text-xmuted hover:text-text-dark rounded-sm"
+                        title="Edit"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(tpl)}
+                        className="p-1.5 text-text-xmuted hover:text-danger rounded-sm"
+                        title="Delete"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {/* Table footer */}
+          <div className="px-3 py-2 border-t border-border bg-bg">
+            <span className="text-xs text-text-muted">
+              {templates.length} template{templates.length !== 1 ? 's' : ''}
+            </span>
+          </div>
         </div>
       )}
 
@@ -724,94 +860,7 @@ export function ApprovalsBuilderPage() {
   )
 }
 
-// ─── TemplateCard ─────────────────────────────────────────────────────────────
-
-function TemplateCard({
-  template,
-  webhookUrl,
-  onEdit,
-  onToggle,
-  onDelete,
-}: {
-  template: HitlTemplate
-  webhookUrl: string
-  onEdit: () => void
-  onToggle: () => void
-  onDelete: () => void
-}) {
-  const { success: showSuccess } = useToast()
-
-  return (
-    <div className="bg-card border border-border rounded-md p-3">
-      <div className="flex items-start gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-text-dark">{esc(template.name)}</span>
-            <span className={cn(
-              'text-[10px] px-1.5 py-0.5 rounded',
-              template.is_active ? 'bg-success-light text-success' : 'bg-border-light text-text-xmuted',
-            )}>
-              {template.is_active ? 'Active' : 'Inactive'}
-            </span>
-          </div>
-
-          {template.description && (
-            <p className="text-xs text-text-muted mt-0.5 truncate">{esc(template.description)}</p>
-          )}
-
-          <div className="flex items-center gap-3 mt-1 flex-wrap">
-            <span className="text-[10px] text-text-xmuted font-mono">{template.slug}</span>
-            <span className="text-[10px] text-text-xmuted">
-              {template.request_count} req · {template.pending_count} pending
-            </span>
-            <span className="text-[10px] text-text-xmuted">{timeAgo(template.created_at)}</span>
-          </div>
-
-          {/* Webhook URL */}
-          <div className="flex items-center gap-1 mt-1.5">
-            <span className="text-[10px] font-mono text-text-xmuted truncate max-w-xs">{webhookUrl}</span>
-            <button
-              onClick={() => { navigator.clipboard.writeText(webhookUrl); showSuccess('Copied') }}
-              className="p-0.5 text-text-xmuted hover:text-primary shrink-0"
-              title="Copy webhook URL"
-            >
-              <Copy size={11} />
-            </button>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            onClick={onToggle}
-            className="p-1.5 text-text-xmuted hover:text-primary rounded-sm"
-            title={template.is_active ? 'Deactivate' : 'Activate'}
-          >
-            {template.is_active
-              ? <ToggleRight size={15} className="text-success" />
-              : <ToggleLeft size={15} />}
-          </button>
-          <button
-            onClick={onEdit}
-            className="p-1.5 text-text-xmuted hover:text-text-dark rounded-sm"
-            title="Edit"
-          >
-            <Pencil size={13} />
-          </button>
-          <button
-            onClick={onDelete}
-            className="p-1.5 text-text-xmuted hover:text-danger rounded-sm"
-            title="Delete"
-          >
-            <Trash2 size={13} />
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── TemplateModal ────────────────────────────────────────────────────────────
+// --- TemplateModal ------------------------------------------------------------
 
 const COMPONENT_TYPES: ComponentType[] = [
   'heading', 'text', 'data-display', 'json-viewer', 'badge', 'divider', 'spacer',
@@ -865,6 +914,16 @@ function TemplateModal({
       setSchemaError('Invalid JSON')
       return null
     }
+  }
+
+  const handleSave = () => {
+    const schema = getSchema()
+    if (!schema) return
+    if (schema.length === 0) {
+      showError('Template must have at least one component')
+      return
+    }
+    saveMut.mutate()
   }
 
   const saveMut = useMutation({
@@ -1043,7 +1102,7 @@ function TemplateModal({
           </button>
           <button
             disabled={!name.trim() || !slug.trim() || saveMut.isPending}
-            onClick={() => saveMut.mutate()}
+            onClick={handleSave}
             className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
           >
             {saveMut.isPending ? 'Saving...' : initial ? 'Save Changes' : 'Create Template'}

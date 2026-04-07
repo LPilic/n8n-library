@@ -20,6 +20,8 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #2727 | 12:47 AM | 🔄 | Unused Copy Icon Import Removed from Approvals Feature | ~175 |
+| #2725 | 12:33 AM | ✅ | Widened Sidebars Across Library, Service Desk, and KB Pages | ~274 |
 | #2706 | 12:13 AM | 🔵 | Settings Modal Pattern Discovery: InstanceModal Component Structure | ~311 |
 | #2705 | " | 🔵 | Settings Page Structure and Dependencies | ~257 |
 | #2701 | 12:07 AM | ✅ | Metrics API response format transformation for multi-instance support | ~305 |
