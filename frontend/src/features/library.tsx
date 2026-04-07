@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/hooks/useToast'
 import { esc } from '@/lib/utils'
 import { appConfirm } from '@/components/ConfirmDialog'
-import { Search, Trash2, History, Pencil, Sparkles } from 'lucide-react'
+import { Search, History, Sparkles } from 'lucide-react'
 import { NodeFlow } from '@/components/NodeFlow'
 
 interface Template {
@@ -419,7 +419,7 @@ export function LibraryPage() {
             <p className="text-xs text-text-xmuted mt-1">Import workflows from your n8n instance</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', maxWidth: '1600px' }}>
             {filtered.map((t) => (
               <TemplateCard
                 key={t.id}
@@ -502,74 +502,58 @@ function TemplateCard({
   }
 
   return (
-    <div className="bg-card border border-border rounded-md overflow-hidden hover:border-border transition-colors">
-      {/* Node flow preview */}
-      <div className="px-3 py-2 border-b border-border-light overflow-x-auto">
-        <NodeFlow nodes={nodes} />
+    <div className="bg-card border border-border rounded-lg p-5 flex flex-col shadow-sm card-hover-effect">
+      {/* Node flow preview — 208px tall, wrapping, clickable for preview */}
+      <div className="mb-3">
+        <NodeFlow nodes={nodes} maxShow={12} />
       </div>
 
       {/* Header */}
-      <div className="px-3 py-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-text-dark truncate">{esc(template.name)}</h3>
-          <span className="text-[11px] text-text-xmuted ml-2 shrink-0">#{template.id}</span>
-        </div>
-
-        {/* Description */}
-        {template.description && (
-          <p
-            className="text-xs text-text-muted mt-1 line-clamp-2"
-            // TODO: sanitize with DOMPurify
-            dangerouslySetInnerHTML={{ __html: template.description }}
-          />
-        )}
-
-        {/* Categories */}
-        {template.categories && template.categories.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {template.categories.map((c) => (
-              <span key={c.id} className="text-[10px] px-1.5 py-0.5 bg-border-light text-text-muted rounded">
-                {c.name}
-              </span>
-            ))}
-          </div>
-        )}
+      <div className="flex items-start justify-between mb-1.5 min-h-[20px]">
+        <h3 className="text-[14px] font-semibold text-text-dark leading-tight flex-1 mr-2 line-clamp-1">{esc(template.name)}</h3>
+        <span className="text-[11px] text-text-muted bg-bg px-2 py-0.5 rounded-full border border-border-light shrink-0">#{template.id}</span>
       </div>
 
-      {/* Actions */}
+      {/* Description — fixed height 40px, 2-line clamp */}
+      <div
+        className="text-[13px] text-text-muted leading-relaxed mb-2.5 h-10 line-clamp-2 overflow-hidden [&_strong]:text-text-dark [&_a]:text-primary [&_code]:bg-bg [&_code]:px-1 [&_code]:rounded [&_code]:text-xs"
+        dangerouslySetInnerHTML={{ __html: template.description || '<span class="text-text-xmuted">No description</span>' }}
+      />
+
+      {/* Categories */}
+      <div className="flex flex-wrap gap-1.5 mb-2.5 min-h-[22px]">
+        {(template.categories ?? []).map((c) => (
+          <span key={c.id} className="text-[11px] px-2 py-0.5 bg-bg border border-border-light text-text-muted rounded-full font-medium">
+            {c.name}
+          </span>
+        ))}
+      </div>
+
+      {/* Actions — matches legacy .card-actions: border-top, gap-6, flex-wrap */}
       {(isWriter || isAdmin) && (
-        <div className="flex items-center gap-1 px-3 py-2 border-t border-border-light">
+        <div className="flex items-center gap-1.5 flex-wrap pt-3 mt-auto border-t border-border-light">
           {isWriter && (
             <>
-              <button
-                onClick={onEdit}
-                className="text-xs px-2 py-1 text-text-muted hover:text-text-dark hover:bg-card-hover rounded-sm flex items-center gap-1"
-              >
-                <Pencil size={12} /> Edit
+              <button onClick={onEdit}
+                className="text-[12px] font-semibold px-2.5 py-[5px] bg-bg-light border border-border text-text-base rounded-md hover:bg-bg transition-colors">
+                Edit
               </button>
-              <button
-                onClick={onHistory}
-                className="text-xs px-2 py-1 text-text-muted hover:text-text-dark hover:bg-card-hover rounded-sm flex items-center gap-1"
-              >
-                <History size={12} /> History
+              <button onClick={onHistory}
+                className="text-[11px] font-semibold px-2.5 py-[5px] bg-bg-light border border-border text-text-base rounded-md hover:bg-bg transition-colors flex items-center gap-1">
+                <History size={11} /> History
               </button>
               {aiEnabled && (
-                <button
-                  onClick={generateDocs}
-                  disabled={docsLoading}
-                  className="text-xs px-2 py-1 text-primary hover:bg-primary-light rounded-sm flex items-center gap-1 disabled:opacity-50"
-                >
-                  <Sparkles size={12} /> {docsLoading ? 'Generating...' : 'Docs'}
+                <button onClick={generateDocs} disabled={docsLoading}
+                  className="text-[11px] font-semibold px-2.5 py-[5px] bg-bg-light border border-border text-text-base rounded-md hover:bg-bg transition-colors flex items-center gap-1 disabled:opacity-40">
+                  <Sparkles size={11} /> {docsLoading ? 'Generating...' : 'Docs'}
                 </button>
               )}
             </>
           )}
           {isAdmin && (
-            <button
-              onClick={onDelete}
-              className="text-xs px-2 py-1 text-danger hover:bg-danger-light rounded-sm flex items-center gap-1 ml-auto"
-            >
-              <Trash2 size={12} /> Delete
+            <button onClick={onDelete}
+              className="text-[12px] font-semibold px-2.5 py-[5px] border border-danger text-danger rounded-md hover:bg-danger-light transition-colors ml-auto">
+              Delete
             </button>
           )}
         </div>

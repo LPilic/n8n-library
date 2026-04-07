@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { loadNodeIcons, getNodeIconSrc } from '@/lib/node-icons'
-import { cn } from '@/lib/utils'
+import { cn, esc } from '@/lib/utils'
 
 interface NodeData {
   type?: string
@@ -9,6 +9,7 @@ interface NodeData {
   group?: string
   position?: number[]
   iconData?: { type?: string; fileBuffer?: string; icon?: string }
+  icon?: string
 }
 
 const TRIGGER_KW = ['trigger', 'webhook', 'cron', 'schedule', 'start', 'event', 'formtrigger', 'chattrigger']
@@ -26,36 +27,76 @@ function getNodeLabel(node: NodeData): string {
 }
 
 function getNodeType(node: NodeData): string {
-  // Template nodes: type is in `name` field (e.g. "n8n-nodes-base.httpRequest")
-  // Monitoring nodes: type is in `type` field
   return node.type || node.name || ''
 }
 
 function NodeIcon({ node }: { node: NodeData }) {
+  const trigger = isTrigger(node)
+
   // Try inline iconData first (template nodes have it)
   if (node.iconData?.type === 'file' && node.iconData.fileBuffer?.startsWith('data:image')) {
-    return <img src={node.iconData.fileBuffer} alt="" className="w-4 h-4 object-contain" />
+    return (
+      <span className={cn('w-[22px] h-[22px] rounded-md flex items-center justify-center shrink-0 border overflow-hidden',
+        trigger ? 'bg-primary border-primary' : 'bg-bg border-border-light')}>
+        <img src={node.iconData.fileBuffer} alt="" className="w-4 h-4 object-contain" />
+      </span>
+    )
   }
 
   // Try lookup from icon cache
   const src = getNodeIconSrc(getNodeType(node))
   if (src) {
-    return <img src={src} alt="" className="w-4 h-4 object-contain" />
+    return (
+      <span className={cn('w-[22px] h-[22px] rounded-md flex items-center justify-center shrink-0 border overflow-hidden',
+        trigger ? 'bg-primary border-primary' : 'bg-bg border-border-light')}>
+        <img src={src} alt="" className="w-4 h-4 object-contain" />
+      </span>
+    )
   }
 
-  return null
+  // Fallback: gear icon placeholder
+  return (
+    <span className={cn('w-[22px] h-[22px] rounded-md flex items-center justify-center shrink-0 border text-[11px]',
+      trigger ? 'bg-primary border-primary text-white' : 'bg-bg border-border-light text-text-dark')}>
+      &#9881;
+    </span>
+  )
 }
 
-export function NodeFlow({ nodes, maxShow = 8 }: { nodes: NodeData[]; maxShow?: number }) {
+export { type NodeData }
+
+/**
+ * NodeFlow — renders node badges in a wrapping container matching the legacy design.
+ * - height: 208px (card mode) or auto (compact mode)
+ * - flex-wrap: wrap with badges flowing to multiple lines
+ * - clickable: shows "Preview" button on hover when onClick provided
+ */
+export function NodeFlow({
+  nodes,
+  maxShow = 12,
+  onClick,
+  compact = false,
+}: {
+  nodes: NodeData[]
+  maxShow?: number
+  onClick?: () => void
+  compact?: boolean
+}) {
   const [, setIconsLoaded] = useState(false)
 
-  // Load icons on mount
   useEffect(() => {
     loadNodeIcons().then(() => setIconsLoaded(true))
   }, [])
 
   if (nodes.length === 0) {
-    return <span className="text-text-xmuted text-xs">No nodes</span>
+    return (
+      <div className={cn(
+        'flex items-center justify-center text-text-xmuted text-xs',
+        !compact && 'h-[208px] bg-bg rounded-md border border-border-light',
+      )}>
+        No nodes
+      </div>
+    )
   }
 
   const sorted = [...nodes].sort((a, b) => {
@@ -69,23 +110,43 @@ export function NodeFlow({ nodes, maxShow = 8 }: { nodes: NodeData[]; maxShow?: 
   const remaining = nodes.length - maxShow
 
   return (
-    <div className="flex items-center gap-1 flex-nowrap">
-      {show.map((node, i) => (
-        <div key={i} className="flex items-center gap-1">
-          <span
-            className={cn(
-              'inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded whitespace-nowrap',
-              isTrigger(node) ? 'bg-success-light text-success' : 'bg-border-light text-text-muted',
+    <div
+      onClick={onClick}
+      className={cn(
+        'flex items-start gap-1.5 flex-wrap content-start relative group',
+        !compact && 'h-[208px] bg-bg rounded-md border border-border-light p-2.5 overflow-hidden cursor-pointer transition-colors duration-150 hover:border-primary',
+        compact && 'gap-1',
+      )}
+    >
+      {show.map((node, i) => {
+        const trigger = isTrigger(node)
+        return (
+          <div key={i} className="flex items-center gap-1.5">
+            <span
+              className={cn(
+                'inline-flex items-center gap-[5px] pl-[6px] pr-2.5 py-1 rounded-[14px] text-[11px] font-medium whitespace-nowrap border shrink-0',
+                trigger
+                  ? 'bg-[#fff3f1] border-[#ffc8c0] text-[#c63a28] [html[data-theme=dark]_&]:bg-[#2e1f1c] [html[data-theme=dark]_&]:border-[#5c3028] [html[data-theme=dark]_&]:text-[#ff8a7a]'
+                  : 'bg-bg-light border-border text-text-dark',
+              )}
+            >
+              <NodeIcon node={node} />
+              {esc(getNodeLabel(node))}
+            </span>
+            {i < show.length - 1 && !compact && (
+              <span className="text-text-xmuted text-[11px] shrink-0">&rarr;</span>
             )}
-          >
-            <NodeIcon node={node} />
-            {getNodeLabel(node)}
-          </span>
-          {i < show.length - 1 && <span className="text-text-xmuted text-[10px]">&rarr;</span>}
-        </div>
-      ))}
+          </div>
+        )
+      })}
       {remaining > 0 && (
-        <span className="text-text-xmuted text-[10px] ml-1">+{remaining} more</span>
+        <span className="text-[11px] text-text-muted py-1 px-2 shrink-0">+{remaining} more</span>
+      )}
+      {/* Preview button on hover */}
+      {onClick && !compact && (
+        <span className="absolute bottom-2 right-2 px-2.5 py-1 text-[11px] font-semibold text-white bg-primary rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none z-[2]">
+          Preview
+        </span>
       )}
     </div>
   )
