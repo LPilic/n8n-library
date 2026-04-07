@@ -125,9 +125,9 @@ function ImportModal({
                 <label className="text-[12px] font-semibold uppercase tracking-wide text-text-muted">Name</label>
                 {aiEnabled && (
                   <button onClick={generateName} disabled={genNameLoading}
-                    className="text-[11px] text-primary hover:text-primary-hover flex items-center gap-1 disabled:opacity-50">
+                    className="text-[11px] font-semibold px-2 py-1 bg-bg-light border border-border text-primary rounded-md hover:bg-bg flex items-center gap-1 disabled:opacity-50">
                     {genNameLoading ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-                    {genNameLoading ? 'Generating...' : 'Generate'}
+                    {genNameLoading ? 'Generating...' : '\u2728 Generate'}
                   </button>
                 )}
               </div>
@@ -139,9 +139,9 @@ function ImportModal({
                 <label className="text-[12px] font-semibold uppercase tracking-wide text-text-muted">Description</label>
                 {aiEnabled && (
                   <button onClick={generateDescription} disabled={genDescLoading}
-                    className="text-[11px] text-primary hover:text-primary-hover flex items-center gap-1 disabled:opacity-50">
+                    className="text-[11px] font-semibold px-2 py-1 bg-bg-light border border-border text-primary rounded-md hover:bg-bg flex items-center gap-1 disabled:opacity-50">
                     {genDescLoading ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-                    {genDescLoading ? 'Generating...' : 'Generate'}
+                    {genDescLoading ? 'Generating...' : '\u2728 Generate'}
                   </button>
                 )}
               </div>
