@@ -43,7 +43,7 @@ export function PreviewModal({ title, workflowData, onClose }: Props) {
             Close
           </button>
         </div>
-        <div className="flex-1 overflow-hidden p-4">
+        <div className="flex-1 overflow-hidden">
           <N8nDemoPreview workflow={workflowData} />
         </div>
       </div>
