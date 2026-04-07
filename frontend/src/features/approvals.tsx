@@ -83,6 +83,9 @@ interface SchemaComponent {
   alt?: string
   placeholder?: string
   required?: boolean
+  format?: string
+  name?: string
+  props?: Record<string, unknown>
 }
 
 // --- Helpers ------------------------------------------------------------------
@@ -115,6 +118,19 @@ const TAB_EMPTY_MESSAGES: Record<StatusTab, string> = {
   rejected: 'No rejected requests',
   expired: 'No expired requests',
   all: 'No requests found',
+}
+
+/** Resolve {{field.path}} templates with data values */
+function resolveTemplate(text: string, data: Record<string, unknown>): string {
+  return text.replace(/\{\{([^}]+)\}\}/g, (_m, path: string) => {
+    const parts = path.trim().split('.')
+    let val: unknown = data
+    for (const p of parts) {
+      if (val && typeof val === 'object') val = (val as Record<string, unknown>)[p]
+      else return `{{${path}}}`
+    }
+    return val !== undefined && val !== null ? String(val) : `{{${path}}}`
+  })
 }
 
 // --- HitlFormRenderer ---------------------------------------------------------
@@ -152,21 +168,25 @@ function RenderComponent({
           'font-semibold text-text-dark',
           comp.level === 1 ? 'text-base' : comp.level === 2 ? 'text-sm' : 'text-sm',
         )}>
-          {comp.text ?? comp.label ?? ''}
+          {resolveTemplate(String(comp.text ?? comp.label ?? ''), data)}
         </Tag>
       )
     }
 
     case 'text':
-      return <p className="text-sm text-text-muted">{comp.text ?? displayValue}</p>
+      return <p className="text-sm text-text-muted">{resolveTemplate(String(comp.text ?? displayValue), data)}</p>
 
-    case 'data-display':
+    case 'data-display': {
+      let formatted = displayValue
+      if (comp.format === 'currency' && displayValue) formatted = `$${Number(displayValue).toLocaleString()}`
+      else if (comp.format === 'date' && displayValue) formatted = new Date(displayValue).toLocaleDateString()
       return (
         <div className="flex flex-col gap-0.5">
-          {comp.label && <span className="text-[10px] font-semibold uppercase text-text-xmuted">{comp.label}</span>}
-          <span className="text-sm text-text-dark">{displayValue || <span className="text-text-xmuted italic">--</span>}</span>
+          {comp.label && <span className="text-[10px] font-semibold uppercase text-text-xmuted">{resolveTemplate(String(comp.label), data)}</span>}
+          <span className="text-sm text-text-dark">{formatted || <span className="text-text-xmuted italic">--</span>}</span>
         </div>
       )
+    }
 
     case 'json-viewer':
       return (

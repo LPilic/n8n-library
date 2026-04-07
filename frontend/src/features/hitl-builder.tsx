@@ -74,6 +74,32 @@ function slugify(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 }
 
+function inferFieldType(val: unknown): string {
+  if (val === null || val === undefined) return 'text'
+  if (typeof val === 'boolean') return 'boolean'
+  if (typeof val === 'number') return val >= 0 && val <= 1 ? 'score' : 'number'
+  if (typeof val === 'string') {
+    if (/^https?:\/\/.*\.(png|jpg|jpeg|gif|svg|webp)/i.test(val)) return 'image'
+    if (val.length > 100) return 'longtext'
+    return 'text'
+  }
+  if (Array.isArray(val)) return 'array'
+  if (typeof val === 'object') return 'object'
+  return 'text'
+}
+
+const FIELD_TYPE_ICON: Record<string, string> = {
+  number: '#', score: '%', boolean: '?', text: 'T', longtext: 'P',
+  image: 'I', array: '[]', object: '{}',
+}
+
+function fieldPreview(val: unknown): string {
+  if (val === null || val === undefined) return 'null'
+  if (Array.isArray(val)) return `${val.length} items`
+  if (typeof val === 'object') return `${Object.keys(val as Record<string, unknown>).length} keys`
+  return String(val).substring(0, 50)
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Palette item (draggable source)                                           */
 /* -------------------------------------------------------------------------- */
@@ -416,6 +442,8 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
   const [sampleData, setSampleData] = useState('{\n  "amount": 1250,\n  "vendor": "Acme Corp"\n}')
   const [saving, setSaving] = useState(false)
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
+  const [captureToken, setCaptureToken] = useState<string | null>(null)
+  const [capturing, setCapturing] = useState(false)
 
   /* Load existing template */
   useQuery({
@@ -521,6 +549,61 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
     }
   }
 
+  /* Webhook capture */
+  const startCapture = async () => {
+    try {
+      const res = await api.post<{ token: string }>('/api/hitl/capture')
+      setCaptureToken(res.token)
+      setCapturing(true)
+      // Poll every 2s
+      const poll = setInterval(async () => {
+        try {
+          const check = await api.get<{ captured?: boolean; payload?: Record<string, unknown> }>(`/api/hitl/capture/${res.token}`)
+          if (check.captured && check.payload) {
+            clearInterval(poll)
+            setSampleData(JSON.stringify(check.payload, null, 2))
+            setCaptureToken(null)
+            setCapturing(false)
+            toast.success(`Webhook captured! ${Object.keys(check.payload).length} fields found.`)
+          }
+        } catch {
+          clearInterval(poll)
+          setCaptureToken(null)
+          setCapturing(false)
+        }
+      }, 2000)
+      // Auto-stop after 60s
+      setTimeout(() => { clearInterval(poll); setCaptureToken(null); setCapturing(false) }, 60000)
+    } catch {
+      toast.error('Failed to start capture')
+    }
+  }
+
+  const stopCapture = () => {
+    if (captureToken) {
+      api.delete(`/api/hitl/capture/${captureToken}`).catch(() => {})
+      setCaptureToken(null)
+      setCapturing(false)
+    }
+  }
+
+  const captureUrl = captureToken ? `${window.location.origin}/api/hitl/capture/${captureToken}` : ''
+  const prodWebhookUrl = slug ? `${window.location.origin}/api/hitl/webhook/${slug}` : ''
+  const testWebhookUrl = slug ? `${window.location.origin}/api/hitl/webhook/test/${slug}` : ''
+
+  /* Parse sample data for data fields palette */
+  const dataFields = useMemo(() => {
+    try {
+      const obj = JSON.parse(sampleData)
+      if (typeof obj !== 'object' || obj === null) return []
+      return Object.entries(obj).map(([key, val]) => ({
+        key,
+        type: inferFieldType(val),
+        preview: fieldPreview(val),
+      }))
+    } catch { return [] }
+  }, [sampleData])
+
   /* Drag overlay content */
   const dragOverlayContent = useMemo(() => {
     if (!activeDragId) return null
@@ -583,6 +666,30 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
         </div>
       </div>
 
+      {/* Webhook URLs */}
+      {slug && (
+        <div className="px-4 py-2 border-b border-border bg-card text-xs flex-shrink-0">
+          <div className="text-text-muted mb-1 flex items-center gap-1">
+            <span className="font-semibold">Webhook URLs</span>
+            <span className="text-text-xmuted">(requires API key: Authorization: Bearer n8nlib_xxx)</span>
+          </div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-success/10 text-success">PROD</span>
+            <input type="text" readOnly value={prodWebhookUrl} onClick={e => (e.target as HTMLInputElement).select()}
+              className="flex-1 px-2 py-1 border border-border rounded text-[11px] font-mono bg-bg text-text-dark" />
+            <button onClick={() => { navigator.clipboard.writeText(prodWebhookUrl); toast.success('Copied!') }}
+              className="text-[11px] px-2 py-1 border border-border rounded hover:bg-bg">Copy</button>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-warning/10 text-warning">TEST</span>
+            <input type="text" readOnly value={testWebhookUrl} onClick={e => (e.target as HTMLInputElement).select()}
+              className="flex-1 px-2 py-1 border border-border rounded text-[11px] font-mono bg-bg text-text-dark" />
+            <button onClick={() => { navigator.clipboard.writeText(testWebhookUrl); toast.success('Copied!') }}
+              className="text-[11px] px-2 py-1 border border-border rounded hover:bg-bg">Copy</button>
+          </div>
+        </div>
+      )}
+
       {/* Body */}
       {previewMode ? (
         /* ---- Preview mode ---- */
@@ -625,6 +732,58 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
                     </div>
                   )
                 })}
+              {/* Data Fields section */}
+              <div className="border-t border-border mt-2 pt-2 px-2">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-text-xmuted">Data Fields</span>
+                  {!capturing ? (
+                    <button onClick={startCapture} className="text-[10px] text-primary hover:text-primary-hover font-semibold">
+                      Listen for webhook...
+                    </button>
+                  ) : (
+                    <button onClick={stopCapture} className="text-[10px] text-danger hover:text-danger/80 font-semibold">
+                      Stop listening
+                    </button>
+                  )}
+                </div>
+                {capturing && captureUrl && (
+                  <div className="mb-2 p-2 bg-success/5 border border-success/20 rounded text-[11px]">
+                    <div className="flex items-center gap-1 text-success font-semibold mb-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-success health-pulse" /> Listening...
+                    </div>
+                    <input type="text" readOnly value={captureUrl} onClick={e => (e.target as HTMLInputElement).select()}
+                      className="w-full px-1.5 py-0.5 border border-border rounded text-[10px] font-mono bg-bg mb-1" />
+                    <div className="text-text-xmuted">Send a POST with JSON body from your n8n workflow</div>
+                  </div>
+                )}
+                {dataFields.length > 0 ? (
+                  <div className="space-y-0.5">
+                    {dataFields.map((f) => (
+                      <div key={f.key}
+                        className="border border-border-light rounded px-2 py-1 text-[12px] cursor-pointer hover:border-primary flex items-center gap-1.5"
+                        onClick={() => {
+                          const type = f.type === 'score' ? 'badge' : f.type === 'image' ? 'image' : f.type === 'array' || f.type === 'object' ? 'json-viewer' : 'data-display'
+                          const def = HITL_COMPONENTS[type]
+                          const newComp: SchemaComponent = { id: uid(), type, props: { ...def.defaults, field: f.key, label: f.key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) } }
+                          setComponents(prev => [...prev, newComp])
+                          setSelectedId(newComp.id)
+                        }}
+                        title={`Click to add ${f.key} as a component`}
+                      >
+                        <span className="w-4 text-center font-mono text-text-xmuted text-[10px]">{FIELD_TYPE_ICON[f.type] || '·'}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold truncate">{f.key}</div>
+                          <div className="text-[10px] text-text-muted truncate">{f.preview}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-text-xmuted py-1">
+                    No data fields. Use webhook capture or enter sample data in Preview mode.
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Center: Canvas */}

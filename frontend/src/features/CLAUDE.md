@@ -20,6 +20,9 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #2752 | 1:06 AM | 🔵 | RenderComponent Function Location in Approvals Schema Renderer | ~221 |
+| #2751 | " | 🟣 | Data Fields Palette with Webhook Capture in HITL Form Builder | ~453 |
+| #2745 | 1:02 AM | 🔴 | Fixed HITL builder drag-and-drop and component selection | ~409 |
 | #2727 | 12:47 AM | 🔄 | Unused Copy Icon Import Removed from Approvals Feature | ~175 |
 | #2725 | 12:33 AM | ✅ | Widened Sidebars Across Library, Service Desk, and KB Pages | ~274 |
 | #2706 | 12:13 AM | 🔵 | Settings Modal Pattern Discovery: InstanceModal Component Structure | ~311 |
