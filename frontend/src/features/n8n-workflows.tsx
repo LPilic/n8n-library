@@ -96,7 +96,7 @@ function ImportModal({
 
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
-    queryFn: () => api.get<Category[]>('/api/categories'),
+    queryFn: () => api.get<{ categories: Category[] }>('/api/categories').then(r => r.categories),
   })
 
   const { data: aiStatus } = useQuery({

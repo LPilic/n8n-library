@@ -22,7 +22,10 @@ export function TagsPage() {
 
   const { data: tags = [], isLoading } = useQuery({
     queryKey: ['tags'],
-    queryFn: () => api.get<TagItem[]>('/api/tags'),
+    queryFn: async () => {
+      const r = await api.get<{ data?: TagItem[] } | TagItem[]>('/api/tags')
+      return Array.isArray(r) ? r : r.data ?? []
+    },
   })
 
   const deleteMut = useMutation({

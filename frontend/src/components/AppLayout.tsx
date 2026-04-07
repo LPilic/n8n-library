@@ -1,6 +1,7 @@
 import { useState, useEffect, type ComponentType } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth'
+import { ErrorBoundary } from './ErrorBoundary'
 import { useThemeStore } from '@/stores/theme'
 import { useBrandingStore } from '@/stores/branding'
 import { cn } from '@/lib/utils'
@@ -226,7 +227,9 @@ export function AppLayout() {
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto p-6">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
 

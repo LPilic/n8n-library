@@ -44,7 +44,7 @@ export function LibraryPage() {
   // Fetch categories
   const { data: categoriesData } = useQuery({
     queryKey: ['categories'],
-    queryFn: () => api.get<Category[]>('/api/categories'),
+    queryFn: () => api.get<{ categories: Category[] }>('/api/categories').then(r => r.categories),
   })
 
   // Delete template

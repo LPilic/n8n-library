@@ -22,7 +22,10 @@ export function VariablesPage() {
 
   const { data: variables = [], isLoading } = useQuery({
     queryKey: ['variables'],
-    queryFn: () => api.get<Variable[]>('/api/variables'),
+    queryFn: async () => {
+      const r = await api.get<{ data?: Variable[] } | Variable[]>('/api/variables')
+      return Array.isArray(r) ? r : r.data ?? []
+    },
   })
 
   const deleteMut = useMutation({

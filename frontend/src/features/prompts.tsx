@@ -397,7 +397,10 @@ export function PromptDetailPage() {
 
   const { data: versions } = useQuery({
     queryKey: ['prompt-versions', prompt?.id],
-    queryFn: () => api.get<PromptVersion[]>(`/api/prompts/${prompt!.id}/versions`),
+    queryFn: async () => {
+      const r = await api.get<{ versions?: PromptVersion[] } | PromptVersion[]>(`/api/prompts/${prompt!.id}/versions`)
+      return Array.isArray(r) ? r : r.versions ?? []
+    },
     enabled: !!prompt?.id,
   })
 
