@@ -488,7 +488,7 @@ function RequestCard({
   isSelected: boolean
   onClick: () => void
 }) {
-  const previewEntries = Object.entries(request.submitted_data).slice(0, 3)
+  const previewEntries = Object.entries(request.submitted_data || {}).slice(0, 3)
 
   return (
     <div
@@ -594,7 +594,7 @@ function RequestDetailPanel({
           ) : (
             /* Fallback: show raw submitted data */
             <div className="space-y-2">
-              {Object.entries(req.submitted_data).map(([k, v]) => (
+              {Object.entries(req.submitted_data || {}).map(([k, v]) => (
                 <div key={k} className="flex flex-col gap-0.5">
                   <span className="text-[10px] font-semibold uppercase text-text-xmuted">{k}</span>
                   <span className="text-sm text-text-dark">{String(v)}</span>

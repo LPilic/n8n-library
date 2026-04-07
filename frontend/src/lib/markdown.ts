@@ -1,65 +1,134 @@
-/** Simple markdown to HTML converter for AI-generated content */
+/**
+ * Converts markdown to HTML. Handles:
+ * - Mixed content (HTML + markdown)
+ * - Headings (# to ####)
+ * - Bold (**text**) and italic (*text*)
+ * - Code blocks (``` ... ```) and inline code
+ * - Unordered (-) and ordered (1.) lists
+ * - Horizontal rules (---)
+ * - Paragraphs (blank-line separated)
+ * - Passes through existing HTML tags untouched
+ */
 export function markdownToHtml(md: string): string {
   if (!md) return ''
 
-  // If it already looks like HTML (starts with a tag), return as-is
-  if (/^\s*<[a-z][\s\S]*>/i.test(md)) return md
+  // If content is predominantly HTML (has multiple tags), return as-is
+  const tagCount = (md.match(/<[a-z][^>]*>/gi) || []).length
+  if (tagCount > 3) return md
 
-  let html = md
-    // Escape HTML entities in the markdown
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
+  // Split into lines for processing
+  const lines = md.split('\n')
+  const result: string[] = []
+  let inCodeBlock = false
+  let codeBlockLang = ''
+  let codeLines: string[] = []
+  let listItems: string[] = []
 
-  // Code blocks (``` ... ```)
-  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_m, lang, code) => {
-    return `<pre><code class="language-${lang}">${code.trim()}</code></pre>`
-  })
+  function flushList() {
+    if (listItems.length > 0) {
+      result.push('<ul>' + listItems.join('') + '</ul>')
+      listItems = []
+    }
+  }
 
-  // Inline code
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
 
-  // Headings
-  html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>')
-  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>')
-  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>')
-  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    // Code blocks
+    if (line.startsWith('```')) {
+      if (inCodeBlock) {
+        result.push(`<pre><code class="language-${codeBlockLang}">${codeLines.join('\n')}</code></pre>`)
+        codeLines = []
+        inCodeBlock = false
+        codeBlockLang = ''
+      } else {
+        flushList()
+        inCodeBlock = true
+        codeBlockLang = line.slice(3).trim()
+      }
+      continue
+    }
+    if (inCodeBlock) {
+      codeLines.push(escapeHtml(line))
+      continue
+    }
 
-  // Horizontal rules
-  html = html.replace(/^---+$/gm, '<hr>')
+    // Skip lines that are already HTML
+    if (/^\s*<[a-z/][^>]*>/i.test(line)) {
+      flushList()
+      result.push(line)
+      continue
+    }
 
-  // Bold and italic
-  html = html.replace(/\*\*\*([^*]+)\*\*\*/g, '<strong><em>$1</em></strong>')
-  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-  html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    // Horizontal rule
+    if (/^---+\s*$/.test(line)) {
+      flushList()
+      result.push('<hr>')
+      continue
+    }
 
-  // Unordered lists (handle nested with indentation)
-  html = html.replace(/^(\s*)-\s+(.+)$/gm, (_m, indent, text) => {
-    const depth = Math.floor(indent.length / 2)
-    return `<li data-depth="${depth}">${text}</li>`
-  })
+    // Headings
+    const headingMatch = line.match(/^(#{1,4})\s+(.+)$/)
+    if (headingMatch) {
+      flushList()
+      const level = headingMatch[1].length
+      result.push(`<h${level}>${formatInline(headingMatch[2])}</h${level}>`)
+      continue
+    }
 
-  // Ordered lists
-  html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>')
+    // Unordered list items
+    const ulMatch = line.match(/^(\s*)-\s+(.+)$/)
+    if (ulMatch) {
+      listItems.push(`<li>${formatInline(ulMatch[2])}</li>`)
+      continue
+    }
 
-  // Wrap consecutive <li> elements in <ul>
-  html = html.replace(/((?:<li[^>]*>.*<\/li>\n?)+)/g, '<ul>$1</ul>')
+    // Ordered list items
+    const olMatch = line.match(/^\s*\d+[.)]\s+(.+)$/)
+    if (olMatch) {
+      listItems.push(`<li>${formatInline(olMatch[1])}</li>`)
+      continue
+    }
 
-  // Paragraphs — wrap lines that aren't already wrapped in tags
-  html = html.replace(/^(?!<[a-z/])((?!$).+)$/gm, '<p>$1</p>')
+    // Flush list before non-list content
+    flushList()
 
-  // Clean up empty paragraphs
-  html = html.replace(/<p>\s*<\/p>/g, '')
+    // Empty line
+    if (line.trim() === '') {
+      continue
+    }
 
-  // Fix double-wrapped elements
-  html = html.replace(/<p>(<h[1-6]>)/g, '$1')
-  html = html.replace(/(<\/h[1-6]>)<\/p>/g, '$1')
-  html = html.replace(/<p>(<pre>)/g, '$1')
-  html = html.replace(/(<\/pre>)<\/p>/g, '$1')
-  html = html.replace(/<p>(<ul>)/g, '$1')
-  html = html.replace(/(<\/ul>)<\/p>/g, '$1')
-  html = html.replace(/<p>(<hr>)/g, '$1')
-  html = html.replace(/(<hr>)<\/p>/g, '$1')
+    // Regular paragraph
+    result.push(`<p>${formatInline(line)}</p>`)
+  }
 
-  return html
+  flushList()
+
+  return result.join('\n')
+}
+
+/** Format inline markdown: bold, italic, code, links */
+function formatInline(text: string): string {
+  let s = text
+
+  // Inline code (must be before bold/italic to avoid conflicts)
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>')
+
+  // Bold + italic
+  s = s.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+
+  // Bold
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+
+  // Italic
+  s = s.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<em>$1</em>')
+
+  // Links [text](url)
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+
+  return s
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
