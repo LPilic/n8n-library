@@ -93,6 +93,42 @@ const FIELD_TYPE_ICON: Record<string, string> = {
   image: 'I', array: '[]', object: '{}',
 }
 
+/** Build a cURL payload from schema fields + sample data */
+function buildCurlPayload(components: SchemaComponent[], sampleDataJson: string, isProd: boolean): Record<string, unknown> {
+  // Collect all field references from display components
+  const fields: Record<string, unknown> = {}
+  for (const c of components) {
+    const p = c.props || {}
+    const field = (p.field as string) || ''
+    if (field && ['data-display', 'json-viewer', 'image', 'badge'].includes(c.type)) {
+      if (c.type === 'badge') fields[field] = 0.5
+      else if (c.type === 'image') fields[field] = 'https://example.com/image.png'
+      else if (c.type === 'json-viewer') fields[field] = []
+      else fields[field] = `value_for_${field}`
+    }
+  }
+
+  // Override with sample data values if available
+  try {
+    const sample = JSON.parse(sampleDataJson)
+    if (typeof sample === 'object' && sample !== null) {
+      for (const [k, v] of Object.entries(sample)) {
+        fields[k] = v
+      }
+    }
+  } catch { /* ignore */ }
+
+  if (isProd) {
+    return {
+      ...fields,
+      callback_url: 'https://your-n8n.example.com/webhook/callback',
+      priority: 'medium',
+      timeout_minutes: 60,
+    }
+  }
+  return fields
+}
+
 function fieldPreview(val: unknown): string {
   if (val === null || val === undefined) return 'null'
   if (Array.isArray(val)) return `${val.length} items`
@@ -679,6 +715,11 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
               className="flex-1 px-2 py-1 border border-border rounded text-[11px] font-mono bg-bg text-text-dark" />
             <button onClick={() => { navigator.clipboard.writeText(prodWebhookUrl); toast.success('Copied!') }}
               className="text-[11px] px-2 py-1 border border-border rounded hover:bg-bg">Copy</button>
+            <button onClick={() => {
+              const payload = buildCurlPayload(components, sampleData, true)
+              const curl = `curl -X POST "${prodWebhookUrl}" \\\n  -H "Authorization: Bearer YOUR_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '${JSON.stringify(payload, null, 2)}'`
+              navigator.clipboard.writeText(curl); toast.success('cURL copied!')
+            }} className="text-[11px] px-2 py-1 border border-border rounded hover:bg-bg">&gt;_ cURL</button>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-warning/10 text-warning">TEST</span>
@@ -686,6 +727,11 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
               className="flex-1 px-2 py-1 border border-border rounded text-[11px] font-mono bg-bg text-text-dark" />
             <button onClick={() => { navigator.clipboard.writeText(testWebhookUrl); toast.success('Copied!') }}
               className="text-[11px] px-2 py-1 border border-border rounded hover:bg-bg">Copy</button>
+            <button onClick={() => {
+              const payload = buildCurlPayload(components, sampleData, false)
+              const curl = `curl -X POST "${testWebhookUrl}" \\\n  -H "Authorization: Bearer YOUR_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '${JSON.stringify(payload, null, 2)}'`
+              navigator.clipboard.writeText(curl); toast.success('cURL copied!')
+            }} className="text-[11px] px-2 py-1 border border-border rounded hover:bg-bg">&gt;_ cURL</button>
           </div>
         </div>
       )}
