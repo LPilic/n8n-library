@@ -568,24 +568,17 @@ export function ExecutionDetailPage() {
     })
   }
 
-  if (isLoading) {
-    return <div className="text-text-muted text-sm flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Loading execution...</div>
-  }
-  if (!exec) {
-    return <div className="text-danger text-sm">Execution not found</div>
-  }
-
-  const status = exec.status as string
-  const workflowName = (exec.workflowName as string) || `Workflow #${exec.workflowId}`
-  const startedAt = exec.startedAt as string
-  const stoppedAt = exec.stoppedAt as string | undefined
-  const mode = exec.mode as string
-  const duration = stoppedAt ? new Date(stoppedAt).getTime() - new Date(startedAt).getTime() : 0
-  const nodeData = (exec.data as Record<string, unknown>)?.resultData as Record<string, unknown> | undefined
+  const status = (exec?.status as string) ?? ''
+  const workflowName = (exec?.workflowName as string) || `Workflow #${exec?.workflowId ?? ''}`
+  const startedAt = (exec?.startedAt as string) ?? ''
+  const stoppedAt = exec?.stoppedAt as string | undefined
+  const mode = (exec?.mode as string) ?? ''
+  const duration = stoppedAt && startedAt ? new Date(stoppedAt).getTime() - new Date(startedAt).getTime() : 0
+  const nodeData = (exec?.data as Record<string, unknown>)?.resultData as Record<string, unknown> | undefined
   const runData = nodeData?.runData as Record<string, Array<Record<string, unknown>>> | undefined
   const globalError = nodeData?.error as Record<string, string> | undefined
 
-  // Sort nodes by startTime
+  // Sort nodes by startTime — must be before any early return
   const sortedNodes = useMemo(() => {
     if (!runData) return []
     return Object.entries(runData).sort(([, aRuns], [, bRuns]) => {
@@ -594,6 +587,13 @@ export function ExecutionDetailPage() {
       return aTime - bTime
     })
   }, [runData])
+
+  if (isLoading) {
+    return <div className="text-text-muted text-sm flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Loading execution...</div>
+  }
+  if (!exec) {
+    return <div className="text-danger text-sm">Execution not found</div>
+  }
 
   return (
     <div>
