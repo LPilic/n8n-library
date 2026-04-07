@@ -28,11 +28,11 @@ interface AiPrompts {
 interface McpServer {
   id: number
   name: string
-  transport_type: 'http' | 'stdio'
+  type: 'http' | 'stdio'
   url?: string
   command?: string
-  args?: string
-  env?: string
+  args?: unknown[] | string
+  env?: Record<string, string> | string
   auth_header?: string
   enabled: boolean
   status: string
@@ -42,22 +42,24 @@ interface McpServer {
 
 interface McpFormState {
   name: string
-  transport_type: 'http' | 'stdio'
+  type: 'http' | 'stdio'
   url: string
   auth_header: string
   command: string
   args: string
   env: string
+  enabled: boolean
 }
 
 const DEFAULT_MCP_FORM: McpFormState = {
   name: '',
-  transport_type: 'http',
+  type: 'http',
   url: '',
   auth_header: '',
   command: '',
-  args: '',
-  env: '',
+  args: '[]',
+  env: '{}',
+  enabled: true,
 }
 
 // ─── MCP Server Modal ─────────────────────────────────────────────────────────
@@ -76,12 +78,13 @@ function McpServerModal({
     initial
       ? {
           name: initial.name,
-          transport_type: initial.transport_type,
+          type: initial.type,
           url: initial.url ?? '',
           auth_header: initial.auth_header ?? '',
           command: initial.command ?? '',
-          args: initial.args ?? '',
-          env: initial.env ?? '',
+          args: Array.isArray(initial.args) ? JSON.stringify(initial.args) : String(initial.args ?? '[]'),
+          env: typeof initial.env === 'object' && initial.env !== null ? JSON.stringify(initial.env, null, 2) : String(initial.env ?? '{}'),
+          enabled: initial.enabled ?? true,
         }
       : DEFAULT_MCP_FORM,
   )
@@ -90,14 +93,18 @@ function McpServerModal({
 
   const saveMut = useMutation({
     mutationFn: () => {
-      const payload = {
+      const payload: Record<string, unknown> = {
         name: form.name.trim(),
-        transport_type: form.transport_type,
-        url: form.url.trim() || undefined,
-        command: form.command.trim() || undefined,
-        args: form.args.trim() || undefined,
-        env: form.env.trim() || undefined,
-        auth_header: form.auth_header.trim() || undefined,
+        type: form.type,
+        enabled: form.enabled,
+      }
+      if (form.type === 'http') {
+        payload.url = form.url.trim()
+        payload.auth_header = form.auth_header.trim()
+      } else {
+        payload.command = form.command.trim()
+        try { payload.args = JSON.parse(form.args || '[]') } catch { payload.args = [] }
+        try { payload.env = JSON.parse(form.env || '{}') } catch { payload.env = {} }
       }
       return initial
         ? api.put(`/api/mcp/servers/${initial.id}`, payload)
@@ -140,8 +147,8 @@ function McpServerModal({
           <div>
             <label className="block text-xs font-medium text-text-muted mb-1">Transport Type</label>
             <select
-              value={form.transport_type}
-              onChange={(e) => set({ transport_type: e.target.value as 'http' | 'stdio' })}
+              value={form.type}
+              onChange={(e) => set({ type: e.target.value as 'http' | 'stdio' })}
               className="w-full text-sm px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark focus:outline-none focus:border-input-focus"
             >
               <option value="http">HTTP</option>
@@ -150,7 +157,7 @@ function McpServerModal({
           </div>
 
           {/* HTTP fields */}
-          {form.transport_type === 'http' && (
+          {form.type === 'http' && (
             <>
               <div>
                 <label className="block text-xs font-medium text-text-muted mb-1">URL *</label>
@@ -177,7 +184,7 @@ function McpServerModal({
           )}
 
           {/* stdio fields */}
-          {form.transport_type === 'stdio' && (
+          {form.type === 'stdio' && (
             <>
               <div>
                 <label className="block text-xs font-medium text-text-muted mb-1">Command *</label>
@@ -195,7 +202,7 @@ function McpServerModal({
                   type="text"
                   value={form.args}
                   onChange={(e) => set({ args: e.target.value })}
-                  placeholder="-y @modelcontextprotocol/server-filesystem /tmp"
+                  placeholder='["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]'
                   className="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus"
                 />
               </div>
@@ -208,10 +215,16 @@ function McpServerModal({
                   rows={4}
                   className="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus font-mono resize-y"
                 />
-                <p className="text-[10px] text-text-xmuted mt-0.5">One KEY=VALUE per line</p>
+                <p className="text-[10px] text-text-xmuted mt-0.5">JSON object, e.g. {`{"KEY": "VALUE"}`}</p>
               </div>
             </>
           )}
+
+          {/* Enabled toggle */}
+          <label className="flex items-center gap-2 text-sm text-text-dark cursor-pointer pt-1">
+            <input type="checkbox" checked={form.enabled} onChange={(e) => set({ enabled: e.target.checked })} className="accent-primary" />
+            Enabled
+          </label>
         </div>
 
         {/* Footer */}
@@ -619,7 +632,7 @@ function McpServersSection() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-text-dark truncate">{srv.name}</p>
                 <p className="text-xs text-text-xmuted truncate mt-0.5">
-                  {srv.transport_type === 'http' ? srv.url : srv.command}
+                  {srv.type === 'http' ? srv.url : `${srv.type ?? 'stdio'} — ${srv.command}`}
                 </p>
               </div>
               <McpStatusBadge server={srv} />
