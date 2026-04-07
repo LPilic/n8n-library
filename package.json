@@ -8,6 +8,8 @@
     "start": "node server.js",
     "setup": "node setup.js",
     "dev": "node --watch server.js",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:frontend": "cd frontend && npm run build",
     "migrate": "node migrate.js",
     "mcp": "node mcp-stdio.js"
   },

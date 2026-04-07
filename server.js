@@ -146,6 +146,18 @@ app.use((req, res, next) => {
 
 // --- Static frontend ---
 
+// Serve React frontend build if it exists (production), fall back to legacy public/
+const reactBuildPath = path.join(__dirname, 'frontend', 'dist');
+if (fs.existsSync(reactBuildPath)) {
+  app.use(express.static(reactBuildPath, {
+    setHeaders: function(res, filePath) {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      }
+    }
+  }));
+}
+
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: function(res, filePath) {
     if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.css')) {
@@ -318,6 +330,11 @@ const CLIENT_ROUTES = ['dashboard','library','n8n','categories','tickets','kb','
 app.get('*', (req, res, next) => {
   const segment = req.path.split('/')[1];
   if (CLIENT_ROUTES.includes(segment)) {
+    // Serve React build if available, otherwise legacy frontend
+    const reactIndex = path.join(__dirname, 'frontend', 'dist', 'index.html');
+    if (fs.existsSync(reactIndex)) {
+      return res.sendFile(reactIndex);
+    }
     return res.sendFile(path.join(__dirname, 'public', 'index.html'));
   }
   next();
