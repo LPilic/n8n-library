@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/hooks/useToast'
 import { esc, timeAgo, cn } from '@/lib/utils'
 import { markdownToHtml } from '@/lib/markdown'
+import { useHighlight } from '@/hooks/useHighlight'
 import { appConfirm } from '@/components/ConfirmDialog'
 import {
   Search,
@@ -404,93 +405,104 @@ export function KbPage() {
   return (
     <div className="flex gap-6">
       {/* Sidebar */}
-      <aside className="w-52 shrink-0 hidden lg:block space-y-5">
-        {/* Stats */}
+      <aside className="w-56 shrink-0 hidden lg:block space-y-3">
+        {/* Stats KPI */}
         {stats && (
-          <div className="bg-card border border-border rounded-md p-3 space-y-2">
-            <div className="flex justify-between text-xs">
-              <span className="text-text-muted">Total Articles</span>
-              <span className="font-medium text-text-dark">{stats.total}</span>
+          <div className="bg-card border border-border rounded-lg p-4 text-center">
+            <div className="text-3xl font-extrabold text-primary">{stats.total}</div>
+            <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wide mt-0.5">Articles</div>
+          </div>
+        )}
+
+        {/* Popular articles */}
+        {stats?.popular && stats.popular.length > 0 && (
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
+            <div className="px-3 py-2 border-b border-border-light">
+              <h3 className="text-[10px] font-bold text-text-xmuted uppercase tracking-[0.08em]">Popular</h3>
             </div>
-            {stats.popular && stats.popular.length > 0 && (
-              <div className="pt-2 border-t border-border-light">
-                <div className="text-[10px] font-semibold text-text-xmuted uppercase mb-1">Popular</div>
-                {stats.popular.slice(0, 5).map((a) => (
-                  <div key={a.id} className="text-xs text-text-muted truncate py-0.5 cursor-pointer hover:text-primary" onClick={() => navigate(`/kb/${a.id}`)}>
-                    {a.title}
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="p-1.5">
+              {stats.popular.slice(0, 5).map((a) => (
+                <button key={a.id} onClick={() => navigate(`/kb/${a.id}`)}
+                  className="w-full text-left text-[12px] text-text-muted truncate px-2 py-1.5 rounded-md hover:bg-bg hover:text-primary transition-colors">
+                  {a.title}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
         {/* Status filter */}
-        <div>
-          <h3 className="text-xs font-semibold text-text-muted uppercase mb-2">Status</h3>
-          {['', 'published', 'draft', 'archived'].map((s) => (
-            <button
-              key={s}
-              onClick={() => { setStatusFilter(s); setPage(1) }}
-              className={cn(
-                'block w-full text-left text-xs px-2 py-1 rounded-sm mb-0.5 capitalize',
-                statusFilter === s
-                  ? 'bg-primary-light text-primary font-medium'
-                  : 'text-text-muted hover:bg-card-hover',
-              )}
-            >
-              {s === '' ? 'All' : s}
-            </button>
-          ))}
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
+          <div className="px-3 py-2 border-b border-border-light">
+            <h3 className="text-[10px] font-bold text-text-xmuted uppercase tracking-[0.08em]">Status</h3>
+          </div>
+          <div className="p-1">
+            {['', 'published', 'draft', 'archived'].map((s) => (
+              <button
+                key={s}
+                onClick={() => { setStatusFilter(s); setPage(1) }}
+                className={cn(
+                  'w-full text-left text-[12px] px-2.5 py-1.5 rounded-md capitalize transition-colors',
+                  statusFilter === s
+                    ? 'bg-primary-light text-primary font-semibold'
+                    : 'text-text-muted hover:bg-bg',
+                )}
+              >
+                {s === '' ? 'All' : s}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Categories */}
         {(categories ?? []).length > 0 && (
-          <div>
-            <h3 className="text-xs font-semibold text-text-muted uppercase mb-2">Categories</h3>
-            <button
-              onClick={() => { setCategoryFilter(''); setPage(1) }}
-              className={cn(
-                'block w-full text-left text-xs px-2 py-1 rounded-sm mb-0.5',
-                categoryFilter === ''
-                  ? 'bg-primary-light text-primary font-medium'
-                  : 'text-text-muted hover:bg-card-hover',
-              )}
-            >
-              All
-            </button>
-            {(categories ?? []).map((c) => (
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
+            <div className="px-3 py-2 border-b border-border-light">
+              <h3 className="text-[10px] font-bold text-text-xmuted uppercase tracking-[0.08em]">Categories</h3>
+            </div>
+            <div className="p-1">
               <button
-                key={c.id}
-                onClick={() => { setCategoryFilter(c.name); setPage(1) }}
+                onClick={() => { setCategoryFilter(''); setPage(1) }}
                 className={cn(
-                  'block w-full text-left text-xs px-2 py-1 rounded-sm mb-0.5 truncate',
-                  categoryFilter === c.name
-                    ? 'bg-primary-light text-primary font-medium'
-                    : 'text-text-muted hover:bg-card-hover',
+                  'w-full flex items-center justify-between text-[12px] px-2.5 py-1.5 rounded-md transition-colors',
+                  categoryFilter === '' ? 'bg-primary-light text-primary font-semibold' : 'text-text-muted hover:bg-bg',
                 )}
               >
-                <span>{esc(c.name)}</span>
-                <span className="float-right text-text-xmuted">{c.article_count}</span>
+                <span>All</span>
               </button>
-            ))}
+              {(categories ?? []).map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => { setCategoryFilter(c.name); setPage(1) }}
+                  className={cn(
+                    'w-full flex items-center justify-between text-[12px] px-2.5 py-1.5 rounded-md transition-colors truncate',
+                    categoryFilter === c.name ? 'bg-primary-light text-primary font-semibold' : 'text-text-muted hover:bg-bg',
+                  )}
+                >
+                  <span className="truncate">{esc(c.name)}</span>
+                  <span className="text-[10px] font-bold tabular-nums text-text-xmuted shrink-0 ml-1">{c.article_count}</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
         {/* Tags */}
         {(tags ?? []).length > 0 && (
-          <div>
-            <h3 className="text-xs font-semibold text-text-muted uppercase mb-2">Tags</h3>
-            <div className="flex flex-wrap gap-1">
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
+            <div className="px-3 py-2 border-b border-border-light">
+              <h3 className="text-[10px] font-bold text-text-xmuted uppercase tracking-[0.08em]">Tags</h3>
+            </div>
+            <div className="p-2.5 flex flex-wrap gap-1.5">
               {(tags ?? []).slice(0, 20).map((t) => (
                 <button
                   key={t.id}
                   onClick={() => { setTagFilter(tagFilter === t.name ? '' : t.name); setPage(1) }}
                   className={cn(
-                    'text-[10px] px-1.5 py-0.5 rounded border transition-colors',
+                    'text-[11px] px-2 py-1 rounded-full border font-medium transition-colors',
                     tagFilter === t.name
                       ? 'bg-primary text-white border-primary'
-                      : 'bg-border-light text-text-muted border-transparent hover:border-border',
+                      : 'bg-bg border-border-light text-text-muted hover:border-primary hover:text-primary',
                   )}
                 >
                   {t.name}
@@ -663,6 +675,7 @@ export function KbArticlePage() {
   const isWriter = user?.role === 'admin' || user?.role === 'editor'
   const isAdmin = user?.role === 'admin'
 
+  const highlightRef = useHighlight([slug])
   const [showEditModal, setShowEditModal] = useState(false)
   const [showVersionModal, setShowVersionModal] = useState(false)
 
@@ -856,8 +869,8 @@ export function KbArticlePage() {
         {/* Article content */}
         {(article.body || article.content) ? (
           <div
+            ref={highlightRef}
             className="prose prose-sm max-w-none text-text-dark"
-            // TODO: sanitize with DOMPurify
             dangerouslySetInnerHTML={{ __html: markdownToHtml(article.body || article.content || '') }}
           />
         ) : (

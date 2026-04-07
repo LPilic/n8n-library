@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { api, ApiError } from '@/api/client'
 import { useToast } from '@/hooks/useToast'
 import { esc, timeAgo, cn } from '@/lib/utils'
+import { useHighlight } from '@/hooks/useHighlight'
 import {
   Search,
   Trash2,
@@ -155,57 +156,76 @@ export function TicketsPage() {
   return (
     <div className="flex gap-6">
       {/* KPI Sidebar */}
-      <aside className="w-52 shrink-0 hidden lg:block space-y-4">
+      <aside className="w-56 shrink-0 hidden lg:block space-y-3">
         {stats && (
           <>
-            <div>
-              <h3 className="text-xs font-semibold text-text-muted uppercase mb-2">By Status</h3>
-              <div className="space-y-1">
+            {/* Overview KPI cards */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-card border border-border rounded-lg p-3 text-center">
+                <div className="text-2xl font-extrabold text-primary">{stats.unassigned}</div>
+                <div className="text-[10px] font-semibold text-text-muted uppercase tracking-wide mt-0.5">Unassigned</div>
+              </div>
+              <div className="bg-card border border-border rounded-lg p-3 text-center">
+                <div className="text-2xl font-extrabold text-text-dark">
+                  {stats.avgResolutionHours && Number(stats.avgResolutionHours) > 0 ? `${Number(stats.avgResolutionHours).toFixed(0)}h` : '—'}
+                </div>
+                <div className="text-[10px] font-semibold text-text-muted uppercase tracking-wide mt-0.5">Avg Resolve</div>
+              </div>
+            </div>
+
+            {/* By Status */}
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
+              <div className="px-3 py-2 border-b border-border-light">
+                <h3 className="text-[10px] font-bold text-text-xmuted uppercase tracking-[0.08em]">By Status</h3>
+              </div>
+              <div className="p-1">
                 {(stats.byStatus ?? []).map((item) => (
                   <button
                     key={item.status}
                     onClick={() => { setStatus(status === item.status ? '' : item.status); setPage(1) }}
                     className={cn(
-                      'w-full flex items-center justify-between text-xs px-2 py-1 rounded-sm',
-                      status === item.status ? 'bg-primary-light text-primary font-medium' : 'text-text-muted hover:bg-card-hover',
+                      'w-full flex items-center justify-between text-[12px] px-2.5 py-1.5 rounded-md transition-colors',
+                      status === item.status
+                        ? 'bg-primary-light text-primary font-semibold'
+                        : 'text-text-muted hover:bg-bg',
                     )}
                   >
                     <span className="capitalize">{item.status.replace('_', ' ')}</span>
-                    <span className="font-medium">{item.count}</span>
+                    <span className="text-[11px] font-bold tabular-nums">{item.count}</span>
                   </button>
                 ))}
               </div>
             </div>
 
-            <div>
-              <h3 className="text-xs font-semibold text-text-muted uppercase mb-2">By Priority</h3>
-              <div className="space-y-1">
+            {/* By Priority */}
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
+              <div className="px-3 py-2 border-b border-border-light">
+                <h3 className="text-[10px] font-bold text-text-xmuted uppercase tracking-[0.08em]">By Priority</h3>
+              </div>
+              <div className="p-1">
                 {(stats.byPriority ?? []).map((item) => (
                   <button
                     key={item.priority}
                     onClick={() => { setPriority(priority === item.priority ? '' : item.priority); setPage(1) }}
                     className={cn(
-                      'w-full flex items-center justify-between text-xs px-2 py-1 rounded-sm',
-                      priority === item.priority ? 'bg-primary-light text-primary font-medium' : 'text-text-muted hover:bg-card-hover',
+                      'w-full flex items-center justify-between text-[12px] px-2.5 py-1.5 rounded-md transition-colors',
+                      priority === item.priority
+                        ? 'bg-primary-light text-primary font-semibold'
+                        : 'text-text-muted hover:bg-bg',
                     )}
                   >
-                    <span className="capitalize">{item.priority}</span>
-                    <span className="font-medium">{item.count}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={cn('w-2 h-2 rounded-full',
+                        item.priority === 'critical' && 'bg-danger',
+                        item.priority === 'high' && 'bg-warning',
+                        item.priority === 'medium' && 'bg-[#3b82f6]',
+                        item.priority === 'low' && 'bg-text-xmuted',
+                      )} />
+                      <span className="capitalize">{item.priority}</span>
+                    </div>
+                    <span className="text-[11px] font-bold tabular-nums">{item.count}</span>
                   </button>
                 ))}
-              </div>
-            </div>
-
-            <div className="bg-card border border-border rounded-md p-3 space-y-2">
-              <div className="text-center">
-                <div className="text-xl font-bold text-text-dark">{stats.unassigned}</div>
-                <div className="text-xs text-text-muted">Unassigned</div>
-              </div>
-              <div className="text-center">
-                <div className="text-xl font-bold text-text-dark">
-                  {stats.avgResolutionHours && Number(stats.avgResolutionHours) > 0 ? `${Number(stats.avgResolutionHours).toFixed(1)}h` : '—'}
-                </div>
-                <div className="text-xs text-text-muted">Avg Resolution</div>
               </div>
             </div>
           </>
@@ -490,6 +510,7 @@ export function TicketDetailPage() {
   const { error: showError, success: showSuccess } = useToast()
   const queryClient = useQueryClient()
 
+  const highlightRef = useHighlight([id])
   const [comment, setComment] = useState('')
   const [isInternal, setIsInternal] = useState(false)
 
@@ -555,6 +576,7 @@ export function TicketDetailPage() {
             {ticket.description && (
               <div
                 className="text-sm text-text-muted prose prose-sm max-w-none"
+                ref={highlightRef}
                 dangerouslySetInnerHTML={{ __html: ticket.description }}
               />
             )}

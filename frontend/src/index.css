@@ -73,6 +73,9 @@
   --color-input-border: #333338;
 }
 
+/* Syntax highlighting theme */
+@import "highlight.js/styles/github.css";
+
 /* Base styles */
 body {
   font-family: var(--font-sans);
