@@ -7,6 +7,10 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #2688 | 11:35 PM | ✅ | Markdown Rendering Support Added to Monitoring Feature | ~248 |
+| #2687 | " | 🔵 | Markdown to HTML Conversion for AI Analysis Rendering | ~205 |
+| #2673 | 11:20 PM | 🔵 | Icon Usage Pattern for AI Features and External Links in Monitoring | ~250 |
+| #2672 | " | 🟣 | AI Error Analysis Display in Execution Detail Page | ~356 |
 | #2666 | 11:11 PM | 🔄 | Removed Duplicate Instance Selector from Dashboard | ~301 |
 | #2663 | 11:09 PM | ✅ | Added instance context to N8nWorkflowsPage | ~213 |
 | #2650 | 11:06 PM | 🔵 | Monitoring Feature API Pattern and Real-Time Data Integration | ~387 |

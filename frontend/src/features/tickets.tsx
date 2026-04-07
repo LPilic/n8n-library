@@ -5,6 +5,7 @@ import { api, ApiError } from '@/api/client'
 import { useToast } from '@/hooks/useToast'
 import { esc, timeAgo, cn } from '@/lib/utils'
 import { useHighlight } from '@/hooks/useHighlight'
+import { markdownToHtml } from '@/lib/markdown'
 import {
   Search,
   Trash2,
@@ -49,6 +50,11 @@ interface TicketComment {
 interface TicketDetail extends Ticket {
   comments?: TicketComment[]
   activity?: Array<{ id: number; action: string; created_at: string; actor_username: string }>
+  executions?: Array<{ ticket_id: number; execution_id: string; workflow_id: string; workflow_name: string; status: string; linked_at: string }>
+  execution_data?: {
+    workflow_name?: string; execution_id?: string; execution_status?: string
+    started_at?: string; failed_node?: string; error_message?: string; ai_analysis?: string
+  }
 }
 
 interface TicketStats {
@@ -577,7 +583,7 @@ export function TicketDetailPage() {
               <div
                 className="text-sm text-text-muted prose prose-sm max-w-none"
                 ref={highlightRef}
-                dangerouslySetInnerHTML={{ __html: ticket.description }}
+                dangerouslySetInnerHTML={{ __html: markdownToHtml(ticket.description || '') }}
               />
             )}
             <div className="text-xs text-text-xmuted mt-3">
@@ -650,7 +656,7 @@ export function TicketDetailPage() {
         </div>
 
         {/* Sidebar: metadata */}
-        <aside className="w-full lg:w-56 shrink-0 space-y-3">
+        <aside className="w-full lg:w-72 shrink-0 space-y-3">
           <TicketMetaCard label="Status">
             <select
               value={ticket.status}
@@ -707,6 +713,83 @@ export function TicketDetailPage() {
               ))}
             </select>
           </TicketMetaCard>
+
+          {/* Linked Executions */}
+          {(ticket.executions ?? []).length > 0 && (
+            <div className="bg-card border border-border rounded-md overflow-hidden">
+              <div className="px-3 py-2 border-b border-border-light bg-bg">
+                <h3 className="text-[10px] font-semibold text-text-muted uppercase">Linked Executions</h3>
+              </div>
+              <div className="px-3 py-2 space-y-1.5">
+                {(ticket.executions ?? []).map((ex) => (
+                  <div key={ex.execution_id} className="flex items-center gap-2 text-xs">
+                    <span className={cn('px-1 py-0.5 rounded text-[10px] font-semibold',
+                      ex.status === 'error' ? 'bg-danger-light text-danger' : 'bg-success-light text-success')}>
+                      {ex.status}
+                    </span>
+                    <button onClick={() => navigate(`/monitoring/${ex.execution_id}`)}
+                      className="text-primary hover:text-primary-hover truncate">
+                      {ex.workflow_name} #{ex.execution_id}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Execution Context */}
+          {ticket.execution_data && (
+            <div className="bg-card border border-border rounded-md overflow-hidden">
+              <div className="px-3 py-2 border-b border-border-light bg-bg">
+                <h3 className="text-[10px] font-semibold text-text-muted uppercase">Execution Context</h3>
+              </div>
+              <div className="px-3 py-2 space-y-1">
+                {ticket.execution_data.workflow_name && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-text-muted">Workflow</span>
+                    <span className="text-text-dark font-medium">{ticket.execution_data.workflow_name}</span>
+                  </div>
+                )}
+                {ticket.execution_data.execution_id && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-text-muted">Execution ID</span>
+                    <button onClick={() => navigate(`/monitoring/${ticket.execution_data!.execution_id}`)}
+                      className="text-primary hover:text-primary-hover font-medium">
+                      {ticket.execution_data.execution_id}
+                    </button>
+                  </div>
+                )}
+                {ticket.execution_data.execution_status && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-text-muted">Status</span>
+                    <span className={cn('font-medium', ticket.execution_data.execution_status === 'error' ? 'text-danger' : 'text-success')}>
+                      {ticket.execution_data.execution_status}
+                    </span>
+                  </div>
+                )}
+                {ticket.execution_data.started_at && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-text-muted">Time</span>
+                    <span className="text-text-dark">{new Date(ticket.execution_data.started_at).toLocaleString()}</span>
+                  </div>
+                )}
+                {ticket.execution_data.failed_node && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-text-muted">Failed Node</span>
+                    <span className="text-text-dark font-medium">{ticket.execution_data.failed_node}</span>
+                  </div>
+                )}
+                {ticket.execution_data.error_message && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-text-muted">Error</span>
+                    <span className="text-text-dark truncate max-w-[150px]" title={ticket.execution_data.error_message}>
+                      {ticket.execution_data.error_message}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Activity */}
           {(ticket.activity ?? []).length > 0 && (

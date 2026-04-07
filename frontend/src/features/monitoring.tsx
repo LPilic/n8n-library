@@ -8,6 +8,7 @@ import { appConfirm } from '@/components/ConfirmDialog'
 import { NodeFlow } from '@/components/NodeFlow'
 import { PreviewModal } from '@/components/PreviewModal'
 import { esc, formatDuration, timeAgo, cn } from '@/lib/utils'
+import { markdownToHtml } from '@/lib/markdown'
 import { useInstanceStore } from '@/stores/instance'
 import {
   Chart as ChartJS,
@@ -33,6 +34,8 @@ import {
   ChevronDown,
   StopCircle,
   ArrowLeft,
+  Sparkles,
+  ExternalLink,
 } from 'lucide-react'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend)
@@ -528,6 +531,11 @@ export function ExecutionDetailPage() {
   const queryClient = useQueryClient()
   const iUrl = useInstanceStore((s) => s.url)
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set())
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null)
+  const [aiAnalyzing, setAiAnalyzing] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
+  const activeInstances = useInstanceStore((s) => s.instances)
+  const activeInstanceId2 = useInstanceStore((s) => s.activeId)
 
   const { data: exec, isLoading } = useQuery({
     queryKey: ['execution-detail', id],
@@ -563,6 +571,31 @@ export function ExecutionDetailPage() {
     if (ok) stopMut.mutate()
   }
 
+  const handleAnalyzeError = async () => {
+    if (!exec) return
+    setAiAnalyzing(true)
+    setAiAnalysis(null)
+    try {
+      const errorNode = sortedNodes.find(([, runs]) => runs[runs.length - 1]?.error)
+      const errorMsg = errorNode ? (errorNode[1][errorNode[1].length - 1]?.error as Record<string, string>)?.message : ''
+      const res = await api.post<{ analysis: string }>(iUrl('/api/ai/analyze-error'), {
+        workflowName,
+        errorMessage: errorMsg || globalError?.message || 'Unknown error',
+        nodeName: errorNode?.[0] || '',
+        nodeType: '',
+      })
+      setAiAnalysis(res.analysis || 'No analysis available.')
+    } catch (err) {
+      showError(err instanceof ApiError ? err.message : 'Analysis failed')
+    } finally {
+      setAiAnalyzing(false)
+    }
+  }
+
+  // Build the n8n instance URL for "Open in n8n"
+  const activeInst = activeInstances.find((i) => i.id === activeInstanceId2)
+  const n8nBaseUrl = activeInst?.base_url?.replace(/\/+$/, '') || ''
+
   const toggleNode = (name: string) => {
     setExpandedNodes((prev) => {
       const next = new Set(prev)
@@ -573,7 +606,7 @@ export function ExecutionDetailPage() {
   }
 
   const status = (exec?.status as string) ?? ''
-  const workflowName = (exec?.workflowName as string) || `Workflow #${exec?.workflowId ?? ''}`
+  const workflowName: string = (exec?.workflowName as string) || `Workflow #${String(exec?.workflowId ?? '')}`
   const startedAt = (exec?.startedAt as string) ?? ''
   const stoppedAt = exec?.stoppedAt as string | undefined
   const mode = (exec?.mode as string) ?? ''
@@ -611,7 +644,7 @@ export function ExecutionDetailPage() {
         <div className="flex items-center gap-3 mb-3">
           <StatusIcon status={status} />
           <h2 className="text-lg font-semibold text-text-dark">Execution #{id}</h2>
-          <span className="text-sm text-text-muted">- {esc(workflowName)}</span>
+          <span className="text-sm text-text-muted">- {esc(String(workflowName))}</span>
           <StatusBadge status={status} />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-3">
@@ -645,22 +678,76 @@ export function ExecutionDetailPage() {
               <Square size={12} /> Stop
             </button>
           )}
-          <button onClick={() => navigate(`/tickets?from_execution=${id}`)}
+          <button onClick={() => setShowReportModal(true)}
             className="text-[12px] font-semibold px-2.5 py-[5px] rounded-md border border-border text-text-muted hover:bg-card-hover flex items-center gap-1">
             <AlertTriangle size={12} /> Report Issue
           </button>
+          {status === 'error' && (
+            <button onClick={handleAnalyzeError} disabled={aiAnalyzing}
+              className={cn('text-[12px] font-semibold px-2.5 py-[5px] rounded-md border flex items-center gap-1',
+                aiAnalysis ? 'border-primary bg-primary/10 text-primary' : 'border-border text-text-muted hover:bg-card-hover',
+                aiAnalyzing && 'opacity-50')}>
+              <Sparkles size={12} /> {aiAnalyzing ? 'Analyzing...' : 'Analyze Error'}
+            </button>
+          )}
+          {n8nBaseUrl && (
+            <a href={`${n8nBaseUrl}/execution/${id}`} target="_blank" rel="noopener noreferrer"
+              className="text-[12px] font-semibold px-2.5 py-[5px] rounded-md border border-border text-text-muted hover:bg-card-hover flex items-center gap-1">
+              <ExternalLink size={12} /> Open in n8n
+            </a>
+          )}
         </div>
       </div>
 
       {/* Global error block */}
-      {globalError && (
+      {(globalError || !!(exec?.data as Record<string, unknown>)?.error) && (
         <div className="bg-danger-light border border-danger/30 rounded-lg p-4 mb-4">
           <div className="flex items-center gap-2 mb-1">
             <XCircle size={16} className="text-danger shrink-0" />
             <h3 className="text-sm font-semibold text-danger">Execution Error</h3>
           </div>
-          <p className="text-sm text-danger/90">{esc(globalError.message || JSON.stringify(globalError))}</p>
+          <p className="text-sm text-danger/90">{esc(globalError?.message || JSON.stringify(globalError))}</p>
         </div>
+      )}
+
+      {/* AI Error Analysis */}
+      {aiAnalyzing && (
+        <div className="bg-card border border-border rounded-lg p-6 mb-4 text-center">
+          <Loader2 size={20} className="animate-spin text-text-muted mx-auto mb-2" />
+          <p className="text-sm text-text-muted">Analyzing error...</p>
+        </div>
+      )}
+      {aiAnalysis && !aiAnalyzing && (
+        <div className="bg-card border border-border rounded-lg p-5 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-text-dark flex items-center gap-1.5">
+              <Sparkles size={14} className="text-primary" /> AI Error Analysis
+            </h3>
+            <button onClick={() => setShowReportModal(true)}
+              className="text-[11px] font-semibold px-2 py-1 bg-danger text-white rounded-md hover:bg-danger/90 flex items-center gap-1">
+              <AlertTriangle size={11} /> Report Issue
+            </button>
+          </div>
+          <div className="text-[13px] text-text-dark leading-relaxed [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mb-2 [&_h1]:mt-4 [&_h2]:text-[15px] [&_h2]:font-semibold [&_h2]:mb-1.5 [&_h2]:mt-3 [&_h3]:text-[14px] [&_h3]:font-semibold [&_h3]:mb-1 [&_h3]:mt-2 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-2 [&_li]:mb-0.5 [&_strong]:font-semibold [&_code]:bg-bg [&_code]:px-1 [&_code]:rounded [&_code]:text-xs"
+            dangerouslySetInnerHTML={{ __html: markdownToHtml(aiAnalysis || '') }}
+          />
+        </div>
+      )}
+
+      {/* Report Issue Modal */}
+      {showReportModal && exec && (
+        <ReportIssueModal
+          workflowName={workflowName}
+          workflowId={String(exec?.workflowId ?? '')}
+          executionId={id || ''}
+          status={status}
+          startedAt={startedAt}
+          errorMessage={globalError?.message || ''}
+          failedNode={sortedNodes.find(([, runs]) => runs[runs.length - 1]?.error)?.[0] || ''}
+          aiAnalysis={aiAnalysis}
+          onClose={() => setShowReportModal(false)}
+          onCreated={(ticketId) => { setShowReportModal(false); showSuccess(`Ticket #${ticketId} created`); navigate(`/tickets/${ticketId}`) }}
+        />
       )}
 
       {/* Node timeline */}
@@ -713,6 +800,167 @@ export function ExecutionDetailPage() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/*  Sub-components                                                     */
+/* ------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------ */
+/*  Report Issue Modal (from execution detail)                         */
+/* ------------------------------------------------------------------ */
+
+function ReportIssueModal({
+  workflowName, workflowId, executionId, status, startedAt, errorMessage, failedNode, aiAnalysis, onClose, onCreated,
+}: {
+  workflowName: string; workflowId: string; executionId: string; status: string; startedAt: string
+  errorMessage: string; failedNode: string; aiAnalysis: string | null
+  onClose: () => void; onCreated: (id: number) => void
+}) {
+  const { error: showError } = useToast()
+  const [title, setTitle] = useState(`Workflow failed: ${workflowName}`)
+  const [description, setDescription] = useState(() => {
+    let desc = `<p><strong>Failed node:</strong> ${failedNode}</p><p><strong>Error:</strong> ${esc(errorMessage)}</p>`
+    if (aiAnalysis) desc += `<p><strong>AI Analysis:</strong></p>${markdownToHtml(aiAnalysis)}`
+    return desc
+  })
+  const [priority, setPriority] = useState('high')
+  const [categoryId, setCategoryId] = useState('')
+  const [assigneeId, setAssigneeId] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const { data: ticketCategories } = useQuery({
+    queryKey: ['ticket-categories'],
+    queryFn: async () => {
+      const r = await api.get<Array<{ id: number; name: string }>>('/api/ticket-categories')
+      return Array.isArray(r) ? r : []
+    },
+  })
+
+  const { data: assignableUsers } = useQuery({
+    queryKey: ['assignable-users'],
+    queryFn: async () => {
+      const r = await api.get<Array<{ id: number; username: string }>>('/api/tickets/assignable-users')
+      return Array.isArray(r) ? r : []
+    },
+  })
+
+  async function handleCreate() {
+    if (!title.trim()) return showError('Title is required')
+    setSaving(true)
+    try {
+      const res = await api.post<{ id: number }>('/api/tickets', {
+        title: title.trim(),
+        description,
+        priority,
+        ...(categoryId ? { category_id: Number(categoryId) } : {}),
+        ...(assigneeId ? { assigned_to: Number(assigneeId) } : {}),
+        execution_data: {
+          workflow_name: workflowName,
+          execution_id: executionId,
+          execution_status: status,
+          started_at: startedAt || null,
+          failed_node: failedNode || null,
+          error_message: errorMessage || null,
+          ai_analysis: aiAnalysis || null,
+        },
+      })
+      // Link execution to ticket
+      try {
+        await api.post(`/api/tickets/${res.id}/executions`, {
+          execution_id: executionId,
+          workflow_id: workflowId,
+          workflow_name: workflowName,
+          status,
+        })
+      } catch { /* non-critical */ }
+      onCreated(res.id)
+    } catch (err) {
+      showError(err instanceof ApiError ? err.message : 'Failed to create ticket')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[130] flex items-center justify-center modal-overlay bg-black/30" onClick={onClose}>
+      <div className="bg-card border border-border rounded-lg shadow-lg mx-4 flex flex-col overflow-hidden"
+        style={{ width: '90vw', maxWidth: '700px', maxHeight: '90vh' }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
+          <h2 className="text-[15px] font-bold text-text-dark">Report Execution Issue</h2>
+          <button onClick={onClose} className="text-text-xmuted hover:text-text-dark text-lg">&times;</button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+          <div>
+            <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Title *</label>
+            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring" />
+          </div>
+          <div>
+            <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Description</label>
+            <div className="border border-input-border rounded-md overflow-hidden bg-input-bg">
+              <div className="px-3 py-2 text-sm text-text-dark min-h-[150px] max-h-[300px] overflow-y-auto"
+                contentEditable suppressContentEditableWarning
+                dangerouslySetInnerHTML={{ __html: description }}
+                onBlur={(e) => setDescription(e.currentTarget.innerHTML)} />
+            </div>
+          </div>
+
+          {/* Execution context */}
+          <div className="bg-bg border border-border-light rounded-md p-3">
+            <h4 className="text-[11px] font-semibold uppercase tracking-wide text-text-muted mb-2 flex items-center gap-1">
+              <Zap size={11} /> Execution Context
+            </h4>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+              <span className="text-text-muted">Workflow:</span><span className="text-text-dark">{esc(workflowName)}</span>
+              <span className="text-text-muted">Execution:</span><span className="text-text-dark">#{executionId}</span>
+              <span className="text-text-muted">Status:</span><span className="text-text-dark">{status}</span>
+              <span className="text-text-muted">Time:</span><span className="text-text-dark">{startedAt ? new Date(startedAt).toLocaleString() : '-'}</span>
+              {failedNode && <><span className="text-text-muted">Failed Node:</span><span className="text-text-dark">{esc(failedNode)}</span></>}
+              {errorMessage && <><span className="text-text-muted">Error:</span><span className="text-text-dark truncate">{esc(errorMessage)}</span></>}
+            </div>
+          </div>
+
+          {/* Priority, Category, Assign */}
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Priority</label>
+              <select value={priority} onChange={(e) => setPriority(e.target.value)}
+                className="w-full px-2 py-1.5 border border-input-border rounded-md bg-input-bg text-sm text-text-dark">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Category</label>
+              <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}
+                className="w-full px-2 py-1.5 border border-input-border rounded-md bg-input-bg text-sm text-text-dark">
+                <option value="">None</option>
+                {(ticketCategories ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Assign To</label>
+              <select value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)}
+                className="w-full px-2 py-1.5 border border-input-border rounded-md bg-input-bg text-sm text-text-dark">
+                <option value="">Unassigned</option>
+                {(assignableUsers ?? []).map((u) => <option key={u.id} value={u.id}>{u.username}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 px-5 py-3 border-t border-border">
+          <button onClick={onClose} className="text-[12px] font-semibold px-3 py-1.5 border border-border text-text-muted rounded-md hover:bg-bg">Cancel</button>
+          <button onClick={handleCreate} disabled={saving}
+            className="text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover disabled:opacity-50">
+            {saving ? 'Creating...' : 'Create Ticket'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
