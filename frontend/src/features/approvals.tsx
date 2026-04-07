@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { HitlFormBuilder } from './hitl-builder'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import { appConfirm } from '@/components/ConfirmDialog'
@@ -844,17 +845,19 @@ export function ApprovalsBuilderPage() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Full-page builder */}
       {modal !== null && (
-        <TemplateModal
-          initial={modal === 'create' ? null : modal}
-          onClose={() => setModal(null)}
-          onSaved={() => {
-            setModal(null)
-            queryClient.invalidateQueries({ queryKey: ['hitl-templates'] })
-            showSuccess(modal === 'create' ? 'Template created' : 'Template updated')
-          }}
-        />
+        <div className="fixed inset-0 z-[100] bg-bg overflow-auto">
+          <HitlFormBuilder
+            templateId={modal === 'create' ? undefined : modal.id}
+            onSave={() => {
+              setModal(null)
+              queryClient.invalidateQueries({ queryKey: ['hitl-templates'] })
+              showSuccess(modal === 'create' ? 'Template created' : 'Template updated')
+            }}
+            onCancel={() => setModal(null)}
+          />
+        </div>
       )}
     </div>
   )
@@ -868,7 +871,8 @@ const COMPONENT_TYPES: ComponentType[] = [
   'section', 'columns',
 ]
 
-function TemplateModal({
+/** @deprecated — replaced by HitlFormBuilder full-page editor */
+export function TemplateModal({
   initial,
   onClose,
   onSaved,
