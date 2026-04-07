@@ -349,7 +349,7 @@ export function LibraryPage() {
   return (
     <div className="flex gap-6">
       {/* Sidebar */}
-      <aside className="w-56 shrink-0 hidden lg:block space-y-3">
+      <aside className="w-64 shrink-0 hidden lg:block space-y-3">
         {/* Template count */}
         <div className="bg-card border border-border rounded-lg p-4 text-center">
           <div className="text-3xl font-extrabold text-primary">{templates.length}</div>

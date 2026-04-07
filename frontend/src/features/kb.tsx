@@ -405,7 +405,7 @@ export function KbPage() {
   return (
     <div className="flex gap-6">
       {/* Sidebar */}
-      <aside className="w-56 shrink-0 hidden lg:block space-y-3">
+      <aside className="w-64 shrink-0 hidden lg:block space-y-3">
         {/* Stats KPI */}
         {stats && (
           <div className="bg-card border border-border rounded-lg p-4 text-center">

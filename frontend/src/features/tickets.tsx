@@ -162,7 +162,7 @@ export function TicketsPage() {
   return (
     <div className="flex gap-6">
       {/* KPI Sidebar */}
-      <aside className="w-56 shrink-0 hidden lg:block space-y-3">
+      <aside className="w-64 shrink-0 hidden lg:block space-y-3">
         {stats && (
           <>
             {/* Overview KPI cards */}
