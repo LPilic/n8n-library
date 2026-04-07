@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  /* n8n color palette — mapped from base.css */
+  /* n8n color palette — matched to legacy base.css */
   --color-primary: #ff6d5a;
   --color-primary-hover: #e0523f;
   --color-primary-light: #fff3f1;
@@ -9,6 +9,7 @@
 
   --color-bg: #f5f5f5;
   --color-bg-light: #ffffff;
+  --color-bg-alt: #f3f4f6;
   --color-sidebar: #ffffff;
   --color-card: #ffffff;
   --color-card-hover: #fafafa;
@@ -26,6 +27,7 @@
   --color-danger: #ff4949;
   --color-danger-light: #fff1f1;
   --color-warning: #ff9800;
+  --color-warning-light: #fff8e1;
 
   --color-input-bg: #ffffff;
   --color-input-border: #dbdfe7;
@@ -44,6 +46,7 @@
 [data-theme="dark"] {
   --color-bg: #161618;
   --color-bg-light: #1e1e21;
+  --color-bg-alt: #222225;
   --color-sidebar: #131315;
   --color-card: #1e1e21;
   --color-card-hover: #262629;
@@ -64,6 +67,7 @@
   --color-danger: #ef4444;
   --color-danger-light: #2d1212;
   --color-warning: #f59e0b;
+  --color-warning-light: #332211;
 
   --color-input-bg: #222225;
   --color-input-border: #333338;
@@ -75,4 +79,74 @@ body {
   background: var(--color-bg);
   color: var(--color-text-base);
   margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Focus ring utility — matches legacy box-shadow: 0 0 0 2px rgba(255,109,90,0.15) */
+.focus-ring:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(255, 109, 90, 0.15);
+  outline: none;
+}
+
+/* Card hover effect — matches legacy .card:hover */
+.card-hover-effect {
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.card-hover-effect:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+/* Health dot pulse animation — matches legacy monPulse */
+@keyframes healthPulse {
+  0% { box-shadow: 0 0 0 0 rgba(23, 191, 99, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(23, 191, 99, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(23, 191, 99, 0); }
+}
+.health-pulse {
+  animation: healthPulse 2s infinite;
+}
+
+/* Toast slide-in animation — matches legacy slideIn */
+@keyframes toastSlideIn {
+  from { transform: translateX(100px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.toast-enter {
+  animation: toastSlideIn 0.3s ease-out;
+}
+
+/* Dropdown fade-in — matches legacy rdFadeIn */
+@keyframes dropdownFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.dropdown-enter {
+  animation: dropdownFadeIn 0.12s ease-out;
+}
+
+/* Mobile nav — matches legacy .mobile-nav */
+@media (max-width: 850px) {
+  .desktop-sidebar { display: none !important; }
+  .mobile-nav-bar { display: flex !important; }
+  .main-content { padding-bottom: 60px; }
+}
+@media (min-width: 851px) {
+  .mobile-nav-bar { display: none !important; }
+}
+
+/* Modal backdrop blur — matches legacy backdrop-filter: blur(2px) */
+.modal-overlay {
+  backdrop-filter: blur(2px);
+}
+
+/* Scrollbar styling for sidebar */
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-border-light);
+  border-radius: 2px;
 }

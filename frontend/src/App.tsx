@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth'
 import { ToastContainer } from '@/components/ToastContainer'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { AppLayout } from '@/components/AppLayout'
 import { LoginPage } from '@/features/login'
 import { DashboardPage } from '@/features/dashboard'
@@ -87,6 +88,7 @@ export default function App() {
           </Routes>
         </AuthGate>
         <ToastContainer />
+        <ConfirmDialog />
       </BrowserRouter>
     </QueryClientProvider>
   )
