@@ -20,5 +20,7 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #2706 | 12:13 AM | 🔵 | Settings Modal Pattern Discovery: InstanceModal Component Structure | ~311 |
+| #2705 | " | 🔵 | Settings Page Structure and Dependencies | ~257 |
 | #2701 | 12:07 AM | ✅ | Metrics API response format transformation for multi-instance support | ~305 |
 </claude-mem-context>

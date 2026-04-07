@@ -36,6 +36,11 @@ interface UserItem {
   created_at: string
 }
 
+interface WorkerEntry {
+  name: string
+  url: string
+}
+
 interface Instance {
   id: number
   name: string
@@ -43,6 +48,8 @@ interface Instance {
   internal_url?: string
   is_default: boolean
   color?: string
+  environment?: string
+  workers?: WorkerEntry[]
 }
 
 interface SmtpSettings {
@@ -481,11 +488,22 @@ function InstanceModal({ initial, onClose, onSaved }: { initial: Instance | null
   const [internalUrl, setInternalUrl] = useState(initial?.internal_url ?? '')
   const [apiKey, setApiKey] = useState('')
   const [isDefault, setIsDefault] = useState(initial?.is_default ?? false)
-  const [color, setColor] = useState(initial?.color ?? '#6366f1')
+  const [color, setColor] = useState(initial?.color ?? '#22c55e')
+  const [environment, setEnvironment] = useState(initial?.environment ?? 'production')
+  const [workers, setWorkers] = useState<WorkerEntry[]>(initial?.workers ?? [])
+
+  function addWorker() { setWorkers((w) => [...w, { name: `Worker ${w.length + 1}`, url: '' }]) }
+  function removeWorker(i: number) { setWorkers((w) => w.filter((_, idx) => idx !== i)) }
+  function updateWorker(i: number, field: keyof WorkerEntry, val: string) {
+    setWorkers((w) => w.map((wr, idx) => idx === i ? { ...wr, [field]: val } : wr))
+  }
 
   const saveMut = useMutation({
     mutationFn: () => {
-      const body: Record<string, unknown> = { name, base_url: baseUrl, internal_url: internalUrl, is_default: isDefault, color }
+      const body: Record<string, unknown> = {
+        name, base_url: baseUrl, internal_url: internalUrl, is_default: isDefault, color, environment,
+        workers: workers.filter((w) => w.url.trim()),
+      }
       if (apiKey) body.api_key = apiKey
       return initial
         ? api.put(`/api/instances/${initial.id}`, body)
@@ -519,6 +537,40 @@ function InstanceModal({ initial, onClose, onSaved }: { initial: Instance | null
       <FieldRow label={initial ? 'API Key (leave blank to keep)' : 'API Key'}>
         <Input value={apiKey} onChange={setApiKey} type="password" placeholder="n8n_api_..." />
       </FieldRow>
+      <FieldRow label="Environment">
+        <select value={environment} onChange={(e) => setEnvironment(e.target.value)}
+          className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark">
+          <option value="production">Production</option>
+          <option value="staging">Staging</option>
+          <option value="development">Development</option>
+        </select>
+      </FieldRow>
+
+      {/* Workers */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-[12px] font-semibold uppercase tracking-wide text-text-muted">Workers (Queue Mode)</label>
+          <button type="button" onClick={addWorker}
+            className="text-[11px] font-semibold text-primary hover:text-primary-hover">+ Add Worker</button>
+        </div>
+        {workers.length === 0 ? (
+          <p className="text-xs text-text-xmuted">No workers configured. Add worker URLs for queue mode monitoring.</p>
+        ) : (
+          <div className="space-y-2">
+            {workers.map((w, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input type="text" value={w.name} onChange={(e) => updateWorker(i, 'name', e.target.value)}
+                  placeholder="Worker name" className="flex-1 px-2 py-1.5 border border-input-border rounded-md bg-input-bg text-sm text-text-dark min-w-0" />
+                <input type="text" value={w.url} onChange={(e) => updateWorker(i, 'url', e.target.value)}
+                  placeholder="http://n8n-worker:5678" className="flex-[2] px-2 py-1.5 border border-input-border rounded-md bg-input-bg text-sm text-text-dark min-w-0" />
+                <button type="button" onClick={() => removeWorker(i)}
+                  className="text-danger hover:text-danger/80 shrink-0 p-1">&times;</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="flex items-center gap-4">
         <FieldRow label="Color">
           <input

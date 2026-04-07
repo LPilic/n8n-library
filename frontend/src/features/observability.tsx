@@ -1,9 +1,19 @@
-import { useQuery } from '@tanstack/react-query'
-import { api } from '@/api/client'
-import { useState } from 'react'
-import { RefreshCw, Search } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { api, ApiError } from '@/api/client'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { RefreshCw, Search, Sparkles, Loader2 } from 'lucide-react'
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend } from 'chart.js'
+import { Line } from 'react-chartjs-2'
+import { cn, esc } from '@/lib/utils'
+import { markdownToHtml } from '@/lib/markdown'
+import { useToast } from '@/hooks/useToast'
+import { useInstanceStore } from '@/stores/instance'
 
-interface MetricEntry {
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend)
+
+// ─── Interfaces ────────────────────────────────────────────────────────────────
+
+export interface MetricEntry {
   name: string
   value: number
   type: string
@@ -11,27 +21,12 @@ interface MetricEntry {
   labels?: Record<string, string>
 }
 
-interface HistoryPoint {
+export interface HistoryPoint {
   ts: number
   metrics: Record<string, number>
 }
 
-// Map API history field names to standard metric names used in charts
-function normalizeHistory(raw: Array<Record<string, unknown>>): HistoryPoint[] {
-  return raw.map((p) => ({
-    ts: (p.timestamp as number) || 0,
-    metrics: {
-      process_cpu_seconds_total: (p.cpu as number) || 0,
-      process_resident_memory_bytes: (p.memoryRss as number) || 0,
-      nodejs_heap_size_used_bytes: (p.heapUsed as number) || 0,
-      nodejs_heap_size_total_bytes: (p.heapTotal as number) || 0,
-      nodejs_eventloop_lag_seconds: (p.eventLoopLag as number) || 0,
-      nodejs_active_handles_total: (p.activeHandles as number) || 0,
-    },
-  }))
-}
-
-interface Worker {
+export interface Worker {
   id: string
   host?: string
   version?: string
@@ -39,11 +34,39 @@ interface Worker {
   metrics?: Record<string, number>
 }
 
+// ─── History normalisation ──────────────────────────────────────────────────
+
+function normalizeHistory(raw: Array<Record<string, unknown>>): HistoryPoint[] {
+  return raw.map((p) => ({
+    ts: (p.timestamp as number) || 0,
+    metrics: {
+      process_cpu_seconds_total:      (p.cpu as number)              || 0,
+      process_resident_memory_bytes:  (p.memoryRss as number)        || 0,
+      nodejs_heap_size_used_bytes:    (p.heapUsed as number)         || 0,
+      nodejs_heap_size_total_bytes:   (p.heapTotal as number)        || 0,
+      nodejs_eventloop_lag_seconds:   (p.eventLoopLag as number)     || 0,
+      nodejs_active_handles_total:    (p.activeHandles as number)    || 0,
+      queueWaiting:                   (p.queueWaiting as number)     || 0,
+      queueActive:                    (p.queueActive as number)      || 0,
+      queueCompleted:                 (p.queueCompleted as number)   || 0,
+      queueFailed:                    (p.queueFailed as number)      || 0,
+      activeRequests:                 (p.activeRequests as number)   || 0,
+      eventLoopP99:                   (p.eventLoopP99 as number)     || 0,
+    },
+  }))
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
 function fmtBytes(b: number): string {
   if (b < 1024) return b + ' B'
   if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB'
   if (b < 1024 * 1024 * 1024) return (b / (1024 * 1024)).toFixed(1) + ' MB'
   return (b / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
+}
+
+function fmtMB(bytes: number): number {
+  return parseFloat((bytes / (1024 * 1024)).toFixed(2))
 }
 
 function fmtUptime(seconds: number): string {
@@ -55,15 +78,108 @@ function fmtUptime(seconds: number): string {
   return `${m}m`
 }
 
+function fmtTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+}
+
+function nowHHMMSS(): string {
+  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+}
+
+const CHART_DEFAULTS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: { duration: 300 },
+  interaction: { mode: 'index' as const, intersect: false },
+  plugins: {
+    legend: { display: true, labels: { font: { size: 11 }, boxWidth: 12, padding: 8 } },
+    tooltip: { mode: 'index' as const, intersect: false },
+  },
+  scales: {
+    x: { ticks: { maxTicksLimit: 6, font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.05)' } },
+    y: { ticks: { font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.05)' } },
+  },
+  elements: { line: { tension: 0.35 }, point: { radius: 0, hitRadius: 6 } },
+}
+
+// ─── KPI Card ───────────────────────────────────────────────────────────────
+
+function KpiCard({
+  label,
+  value,
+  sub,
+  color,
+}: {
+  label: string
+  value: string
+  sub: string
+  color?: 'danger' | 'warning' | 'success'
+}) {
+  const valueColor =
+    color === 'danger' ? 'text-danger' : color === 'warning' ? 'text-warning' : 'text-text-dark'
+
+  return (
+    <div className="bg-card border border-border rounded-md overflow-hidden flex">
+      <div className="w-1 shrink-0 bg-success" />
+      <div className="flex-1 px-3 py-2.5">
+        <div className={cn('text-xl font-bold leading-tight', valueColor)}>{value}</div>
+        <div className="text-[10px] font-semibold text-text-xmuted uppercase tracking-wider mt-0.5">{label}</div>
+        <div className="text-[11px] text-text-muted mt-0.5 truncate">{sub}</div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Chart wrapper ──────────────────────────────────────────────────────────
+
+function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-card border border-border rounded-md p-3">
+      <div className="text-xs font-semibold text-text-dark mb-2">{title}</div>
+      <div style={{ height: 160 }}>{children}</div>
+    </div>
+  )
+}
+
+// ─── Main page ───────────────────────────────────────────────────────────────
+
 export function ObservabilityPage() {
-  const [refreshInterval, setRefreshInterval] = useState(30)
+  const iUrl = useInstanceStore((s) => s.url)
+  const activeInstanceId = useInstanceStore((s) => s.activeId)
+  const { error: showError } = useToast()
+  const queryClient = useQueryClient()
+
+  const [refreshInterval, setRefreshInterval] = useState(20)
   const [metricSearch, setMetricSearch] = useState('')
+  const [updatedAt, setUpdatedAt] = useState(nowHHMMSS())
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiReport, setAiReport] = useState<string | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const instanceId = activeInstanceId
+
+  const refetchAll = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['obs-metrics', instanceId] })
+    queryClient.invalidateQueries({ queryKey: ['obs-history', instanceId] })
+    queryClient.invalidateQueries({ queryKey: ['obs-workers', instanceId] })
+    setUpdatedAt(nowHHMMSS())
+  }, [queryClient, instanceId])
+
+  // Auto-refresh
+  useEffect(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current)
+    if (refreshInterval > 0) {
+      intervalRef.current = setInterval(refetchAll, refreshInterval * 1000)
+    }
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
+  }, [refreshInterval, refetchAll])
 
   const { data: metrics, isLoading: metricsLoading } = useQuery({
-    queryKey: ['obs-metrics'],
+    queryKey: ['obs-metrics', instanceId],
     queryFn: async () => {
-      const raw = await api.get<Record<string, Array<{ labels?: Record<string, string>; value: number }>>>('/api/monitoring/metrics')
-      // Convert dict-of-arrays to flat MetricEntry array
+      const raw = await api.get<Record<string, Array<{ labels?: Record<string, string>; value: number }>>>(
+        iUrl('/api/monitoring/metrics')
+      )
       const entries: MetricEntry[] = []
       for (const [name, samples] of Object.entries(raw)) {
         for (const s of samples) {
@@ -72,46 +188,79 @@ export function ObservabilityPage() {
       }
       return entries
     },
-    refetchInterval: refreshInterval * 1000,
+    refetchInterval: false,
   })
 
   const { data: history } = useQuery({
-    queryKey: ['obs-history'],
+    queryKey: ['obs-history', instanceId],
     queryFn: async () => {
-      const raw = await api.get<Array<Record<string, unknown>>>('/api/monitoring/metrics/history')
+      const raw = await api.get<Array<Record<string, unknown>>>(iUrl('/api/monitoring/metrics/history'))
       return normalizeHistory(raw)
     },
-    refetchInterval: refreshInterval * 1000,
+    refetchInterval: false,
   })
 
   const { data: workers } = useQuery({
-    queryKey: ['obs-workers'],
-    queryFn: () => api.get<Worker[]>('/api/monitoring/workers'),
-    refetchInterval: refreshInterval * 1000,
+    queryKey: ['obs-workers', instanceId],
+    queryFn: () => api.get<Worker[]>(iUrl('/api/monitoring/workers')),
+    refetchInterval: false,
   })
 
-  // Extract KPI values from metrics
+  // ── KPI extraction ──────────────────────────────────────────────────────
+
   const metricVal = (name: string): number => {
     if (!metrics) return 0
-    const found = metrics.find((m) => m.name === name)
-    return found?.value ?? 0
+    // Try exact match first, then with n8n_ prefix
+    return metrics.find((m) => m.name === name)?.value
+      ?? metrics.find((m) => m.name === `n8n_${name}`)?.value
+      ?? 0
   }
 
-  const version = metrics?.find((m) => m.name === 'n8n_version_info')?.labels?.version || '-'
-  const uptime = metricVal('process_uptime_seconds')
-  const rss = metricVal('process_resident_memory_bytes')
-  const heapUsed = metricVal('nodejs_heap_size_used_bytes')
-  const heapTotal = metricVal('nodejs_heap_size_total_bytes')
-  const heapPct = heapTotal > 0 ? Math.round((heapUsed / heapTotal) * 100) : 0
-  const eventLoopLag = metricVal('nodejs_eventloop_lag_seconds') * 1000
-  const queueDepth = metricVal('n8n_queue_depth') || metricVal('bull_queue_size')
+  const version      = (metrics?.find((m) => m.name === 'n8n_version_info') ?? metrics?.find((m) => m.name === 'version_info'))?.labels?.version || '-'
+  const nodeVersion  = (metrics?.find((m) => m.name === 'n8n_nodejs_version_info') ?? metrics?.find((m) => m.name === 'nodejs_version_info'))?.labels?.version || ''
+  const startTime    = metricVal('process_start_time_seconds')
+  const uptime       = startTime > 0 ? (Date.now() / 1000) - startTime : 0
+  const activeWf     = metricVal('active_workflow_count') || metricVal('active_workflows_total')
+  const rss          = metricVal('process_resident_memory_bytes')
+  const fds          = metricVal('process_open_fds')
+  const maxFds       = metricVal('process_max_fds')
+  const heapUsed     = metricVal('nodejs_heap_size_used_bytes')
+  const heapTotal    = metricVal('nodejs_heap_size_total_bytes')
+  const heapPct      = heapTotal > 0 ? Math.round((heapUsed / heapTotal) * 100) : 0
+  const lagSec       = metricVal('nodejs_eventloop_lag_seconds')
+  const lagMs        = lagSec * 1000
+  const lagP99Sec    = metricVal('nodejs_eventloop_lag_p99_seconds')
+  const lagP99Ms     = lagP99Sec * 1000
+  const qWait        = metricVal('scaling_mode_queue_jobs_waiting') || metricVal('queue_waiting')
+  const qActive      = metricVal('scaling_mode_queue_jobs_active') || metricVal('queue_active')
+  const qDone        = metricVal('scaling_mode_queue_jobs_completed') || metricVal('queue_completed')
+  const qFailed      = metricVal('scaling_mode_queue_jobs_failed') || metricVal('queue_failed')
 
-  // Filter raw metrics
+  // ── AI report ────────────────────────────────────────────────────────────
+
+  async function handleAiReport() {
+    setAiLoading(true)
+    setAiReport(null)
+    try {
+      const res = await api.post<{ report: string }>('/api/ai/observability-report', {
+        metrics: metrics ?? [],
+        history: history ?? [],
+      })
+      const html = markdownToHtml(res.report)
+      setAiReport(html)
+    } catch (err) {
+      showError(err instanceof ApiError ? err.message : 'AI report failed')
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  // ── Filter / group raw metrics ────────────────────────────────────────────
+
   const filteredMetrics = (metrics ?? []).filter((m) =>
-    metricSearch ? m.name.toLowerCase().includes(metricSearch.toLowerCase()) : true,
+    metricSearch ? m.name.toLowerCase().includes(metricSearch.toLowerCase()) : true
   )
 
-  // Group by metric name prefix
   const groups: Record<string, MetricEntry[]> = {}
   for (const m of filteredMetrics) {
     const prefix = m.name.split('_').slice(0, 2).join('_')
@@ -119,115 +268,313 @@ export function ObservabilityPage() {
     groups[prefix].push(m)
   }
 
+  // ── Chart data helpers ────────────────────────────────────────────────────
+
+  const hist = history ?? []
+  const labels = hist.map((h) => fmtTime(h.ts * (h.ts < 1e10 ? 1000 : 1)))
+
+  function histVals(key: string): number[] {
+    return hist.map((h) => h.metrics[key] ?? 0)
+  }
+
+  function derivative(vals: number[]): number[] {
+    if (vals.length < 2) return vals
+    const out: number[] = [0]
+    for (let i = 1; i < vals.length; i++) {
+      const dt = hist[i].ts - hist[i - 1].ts
+      const dtSec = dt > 1000 ? dt / 1000 : dt || 1
+      const diff = Math.max(0, (vals[i] - vals[i - 1]) / dtSec)
+      out.push(parseFloat(diff.toFixed(4)))
+    }
+    return out
+  }
+
+  // CPU chart
+  const cpuData = {
+    labels,
+    datasets: [{
+      label: 'CPU (s/s)',
+      data: derivative(histVals('process_cpu_seconds_total')),
+      borderColor: 'rgba(59,130,246,1)',
+      backgroundColor: 'rgba(59,130,246,0.15)',
+      fill: true,
+    }],
+  }
+
+  // Memory chart
+  const memData = {
+    labels,
+    datasets: [{
+      label: 'RSS (MB)',
+      data: histVals('process_resident_memory_bytes').map(fmtMB),
+      borderColor: 'rgba(249,115,22,1)',
+      backgroundColor: 'rgba(249,115,22,0.15)',
+      fill: true,
+    }],
+  }
+
+  // Heap chart
+  const heapData = {
+    labels,
+    datasets: [
+      {
+        label: 'Heap Used (MB)',
+        data: histVals('nodejs_heap_size_used_bytes').map(fmtMB),
+        borderColor: 'rgba(34,197,94,1)',
+        backgroundColor: 'rgba(34,197,94,0.1)',
+        fill: false,
+      },
+      {
+        label: 'Heap Total (MB)',
+        data: histVals('nodejs_heap_size_total_bytes').map(fmtMB),
+        borderColor: 'rgba(34,197,94,0.5)',
+        backgroundColor: 'transparent',
+        borderDash: [5, 3],
+        fill: false,
+      },
+    ],
+  }
+
+  // Event loop chart
+  const hasP99 = hist.some((h) => (h.metrics.eventLoopP99 ?? 0) > 0)
+  const lagDatasets: Array<Record<string, unknown>> = [
+    {
+      label: 'Lag (ms)',
+      data: histVals('nodejs_eventloop_lag_seconds').map((v) => parseFloat((v * 1000).toFixed(3))),
+      borderColor: 'rgba(239,68,68,1)',
+      backgroundColor: 'rgba(239,68,68,0.1)',
+      fill: true,
+    },
+  ]
+  if (hasP99) {
+    lagDatasets.push({
+      label: 'p99 (ms)',
+      data: histVals('eventLoopP99').map((v) => parseFloat((v * 1000).toFixed(3))),
+      borderColor: 'rgba(239,68,68,0.5)',
+      backgroundColor: 'transparent',
+      borderDash: [5, 3],
+      fill: false,
+    })
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const lagData = { labels, datasets: lagDatasets as any }
+
+  // Queue chart
+  const queueData = {
+    labels,
+    datasets: [
+      { label: 'Waiting',   data: histVals('queueWaiting'),   borderColor: 'rgba(249,115,22,1)',  backgroundColor: 'transparent', fill: false },
+      { label: 'Active',    data: histVals('queueActive'),    borderColor: 'rgba(59,130,246,1)',  backgroundColor: 'transparent', fill: false },
+      { label: 'Completed', data: histVals('queueCompleted'), borderColor: 'rgba(34,197,94,1)',   backgroundColor: 'transparent', fill: false },
+      { label: 'Failed',    data: histVals('queueFailed'),    borderColor: 'rgba(239,68,68,1)',   backgroundColor: 'transparent', fill: false },
+    ],
+  }
+
+  // Active resources chart
+  const resourcesData = {
+    labels,
+    datasets: [
+      { label: 'Handles',  data: histVals('nodejs_active_handles_total'), borderColor: 'rgba(20,184,166,1)', backgroundColor: 'rgba(20,184,166,0.1)', fill: true },
+      { label: 'Requests', data: histVals('activeRequests'),              borderColor: 'rgba(168,85,247,1)', backgroundColor: 'transparent',            fill: false },
+    ],
+  }
+
+  // ── Shared chart options builders ─────────────────────────────────────────
+
+  const baseOpts = (yLabel?: string) => ({
+    ...CHART_DEFAULTS,
+    scales: {
+      ...CHART_DEFAULTS.scales,
+      y: {
+        ...CHART_DEFAULTS.scales.y,
+        title: yLabel ? { display: true, text: yLabel, font: { size: 10 } } : undefined,
+      },
+    },
+  })
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
     <div>
-      {/* Refresh control */}
-      <div className="flex items-center gap-3 mb-4">
-        <h2 className="text-lg font-semibold text-text-dark">Observability</h2>
+      {/* Toolbar */}
+      <div className="flex items-center gap-3 mb-5 flex-wrap">
+        <h2 className="text-base font-semibold text-text-dark">Observability</h2>
+        <span className="text-xs text-text-muted ml-1">Updated {updatedAt}</span>
         <div className="ml-auto flex items-center gap-2">
-          <RefreshCw size={14} className="text-text-muted" />
           <select
             value={refreshInterval}
             onChange={(e) => setRefreshInterval(parseInt(e.target.value, 10))}
             className="text-xs px-2 py-1 border border-input-border rounded-sm bg-input-bg text-text-dark"
           >
+            <option value="0">Off</option>
             <option value="10">10s</option>
+            <option value="20">20s</option>
             <option value="30">30s</option>
             <option value="60">60s</option>
-            <option value="0">Off</option>
           </select>
+          <button
+            onClick={refetchAll}
+            className="flex items-center gap-1.5 text-xs px-2.5 py-1 border border-input-border rounded-sm bg-input-bg text-text-dark hover:bg-card-hover"
+          >
+            <RefreshCw size={12} />
+            Refresh
+          </button>
+          <button
+            onClick={handleAiReport}
+            disabled={aiLoading}
+            className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-sm bg-danger text-white hover:bg-danger/90 disabled:opacity-60"
+          >
+            {aiLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+            AI Report
+          </button>
         </div>
       </div>
 
+      {/* AI report output */}
+      {aiReport && (
+        <div
+          className="mb-5 bg-card border border-border rounded-md p-4 prose prose-sm max-w-none text-text-dark"
+          dangerouslySetInnerHTML={{ __html: aiReport }}
+        />
+      )}
+
       {metricsLoading ? (
-        <div className="text-text-muted text-sm">Loading metrics...</div>
+        <div className="flex items-center gap-2 text-text-muted text-sm py-8">
+          <Loader2 size={16} className="animate-spin" /> Loading metrics…
+        </div>
       ) : (
         <>
-          {/* KPI cards */}
+          {/* ── KPI Cards ─────────────────────────────────────────────────── */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-            <KpiBox label="Version" value={version} />
-            <KpiBox label="Uptime" value={fmtUptime(uptime)} />
-            <KpiBox label="RSS Memory" value={fmtBytes(rss)} />
-            <KpiBox
-              label="Heap Usage"
+            <KpiCard
+              label="N8N VERSION"
+              value={version}
+              sub={nodeVersion ? `Node ${nodeVersion}` : 'n8n version'}
+            />
+            <KpiCard
+              label="UPTIME"
+              value={fmtUptime(uptime)}
+              sub={`Leader · ${activeWf} active workflows`}
+            />
+            <KpiCard
+              label="MEMORY (RSS)"
+              value={fmtBytes(rss)}
+              sub={maxFds > 0 ? `FDs: ${fds} / ${maxFds}` : `FDs: ${fds}`}
+            />
+            <KpiCard
+              label="HEAP USAGE"
               value={`${heapPct}%`}
-              color={heapPct > 85 ? 'danger' : heapPct > 70 ? 'warning' : 'success'}
+              sub={`${fmtMB(heapUsed)} MB / ${fmtMB(heapTotal)} MB`}
+              color={heapPct > 85 ? 'danger' : heapPct > 70 ? 'warning' : undefined}
             />
-            <KpiBox
-              label="Event Loop Lag"
-              value={`${eventLoopLag.toFixed(1)}ms`}
-              color={eventLoopLag > 100 ? 'danger' : eventLoopLag > 50 ? 'warning' : 'success'}
+            <KpiCard
+              label="EVENT LOOP LAG"
+              value={`${lagMs.toFixed(1)}ms`}
+              sub={lagP99Ms > 0 ? `p99: ${lagP99Ms.toFixed(1)}ms` : 'p99: —'}
+              color={lagMs > 100 ? 'danger' : lagMs > 50 ? 'warning' : undefined}
             />
-            <KpiBox label="Queue Depth" value={String(queueDepth)} />
+            <KpiCard
+              label="QUEUE (WAIT / ACTIVE)"
+              value={`${qWait} / ${qActive}`}
+              sub={`${qDone} done, ${qFailed} failed`}
+            />
           </div>
 
-          {/* Simple sparkline-style history display */}
-          {history && history.length > 0 && (
+          {/* ── Charts ────────────────────────────────────────────────────── */}
+          {hist.length > 1 && (
             <div className="grid md:grid-cols-2 gap-4 mb-6">
-              <HistoryChart
-                title="CPU Usage"
-                history={history}
-                metricKey="process_cpu_seconds_total"
-                format={(v) => `${(v * 100).toFixed(1)}%`}
-                derivative
-              />
-              <HistoryChart
-                title="Memory (RSS)"
-                history={history}
-                metricKey="process_resident_memory_bytes"
-                format={fmtBytes}
-              />
-              <HistoryChart
-                title="Heap Used"
-                history={history}
-                metricKey="nodejs_heap_size_used_bytes"
-                format={fmtBytes}
-              />
-              <HistoryChart
-                title="Event Loop Lag"
-                history={history}
-                metricKey="nodejs_eventloop_lag_seconds"
-                format={(v) => `${(v * 1000).toFixed(1)}ms`}
-              />
+              <ChartCard title="CPU Usage (Seconds)">
+                <Line data={cpuData} options={baseOpts('cpu s/s')} />
+              </ChartCard>
+
+              <ChartCard title="Memory (RSS)">
+                <Line data={memData} options={baseOpts('MB')} />
+              </ChartCard>
+
+              <ChartCard title="Heap Usage">
+                <Line data={heapData} options={baseOpts('MB')} />
+              </ChartCard>
+
+              <ChartCard title="Event Loop Lag">
+                <Line data={lagData} options={baseOpts('ms')} />
+              </ChartCard>
+
+              <ChartCard title="Queue Jobs">
+                <Line data={queueData} options={baseOpts('jobs')} />
+              </ChartCard>
+
+              <ChartCard title="Active Resources">
+                <Line data={resourcesData} options={baseOpts('count')} />
+              </ChartCard>
             </div>
           )}
 
-          {/* Workers */}
+          {/* ── Workers ───────────────────────────────────────────────────── */}
           {workers && workers.length > 0 && (
             <div className="mb-6">
               <h3 className="text-sm font-semibold text-text-dark mb-2">Workers</h3>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {workers.map((w) => (
-                  <div key={w.id} className="bg-card border border-border rounded-md p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-text-dark">{w.host || w.id}</span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                        w.status === 'healthy' ? 'bg-success-light text-success' : 'bg-danger-light text-danger'
-                      }`}>
-                        {w.status || 'unknown'}
-                      </span>
-                    </div>
-                    {w.version && <div className="text-xs text-text-muted">v{w.version}</div>}
-                    {w.metrics && (
-                      <div className="text-xs text-text-muted mt-1">
-                        RSS: {fmtBytes(w.metrics.process_resident_memory_bytes || 0)}
+                {workers.map((w) => {
+                  const wRss    = w.metrics?.process_resident_memory_bytes ?? 0
+                  const wHeapU  = w.metrics?.nodejs_heap_size_used_bytes ?? 0
+                  const wHeapT  = w.metrics?.nodejs_heap_size_total_bytes ?? 0
+                  const wHeapPct= wHeapT > 0 ? Math.round((wHeapU / wHeapT) * 100) : 0
+                  const wLag    = (w.metrics?.nodejs_eventloop_lag_seconds ?? 0) * 1000
+                  const wUptime = w.metrics?.process_uptime_seconds ?? 0
+                  const healthy = w.status === 'healthy' || w.status === 'ready'
+
+                  return (
+                    <div key={w.id} className="bg-card border border-border rounded-md overflow-hidden flex">
+                      <div className={cn('w-1 shrink-0', healthy ? 'bg-success' : 'bg-danger')} />
+                      <div className="flex-1 px-3 py-2.5">
+                        <div className="flex items-center justify-between mb-1.5 gap-2">
+                          <span className="text-sm font-medium text-text-dark truncate">{w.host || w.id}</span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {w.status && (
+                              <span className={cn(
+                                'text-[10px] px-1.5 py-0.5 rounded font-medium',
+                                healthy ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'
+                              )}>
+                                {w.status.charAt(0).toUpperCase() + w.status.slice(1)}
+                              </span>
+                            )}
+                            {healthy && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-primary/10 text-primary">Ready</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-text-muted">
+                          {wUptime > 0 && <span>Uptime: {fmtUptime(wUptime)}</span>}
+                          {wRss > 0    && <span>Mem: {fmtBytes(wRss)}</span>}
+                          {wHeapPct > 0 && (
+                            <span className={wHeapPct > 85 ? 'text-danger' : wHeapPct > 70 ? 'text-warning' : ''}>
+                              Heap: {wHeapPct}%
+                            </span>
+                          )}
+                          {wLag > 0 && (
+                            <span className={wLag > 100 ? 'text-danger' : wLag > 50 ? 'text-warning' : ''}>
+                              Loop: {wLag.toFixed(1)}ms
+                            </span>
+                          )}
+                        </div>
+                        {w.version && <div className="text-[10px] text-text-xmuted mt-1">v{esc(w.version)}</div>}
                       </div>
-                    )}
-                  </div>
-                ))}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
 
-          {/* Raw metrics explorer */}
+          {/* ── Raw Metrics Explorer ──────────────────────────────────────── */}
           <div>
             <div className="flex items-center gap-2 mb-3">
               <h3 className="text-sm font-semibold text-text-dark">Raw Metrics</h3>
               <div className="relative ml-auto">
-                <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-xmuted" />
+                <Search size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-xmuted" />
                 <input
                   type="text"
-                  placeholder="Filter metrics..."
+                  placeholder="Filter metrics…"
                   value={metricSearch}
                   onChange={(e) => setMetricSearch(e.target.value)}
                   className="pl-7 pr-3 py-1 text-xs border border-input-border rounded-sm bg-input-bg text-text-dark w-56 focus:outline-none focus:border-input-focus"
@@ -250,77 +597,7 @@ export function ObservabilityPage() {
   )
 }
 
-function KpiBox({ label, value, color }: { label: string; value: string; color?: string }) {
-  const colorClass: Record<string, string> = {
-    success: 'text-success',
-    warning: 'text-warning',
-    danger: 'text-danger',
-  }
-  return (
-    <div className="bg-card border border-border rounded-md p-3 text-center">
-      <div className={`text-lg font-bold ${color ? colorClass[color] || '' : 'text-text-dark'}`}>{value}</div>
-      <div className="text-xs text-text-muted mt-0.5">{label}</div>
-    </div>
-  )
-}
-
-function HistoryChart({
-  title,
-  history,
-  metricKey,
-  format,
-  derivative,
-}: {
-  title: string
-  history: HistoryPoint[]
-  metricKey: string
-  format: (v: number) => string
-  derivative?: boolean
-}) {
-  let values = history.map((h) => h.metrics[metricKey] ?? 0)
-
-  if (derivative && values.length > 1) {
-    const diffs = []
-    for (let i = 1; i < values.length; i++) {
-      const dt = (history[i].ts - history[i - 1].ts) / 1000
-      diffs.push(dt > 0 ? (values[i] - values[i - 1]) / dt : 0)
-    }
-    values = diffs
-  }
-
-  const max = Math.max(...values, 0.001)
-  const min = Math.min(...values, 0)
-  const range = max - min || 1
-  const current = values.length > 0 ? values[values.length - 1] : 0
-
-  // Simple SVG bar chart
-  const barWidth = Math.max(1, Math.floor(200 / values.length))
-
-  return (
-    <div className="bg-card border border-border rounded-md p-3">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium text-text-dark">{title}</span>
-        <span className="text-xs text-text-muted">{format(current)}</span>
-      </div>
-      <svg viewBox={`0 0 ${values.length * barWidth} 40`} className="w-full h-10" preserveAspectRatio="none">
-        {values.map((v, i) => {
-          const h = ((v - min) / range) * 36 + 2
-          return (
-            <rect
-              key={i}
-              x={i * barWidth}
-              y={40 - h}
-              width={Math.max(barWidth - 1, 1)}
-              height={h}
-              fill="var(--color-primary)"
-              opacity={0.7}
-            />
-          )
-        })}
-      </svg>
-    </div>
-  )
-}
+// ─── MetricGroup accordion ─────────────────────────────────────────────────
 
 function MetricGroup({ prefix, entries }: { prefix: string; entries: MetricEntry[] }) {
   const [open, setOpen] = useState(false)
@@ -330,16 +607,18 @@ function MetricGroup({ prefix, entries }: { prefix: string; entries: MetricEntry
         onClick={() => setOpen(!open)}
         className="w-full text-left px-3 py-2 text-xs font-medium text-text-dark hover:bg-card-hover flex items-center justify-between"
       >
-        <span>{prefix} ({entries.length})</span>
-        <span className="text-text-xmuted">{open ? '\u25B2' : '\u25BC'}</span>
+        <span>{prefix} <span className="text-text-xmuted font-normal">({entries.length})</span></span>
+        <span className="text-text-xmuted text-[10px]">{open ? '▲' : '▼'}</span>
       </button>
       {open && (
-        <div className="px-3 pb-2">
+        <div className="px-3 pb-2 space-y-0.5">
           {entries.map((m, i) => (
             <div key={i} className="flex items-center justify-between py-0.5 text-xs">
-              <span className="text-text-muted truncate mr-2">{m.name}</span>
+              <span className="text-text-muted truncate mr-2 font-mono">{m.name}</span>
               <span className="text-text-dark font-mono shrink-0">
-                {typeof m.value === 'number' ? (m.value % 1 === 0 ? m.value : m.value.toFixed(3)) : m.value}
+                {typeof m.value === 'number'
+                  ? m.value % 1 === 0 ? m.value : m.value.toFixed(4)
+                  : m.value}
               </span>
             </div>
           ))}
