@@ -362,7 +362,7 @@ export function KbPage() {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [tagFilter, setTagFilter] = useState('')
-  const [statusFilter, setStatusFilter] = useState('published')
+  const [statusFilter, setStatusFilter] = useState('')
   const [page, setPage] = useState(1)
   const [showCreateModal, setShowCreateModal] = useState(false)
 
