@@ -146,9 +146,11 @@ app.use((req, res, next) => {
 
 // --- Static frontend ---
 
-// Serve React frontend build if it exists (production), fall back to legacy public/
+// React frontend is served separately via `npm run dev:frontend` (port 5173) during development.
+// To switch production to React, set FRONTEND=react env var.
+const useReactFrontend = process.env.FRONTEND === 'react';
 const reactBuildPath = path.join(__dirname, 'frontend', 'dist');
-if (fs.existsSync(reactBuildPath)) {
+if (useReactFrontend && fs.existsSync(reactBuildPath)) {
   app.use(express.static(reactBuildPath, {
     setHeaders: function(res, filePath) {
       if (filePath.endsWith('.html')) {
@@ -330,10 +332,12 @@ const CLIENT_ROUTES = ['dashboard','library','n8n','categories','tickets','kb','
 app.get('*', (req, res, next) => {
   const segment = req.path.split('/')[1];
   if (CLIENT_ROUTES.includes(segment)) {
-    // Serve React build if available, otherwise legacy frontend
-    const reactIndex = path.join(__dirname, 'frontend', 'dist', 'index.html');
-    if (fs.existsSync(reactIndex)) {
-      return res.sendFile(reactIndex);
+    // Serve React build only if FRONTEND=react, otherwise legacy frontend
+    if (useReactFrontend) {
+      const reactIndex = path.join(__dirname, 'frontend', 'dist', 'index.html');
+      if (fs.existsSync(reactIndex)) {
+        return res.sendFile(reactIndex);
+      }
     }
     return res.sendFile(path.join(__dirname, 'public', 'index.html'));
   }
