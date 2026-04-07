@@ -5,7 +5,6 @@ import { useAuthStore } from '@/stores/auth'
 import { ToastContainer } from '@/components/ToastContainer'
 import { AppLayout } from '@/components/AppLayout'
 import { LoginPage } from '@/features/login'
-import { PlaceholderPage } from '@/features/placeholder'
 import { DashboardPage } from '@/features/dashboard'
 import { LibraryPage } from '@/features/library'
 import { MonitoringPage, ExecutionDetailPage } from '@/features/monitoring'
@@ -19,6 +18,9 @@ import { VariablesPage } from '@/features/variables'
 import { TagsPage } from '@/features/tags'
 import { AuditPage } from '@/features/audit'
 import { SettingsPage } from '@/features/settings'
+import { N8nWorkflowsPage } from '@/features/n8n-workflows'
+import { CredentialsPage } from '@/features/credentials'
+import { ApprovalsPage, ApprovalsBuilderPage } from '@/features/approvals'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,7 +63,7 @@ export default function App() {
               <Route index element={<DashboardPage />} />
               <Route path="dashboard" element={<Navigate to="/" replace />} />
               <Route path="library" element={<LibraryPage />} />
-              <Route path="n8n" element={<PlaceholderPage name="n8n Workflows" />} />
+              <Route path="n8n" element={<N8nWorkflowsPage />} />
               <Route path="monitoring" element={<MonitoringPage />} />
               <Route path="monitoring/:id" element={<ExecutionDetailPage />} />
               <Route path="observability" element={<ObservabilityPage />} />
@@ -71,9 +73,9 @@ export default function App() {
               <Route path="kb/:slug" element={<KbArticlePage />} />
               <Route path="prompts" element={<PromptsPage />} />
               <Route path="prompts/:slug" element={<PromptDetailPage />} />
-              <Route path="credentials" element={<PlaceholderPage name="Credentials" />} />
-              <Route path="approvals" element={<PlaceholderPage name="Approvals" />} />
-              <Route path="approvals-builder" element={<PlaceholderPage name="Approvals Builder" />} />
+              <Route path="credentials" element={<CredentialsPage />} />
+              <Route path="approvals" element={<ApprovalsPage />} />
+              <Route path="approvals-builder" element={<ApprovalsBuilderPage />} />
               <Route path="settings/*" element={<SettingsPage />} />
               <Route path="alerts" element={<AlertsPage />} />
               <Route path="security" element={<SecurityPage />} />
