@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { loadNodeIcons, getNodeIconSrc } from '@/lib/node-icons'
+import { loadNodeIcons, getNodeIconSrc, getNodeFaIcon } from '@/lib/node-icons'
 import { cn, esc } from '@/lib/utils'
 
 interface NodeData {
@@ -30,34 +30,75 @@ function getNodeType(node: NodeData): string {
   return node.type || node.name || ''
 }
 
+// Map FA icon names to Unicode characters for rendering without Font Awesome
+const FA_UNICODE: Record<string, string> = {
+  clock: '\u{1F551}', filter: '\u{1F50D}', pen: '\u270F', cog: '\u2699', table: '\u{1F4CA}',
+  code: '\u{1F4BB}', envelope: '\u2709', database: '\u{1F4BE}', bolt: '\u26A1',
+  globe: '\u{1F310}', file: '\u{1F4C4}', play: '\u25B6', pause: '\u23F8',
+  'exchange-alt': '\u21C4', compress: '\u{1F500}', robot: '\u{1F916}',
+  comment: '\u{1F4AC}', key: '\u{1F511}', users: '\u{1F465}', calendar: '\u{1F4C5}',
+}
+
 function NodeIcon({ node }: { node: NodeData }) {
   const trigger = isTrigger(node)
+  const nodeType = getNodeType(node)
+  const baseCls = 'w-[22px] h-[22px] rounded-md flex items-center justify-center shrink-0 border overflow-hidden'
+  const triggerCls = trigger ? 'bg-primary border-primary' : 'bg-bg border-border-light'
 
-  // Try inline iconData first (template nodes have it)
+  // 1. Inline iconData with base64 image (template nodes)
   if (node.iconData?.type === 'file' && node.iconData.fileBuffer?.startsWith('data:image')) {
     return (
-      <span className={cn('w-[22px] h-[22px] rounded-md flex items-center justify-center shrink-0 border overflow-hidden',
-        trigger ? 'bg-primary border-primary' : 'bg-bg border-border-light')}>
+      <span className={cn(baseCls, triggerCls)}>
         <img src={node.iconData.fileBuffer} alt="" className="w-4 h-4 object-contain" />
       </span>
     )
   }
 
-  // Try lookup from icon cache
-  const src = getNodeIconSrc(getNodeType(node))
-  if (src) {
+  // 2. Inline iconData with FA icon name (template nodes)
+  if (node.iconData?.type === 'icon' && node.iconData.icon && node.iconData.icon !== 'question') {
+    const ch = FA_UNICODE[node.iconData.icon] || '\u2699'
     return (
-      <span className={cn('w-[22px] h-[22px] rounded-md flex items-center justify-center shrink-0 border overflow-hidden',
-        trigger ? 'bg-primary border-primary' : 'bg-bg border-border-light')}>
-        <img src={src} alt="" className="w-4 h-4 object-contain" />
+      <span className={cn(baseCls, triggerCls, 'text-[11px]', trigger && 'text-white')}>
+        {ch}
       </span>
     )
   }
 
-  // Fallback: gear icon placeholder
+  // 3. Lookup from icon cache by node type
+  const cachedSrc = getNodeIconSrc(nodeType)
+  if (cachedSrc) {
+    return (
+      <span className={cn(baseCls, triggerCls)}>
+        <img src={cachedSrc} alt="" className="w-4 h-4 object-contain" />
+      </span>
+    )
+  }
+
+  // 4. Lookup FA icon from cache
+  const faIcon = getNodeFaIcon(nodeType)
+  if (faIcon) {
+    const ch = FA_UNICODE[faIcon] || '\u2699'
+    return (
+      <span className={cn(baseCls, triggerCls, 'text-[11px]', trigger && 'text-white')}>
+        {ch}
+      </span>
+    )
+  }
+
+  // 5. Check top-level icon field on the node itself (fa:xxx or file:xxx)
+  if (node.icon?.startsWith('fa:')) {
+    const name = node.icon.replace('fa:', '')
+    const ch = FA_UNICODE[name] || '\u2699'
+    return (
+      <span className={cn(baseCls, triggerCls, 'text-[11px]', trigger && 'text-white')}>
+        {ch}
+      </span>
+    )
+  }
+
+  // 6. Fallback: gear icon
   return (
-    <span className={cn('w-[22px] h-[22px] rounded-md flex items-center justify-center shrink-0 border text-[11px]',
-      trigger ? 'bg-primary border-primary text-white' : 'bg-bg border-border-light text-text-dark')}>
+    <span className={cn(baseCls, triggerCls, 'text-[11px]', trigger ? 'text-white' : 'text-text-dark')}>
       &#9881;
     </span>
   )
