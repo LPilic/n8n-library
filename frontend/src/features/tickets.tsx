@@ -51,10 +51,10 @@ interface TicketDetail extends Ticket {
 }
 
 interface TicketStats {
-  byStatus: Record<string, number>
-  byPriority: Record<string, number>
+  byStatus: Array<{ status: string; count: number | string }>
+  byPriority: Array<{ priority: string; count: number | string }>
   unassigned: number
-  avgResolutionHours: number
+  avgResolutionHours: string | number | null
 }
 
 interface AssignableUser {
@@ -161,17 +161,17 @@ export function TicketsPage() {
             <div>
               <h3 className="text-xs font-semibold text-text-muted uppercase mb-2">By Status</h3>
               <div className="space-y-1">
-                {Object.entries(stats.byStatus).map(([s, count]) => (
+                {(stats.byStatus ?? []).map((item) => (
                   <button
-                    key={s}
-                    onClick={() => { setStatus(status === s ? '' : s); setPage(1) }}
+                    key={item.status}
+                    onClick={() => { setStatus(status === item.status ? '' : item.status); setPage(1) }}
                     className={cn(
                       'w-full flex items-center justify-between text-xs px-2 py-1 rounded-sm',
-                      status === s ? 'bg-primary-light text-primary font-medium' : 'text-text-muted hover:bg-card-hover',
+                      status === item.status ? 'bg-primary-light text-primary font-medium' : 'text-text-muted hover:bg-card-hover',
                     )}
                   >
-                    <span className="capitalize">{s.replace('_', ' ')}</span>
-                    <span className="font-medium">{count}</span>
+                    <span className="capitalize">{item.status.replace('_', ' ')}</span>
+                    <span className="font-medium">{item.count}</span>
                   </button>
                 ))}
               </div>
@@ -180,17 +180,17 @@ export function TicketsPage() {
             <div>
               <h3 className="text-xs font-semibold text-text-muted uppercase mb-2">By Priority</h3>
               <div className="space-y-1">
-                {Object.entries(stats.byPriority).map(([p, count]) => (
+                {(stats.byPriority ?? []).map((item) => (
                   <button
-                    key={p}
-                    onClick={() => { setPriority(priority === p ? '' : p); setPage(1) }}
+                    key={item.priority}
+                    onClick={() => { setPriority(priority === item.priority ? '' : item.priority); setPage(1) }}
                     className={cn(
                       'w-full flex items-center justify-between text-xs px-2 py-1 rounded-sm',
-                      priority === p ? 'bg-primary-light text-primary font-medium' : 'text-text-muted hover:bg-card-hover',
+                      priority === item.priority ? 'bg-primary-light text-primary font-medium' : 'text-text-muted hover:bg-card-hover',
                     )}
                   >
-                    <span className="capitalize">{p}</span>
-                    <span className="font-medium">{count}</span>
+                    <span className="capitalize">{item.priority}</span>
+                    <span className="font-medium">{item.count}</span>
                   </button>
                 ))}
               </div>
@@ -203,7 +203,7 @@ export function TicketsPage() {
               </div>
               <div className="text-center">
                 <div className="text-xl font-bold text-text-dark">
-                  {stats.avgResolutionHours > 0 ? `${stats.avgResolutionHours.toFixed(1)}h` : '—'}
+                  {stats.avgResolutionHours && Number(stats.avgResolutionHours) > 0 ? `${Number(stats.avgResolutionHours).toFixed(1)}h` : '—'}
                 </div>
                 <div className="text-xs text-text-muted">Avg Resolution</div>
               </div>

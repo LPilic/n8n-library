@@ -29,18 +29,22 @@ interface KbArticle {
   title: string
   slug: string
   excerpt?: string
+  body?: string
   content?: string
   status: string
   category_id?: number
   category_name?: string
-  tags?: string[]
-  view_count: number
+  author_name?: string
+  tags?: Array<{ id: number; name: string; slug?: string } | string>
+  view_count?: number
   pinned?: boolean
+  is_pinned?: boolean
   featured?: boolean
+  is_featured?: boolean
   author_username?: string
   created_at: string
   updated_at: string
-  attachments?: Array<{ id: number; filename: string; url: string; size: number }>
+  attachments?: Array<{ id: number; filename?: string; original_name?: string; url?: string; size?: number; size_bytes?: number; mime_type?: string }>
 }
 
 interface KbCategory {
@@ -58,9 +62,9 @@ interface KbTag {
 
 interface KbStats {
   total: number
-  published: number
-  draft: number
-  totalViews: number
+  byCategory?: Array<{ id: number; name: string; count: number }>
+  popular?: Array<{ id: number; title: string; view_count: number }>
+  recent?: Array<{ id: number; title: string; updated_at: string }>
 }
 
 interface KbListResponse {
@@ -96,8 +100,8 @@ function ArticleFormModal({ categories, initial, onClose, onSaved }: ArticleForm
     initial?.category_id != null ? String(initial.category_id) : '',
   )
   const [status, setStatus] = useState(initial?.status ?? 'draft')
-  const [content, setContent] = useState(initial?.content ?? '')
-  const [tags, setTags] = useState((initial?.tags ?? []).join(', '))
+  const [content, setContent] = useState(initial?.body ?? initial?.content ?? '')
+  const [tags, setTags] = useState((initial?.tags ?? []).map(t => typeof t === 'string' ? t : t.name).join(', '))
   const [saving, setSaving] = useState(false)
 
   async function handleSave() {
@@ -110,7 +114,7 @@ function ArticleFormModal({ categories, initial, onClose, onSaved }: ArticleForm
       const payload = {
         title: title.trim(),
         status,
-        content,
+        body: content,
         tags: tags
           .split(',')
           .map((t) => t.trim())
@@ -404,17 +408,19 @@ export function KbPage() {
         {stats && (
           <div className="bg-card border border-border rounded-md p-3 space-y-2">
             <div className="flex justify-between text-xs">
-              <span className="text-text-muted">Published</span>
-              <span className="font-medium text-text-dark">{stats.published}</span>
+              <span className="text-text-muted">Total Articles</span>
+              <span className="font-medium text-text-dark">{stats.total}</span>
             </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-text-muted">Drafts</span>
-              <span className="font-medium text-text-dark">{stats.draft}</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-text-muted">Total Views</span>
-              <span className="font-medium text-text-dark">{stats.totalViews.toLocaleString()}</span>
-            </div>
+            {stats.popular && stats.popular.length > 0 && (
+              <div className="pt-2 border-t border-border-light">
+                <div className="text-[10px] font-semibold text-text-xmuted uppercase mb-1">Popular</div>
+                {stats.popular.slice(0, 5).map((a) => (
+                  <div key={a.id} className="text-xs text-text-muted truncate py-0.5 cursor-pointer hover:text-primary" onClick={() => navigate(`/kb/${a.id}`)}>
+                    {a.title}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -611,7 +617,7 @@ function ArticleCard({ article, onClick }: { article: KbArticle; onClick: () => 
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            {article.pinned && <Pin size={12} className="text-warning shrink-0" />}
+            {(article.is_pinned ?? article.pinned) && <Pin size={12} className="text-warning shrink-0" />}
             <h3 className="text-sm font-medium text-text-dark group-hover:text-primary transition-colors truncate">
               {esc(article.title)}
             </h3>
@@ -625,13 +631,16 @@ function ArticleCard({ article, onClick }: { article: KbArticle; onClick: () => 
                 {esc(article.category_name)}
               </span>
             )}
-            {(article.tags ?? []).slice(0, 3).map((tag) => (
-              <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-border-light text-text-muted flex items-center gap-0.5">
-                <Tag size={8} />{tag}
-              </span>
-            ))}
+            {(article.tags ?? []).slice(0, 3).map((tag, i) => {
+              const tagName = typeof tag === 'string' ? tag : tag.name
+              return (
+                <span key={typeof tag === 'string' ? tag : tag.id ?? i} className="text-[10px] px-1.5 py-0.5 rounded bg-border-light text-text-muted flex items-center gap-0.5">
+                  <Tag size={8} />{tagName}
+                </span>
+              )
+            })}
             <span className="text-[10px] text-text-xmuted flex items-center gap-0.5 ml-auto">
-              <Eye size={10} /> {article.view_count.toLocaleString()}
+              <Eye size={10} /> {(article.view_count ?? 0).toLocaleString()}
             </span>
             <span className="text-[10px] text-text-xmuted">{timeAgo(article.updated_at)}</span>
           </div>
@@ -668,14 +677,14 @@ export function KbArticlePage() {
   })
 
   const feedbackMut = useMutation({
-    mutationFn: (helpful: 'yes' | 'no') =>
+    mutationFn: (helpful: boolean) =>
       api.post(`/api/kb/articles/${article?.id}/feedback`, { helpful }),
     onSuccess: () => showSuccess('Feedback submitted — thank you!'),
     onError: (err) => showError(err instanceof ApiError ? err.message : 'Feedback failed'),
   })
 
   const pinMut = useMutation({
-    mutationFn: () => api.put(`/api/kb/articles/${article?.id}`, { pinned: !article?.pinned }),
+    mutationFn: () => api.patch(`/api/kb/articles/${article?.id}/pin`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kb-article', slug] })
       queryClient.invalidateQueries({ queryKey: ['kb-articles'] })
@@ -755,10 +764,10 @@ export function KbArticlePage() {
             <button
               onClick={() => pinMut.mutate()}
               disabled={pinMut.isPending}
-              title={article.pinned ? 'Unpin article' : 'Pin article'}
+              title={(article.is_pinned ?? article.pinned) ? 'Unpin article' : 'Pin article'}
               className={cn(
                 'p-1.5 rounded-sm transition-colors',
-                article.pinned
+                (article.is_pinned ?? article.pinned)
                   ? 'text-warning bg-warning-light hover:bg-warning-light'
                   : 'text-text-xmuted hover:text-warning hover:bg-warning-light',
               )}
@@ -771,10 +780,10 @@ export function KbArticlePage() {
               <button
                 onClick={() => featureMut.mutate()}
                 disabled={featureMut.isPending}
-                title={article.featured ? 'Remove from featured' : 'Mark as featured'}
+                title={(article.is_featured ?? article.featured) ? 'Remove from featured' : 'Mark as featured'}
                 className={cn(
                   'p-1.5 rounded-sm transition-colors',
-                  article.featured
+                  (article.is_featured ?? article.featured)
                     ? 'text-warning bg-warning-light'
                     : 'text-text-xmuted hover:text-warning hover:bg-warning-light',
                 )}
@@ -820,32 +829,35 @@ export function KbArticlePage() {
         </div>
 
         <div className="flex items-center gap-3 text-xs text-text-xmuted flex-wrap mb-4">
-          {article.author_username && (
-            <span>By <strong className="text-text-muted">{article.author_username}</strong></span>
+          {(article.author_name || article.author_username) && (
+            <span>By <strong className="text-text-muted">{(article.author_name || article.author_username)}</strong></span>
           )}
           <span>Updated {timeAgo(article.updated_at)}</span>
           <span className="flex items-center gap-0.5">
-            <Eye size={11} /> {article.view_count.toLocaleString()} views
+            <Eye size={11} /> {(article.view_count ?? 0).toLocaleString()} views
           </span>
         </div>
 
         {/* Tags */}
         {(article.tags ?? []).length > 0 && (
           <div className="flex flex-wrap gap-1 mb-4">
-            {(article.tags ?? []).map((tag) => (
-              <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-border-light text-text-muted flex items-center gap-0.5">
-                <Tag size={8} />{tag}
-              </span>
-            ))}
+            {(article.tags ?? []).map((tag, i) => {
+              const tagName = typeof tag === 'string' ? tag : tag.name
+              return (
+                <span key={typeof tag === 'string' ? tag : tag.id ?? i} className="text-[10px] px-1.5 py-0.5 rounded bg-border-light text-text-muted flex items-center gap-0.5">
+                  <Tag size={8} />{tagName}
+                </span>
+              )
+            })}
           </div>
         )}
 
         {/* Article content */}
-        {article.content ? (
+        {(article.body || article.content) ? (
           <div
             className="prose prose-sm max-w-none text-text-dark"
             // TODO: sanitize with DOMPurify
-            dangerouslySetInnerHTML={{ __html: article.content }}
+            dangerouslySetInnerHTML={{ __html: article.body || article.content || '' }}
           />
         ) : (
           <p className="text-text-muted text-sm italic">No content available.</p>
@@ -856,22 +868,29 @@ export function KbArticlePage() {
           <div className="mt-4 pt-4 border-t border-border-light">
             <h3 className="text-xs font-semibold text-text-muted uppercase mb-2">Attachments</h3>
             <div className="space-y-1">
-              {(article.attachments ?? []).map((att) => (
-                <a
-                  key={att.id}
-                  href={att.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-xs text-primary hover:text-primary-hover"
-                >
-                  <span className="truncate">{att.filename}</span>
-                  <span className="text-text-xmuted shrink-0">
-                    ({att.size > 1024 * 1024
-                      ? `${(att.size / 1024 / 1024).toFixed(1)} MB`
-                      : `${Math.round(att.size / 1024)} KB`})
-                  </span>
-                </a>
-              ))}
+              {(article.attachments ?? []).map((att) => {
+                const name = att.original_name || att.filename || 'file'
+                const bytes = att.size_bytes ?? att.size ?? 0
+                const href = att.url || `/uploads/kb/${att.filename || att.original_name}`
+                return (
+                  <a
+                    key={att.id}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-xs text-primary hover:text-primary-hover"
+                  >
+                    <span className="truncate">{name}</span>
+                    {bytes > 0 && (
+                      <span className="text-text-xmuted shrink-0">
+                        ({bytes > 1024 * 1024
+                          ? `${(bytes / 1024 / 1024).toFixed(1)} MB`
+                          : `${Math.round(bytes / 1024)} KB`})
+                      </span>
+                    )}
+                  </a>
+                )
+              })}
             </div>
           </div>
         )}
@@ -882,14 +901,14 @@ export function KbArticlePage() {
         <p className="text-sm font-medium text-text-dark mb-3">Was this article helpful?</p>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => feedbackMut.mutate('yes')}
+            onClick={() => feedbackMut.mutate(true)}
             disabled={feedbackMut.isPending}
             className="flex items-center gap-1.5 text-xs px-3 py-1.5 border border-input-border rounded-sm text-success hover:bg-success-light hover:border-success transition-colors disabled:opacity-50"
           >
             <ThumbsUp size={13} /> Yes, helpful
           </button>
           <button
-            onClick={() => feedbackMut.mutate('no')}
+            onClick={() => feedbackMut.mutate(false)}
             disabled={feedbackMut.isPending}
             className="flex items-center gap-1.5 text-xs px-3 py-1.5 border border-input-border rounded-sm text-danger hover:bg-danger-light hover:border-danger transition-colors disabled:opacity-50"
           >
