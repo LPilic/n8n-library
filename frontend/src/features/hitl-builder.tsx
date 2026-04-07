@@ -4,7 +4,7 @@ import { api, ApiError } from '@/api/client'
 import { useToast } from '@/hooks/useToast'
 import { cn } from '@/lib/utils'
 import {
-  DndContext, DragOverlay, useSensor, useSensors, PointerSensor,
+  DndContext, DragOverlay, useSensor, useSensors, PointerSensor, useDroppable, useDraggable,
   type DragEndEvent, type DragStartEvent,
 } from '@dnd-kit/core'
 import {
@@ -79,7 +79,7 @@ function slugify(name: string): string {
 /* -------------------------------------------------------------------------- */
 
 function PaletteItem({ type, def }: { type: string; def: typeof HITL_COMPONENTS[string] }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `palette-${type}`,
     data: { origin: 'palette', type },
   })
@@ -381,6 +381,25 @@ function LivePreview({ components, sampleData }: { components: SchemaComponent[]
 }
 
 /* -------------------------------------------------------------------------- */
+/*  Canvas droppable wrapper                                                  */
+/* -------------------------------------------------------------------------- */
+
+function CanvasDropZone({ children }: { children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: 'canvas-drop-zone' })
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        'flex-1 bg-bg overflow-y-auto p-4 min-h-[400px] transition-colors',
+        isOver && 'bg-primary/5',
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
 /*  Main component                                                            */
 /* -------------------------------------------------------------------------- */
 
@@ -406,7 +425,13 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
       setName(t.name)
       setSlug(t.slug)
       setDescription(t.description || '')
-      setComponents(t.schema?.components ?? [])
+      // Ensure every component has a unique id (legacy schemas may not have them)
+      const comps = (t.schema?.components ?? []).map((c) => ({
+        id: c.id || uid(),
+        type: c.type || 'text',
+        props: c.props || {},
+      }))
+      setComponents(comps)
       return t
     },
     enabled: !!templateId,
@@ -435,10 +460,12 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
       const def = HITL_COMPONENTS[activeData.type]
       if (!def) return
       const newComp: SchemaComponent = { id: uid(), type: activeData.type, props: { ...def.defaults } }
+      // If dropped on a specific canvas item, insert before it
       const overIndex = components.findIndex(c => c.id === over.id)
       if (overIndex >= 0) {
         setComponents(prev => { const next = [...prev]; next.splice(overIndex, 0, newComp); return next })
       } else {
+        // Dropped on canvas zone itself or unknown target — append
         setComponents(prev => [...prev, newComp])
       }
       setSelectedId(newComp.id)
@@ -582,7 +609,6 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
           <div className="flex flex-1 overflow-hidden">
             {/* Left: Palette */}
             <div className="w-[280px] bg-card border-r border-border overflow-y-auto flex-shrink-0">
-              <SortableContext items={Object.keys(HITL_COMPONENTS).map(k => `palette-${k}`)} strategy={verticalListSortingStrategy}>
                 {CATEGORIES.map(cat => {
                   const items = Object.entries(HITL_COMPONENTS).filter(([, v]) => v.category === cat.key)
                   if (!items.length) return null
@@ -599,14 +625,13 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
                     </div>
                   )
                 })}
-              </SortableContext>
             </div>
 
             {/* Center: Canvas */}
-            <div className="flex-1 bg-bg overflow-y-auto p-4 min-h-[400px]">
+            <CanvasDropZone>
               <SortableContext items={canvasIds} strategy={verticalListSortingStrategy}>
                 {components.length === 0 ? (
-                  <div className="flex items-center justify-center h-full text-text-muted text-sm italic">
+                  <div className="flex items-center justify-center h-full text-text-muted text-sm italic py-20">
                     Drag components here to build your form
                   </div>
                 ) : (
@@ -620,7 +645,7 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
                   ))
                 )}
               </SortableContext>
-            </div>
+            </CanvasDropZone>
 
             {/* Right: Properties */}
             <div className="w-[280px] bg-card border-l border-border overflow-y-auto flex-shrink-0">
