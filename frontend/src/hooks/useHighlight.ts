@@ -24,7 +24,7 @@ hljs.registerLanguage('css', css)
 
 /**
  * Applies syntax highlighting to all <pre><code> blocks inside the ref element.
- * Call after content is rendered via dangerouslySetInnerHTML.
+ * Auto-detects language if no class is set.
  */
 export function useHighlight(deps: unknown[] = []) {
   const ref = useRef<HTMLDivElement>(null)
@@ -32,7 +32,18 @@ export function useHighlight(deps: unknown[] = []) {
   useEffect(() => {
     if (!ref.current) return
     ref.current.querySelectorAll('pre code').forEach((el) => {
-      hljs.highlightElement(el as HTMLElement)
+      const codeEl = el as HTMLElement
+      // If no language class, try auto-detection
+      if (!codeEl.className || !codeEl.className.match(/language-/)) {
+        const result = hljs.highlightAuto(codeEl.textContent || '')
+        if (result.language) {
+          codeEl.classList.add(`language-${result.language}`)
+          codeEl.innerHTML = result.value
+          codeEl.classList.add('hljs')
+        }
+      } else {
+        hljs.highlightElement(codeEl)
+      }
     })
   }, deps)
 
