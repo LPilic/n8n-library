@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import { useToast } from '@/hooks/useToast'
@@ -24,6 +25,7 @@ import {
   Check,
   Download,
   Cpu,
+  ExternalLink,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -1202,6 +1204,551 @@ function ImportExportTab() {
   )
 }
 
+// ─── EmailTemplatesTab ────────────────────────────────────────────────────────
+
+const EMAIL_TEMPLATE_KEYS = [
+  'password_reset',
+  'ticket_new',
+  'ticket_status',
+  'ticket_comment',
+  'ticket_assignment',
+  'daily_summary',
+] as const
+
+const EMAIL_VARIABLES = [
+  '{{app_name}}',
+  '{{primary_color}}',
+  '{{primary_hover}}',
+  '{{logo_url}}',
+  '{{username}}',
+  '{{reset_url}}',
+]
+
+interface EmailTemplate {
+  label: string
+  subject: string
+  body: string
+}
+
+function EmailTemplatesTab() {
+  const { error: showError, success: showSuccess } = useToast()
+  const qc = useQueryClient()
+  const bodyRef = useRef<HTMLTextAreaElement>(null)
+  const [selectedKey, setSelectedKey] = useState<string>(EMAIL_TEMPLATE_KEYS[0])
+  const [subject, setSubject] = useState('')
+  const [body, setBody] = useState('')
+  const [preview, setPreview] = useState<{ subject: string; html: string } | null>(null)
+
+  const { data: templates, isLoading } = useQuery({
+    queryKey: ['settings-email-templates'],
+    queryFn: async () => {
+      const r = await api.get<{ templates: Record<string, EmailTemplate> }>('/api/settings/email-templates')
+      return r.templates ?? {}
+    },
+  })
+
+  // Sync form when selected key or templates change
+  const currentTpl = templates?.[selectedKey]
+  const [lastKey, setLastKey] = useState(selectedKey)
+  if (selectedKey !== lastKey && templates) {
+    setLastKey(selectedKey)
+    setSubject(templates[selectedKey]?.subject ?? '')
+    setBody(templates[selectedKey]?.body ?? '')
+    setPreview(null)
+  }
+  // Populate on first load
+  const [seeded, setSeeded] = useState(false)
+  if (!seeded && templates && templates[selectedKey]) {
+    setSubject(templates[selectedKey].subject ?? '')
+    setBody(templates[selectedKey].body ?? '')
+    setSeeded(true)
+  }
+
+  const saveMut = useMutation({
+    mutationFn: () =>
+      api.put('/api/settings/email-templates', { templates: { [selectedKey]: { subject, body } } }),
+    onSuccess: () => {
+      showSuccess('Template saved')
+      qc.invalidateQueries({ queryKey: ['settings-email-templates'] })
+    },
+    onError: (err) => showError(err instanceof ApiError ? err.message : 'Save failed'),
+  })
+
+  const resetMut = useMutation({
+    mutationFn: () => api.post('/api/settings/email-templates/reset', { template_key: selectedKey }),
+    onSuccess: () => {
+      showSuccess('Template reset to default')
+      qc.invalidateQueries({ queryKey: ['settings-email-templates'] })
+      setSeeded(false)
+    },
+    onError: (err) => showError(err instanceof ApiError ? err.message : 'Reset failed'),
+  })
+
+  const previewMut = useMutation({
+    mutationFn: () =>
+      api.post<{ subject: string; html: string }>('/api/settings/email-templates/preview', { template_key: selectedKey, subject, body }),
+    onSuccess: (data) => setPreview(data),
+    onError: (err) => showError(err instanceof ApiError ? err.message : 'Preview failed'),
+  })
+
+  function insertVariable(v: string) {
+    const ta = bodyRef.current
+    if (!ta) { setBody((b) => b + v); return }
+    const start = ta.selectionStart ?? body.length
+    const end = ta.selectionEnd ?? body.length
+    const next = body.slice(0, start) + v + body.slice(end)
+    setBody(next)
+    requestAnimationFrame(() => {
+      ta.focus()
+      ta.setSelectionRange(start + v.length, start + v.length)
+    })
+  }
+
+  if (isLoading) return <p className="text-sm text-text-muted">Loading templates...</p>
+
+  const keyOptions = EMAIL_TEMPLATE_KEYS.map((k) => ({
+    value: k,
+    label: templates?.[k]?.label ?? k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+  }))
+
+  return (
+    <div className="flex flex-col lg:flex-row gap-6">
+      {/* Left: Editor */}
+      <div className="w-full lg:w-1/2 min-w-0 space-y-4">
+        <FieldRow label="Template">
+          <Select value={selectedKey} onChange={(v) => { setSelectedKey(v); setPreview(null) }} options={keyOptions} />
+        </FieldRow>
+        <FieldRow label="Subject">
+          <Input value={subject} onChange={setSubject} placeholder="Subject line…" />
+        </FieldRow>
+        <FieldRow label="Body (HTML with {{variables}})">
+          <textarea
+            ref={bodyRef}
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            rows={12}
+            className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm font-mono text-text-dark focus-ring resize-y min-h-[250px]"
+            placeholder="<p>Hello {{username}},</p>"
+          />
+        </FieldRow>
+        <div>
+          <p className="text-xs font-medium text-text-muted mb-1.5">Available Variables <span className="text-text-xmuted">(click to insert)</span></p>
+          <div className="flex flex-wrap gap-1.5">
+            {EMAIL_VARIABLES.map((v) => (
+              <button
+                key={v}
+                onClick={() => insertVariable(v)}
+                className="text-[11px] font-mono px-2 py-1 bg-bg border border-border rounded-md text-primary hover:bg-primary-light hover:border-primary/30 transition-colors"
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 pt-1">
+          <SaveBtn
+            pending={saveMut.isPending}
+            disabled={!subject.trim()}
+            label="Save Template"
+            pendingLabel="Saving..."
+            onClick={() => saveMut.mutate()}
+          />
+          <button
+            disabled={previewMut.isPending}
+            onClick={() => previewMut.mutate()}
+            className="text-[12px] font-semibold px-3 py-1.5 border border-border text-text-muted rounded-md hover:bg-bg disabled:opacity-50"
+          >
+            {previewMut.isPending ? 'Generating…' : 'Refresh Preview'}
+          </button>
+          <button
+            disabled={resetMut.isPending}
+            onClick={async () => {
+              const ok = await appConfirm(`Reset "${currentTpl?.label ?? selectedKey}" to default?`, { danger: true, okLabel: 'Reset' })
+              if (ok) resetMut.mutate()
+            }}
+            className="text-[12px] font-semibold px-3 py-1.5 border border-danger/40 text-danger rounded-md hover:bg-danger/5 disabled:opacity-50"
+          >
+            {resetMut.isPending ? 'Resetting…' : 'Reset to Default'}
+          </button>
+        </div>
+      </div>
+
+      {/* Right: Always-visible preview */}
+      <div className="w-full lg:w-1/2 shrink-0">
+        <div className="sticky top-0">
+          <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Preview</p>
+          {preview ? (
+            <div className="border border-border rounded-lg overflow-hidden bg-white">
+              <div className="px-3 py-1.5 bg-bg border-b border-border-light text-[11px] text-text-muted truncate">
+                Subject: {preview.subject}
+              </div>
+              <iframe
+                srcDoc={preview.html}
+                title="Email preview"
+                className="w-full border-0"
+                style={{ height: '500px' }}
+                sandbox="allow-same-origin"
+              />
+            </div>
+          ) : (
+            <div className="border border-border rounded-lg bg-bg flex items-center justify-center text-text-xmuted text-sm italic" style={{ height: '300px' }}>
+              Click "Refresh Preview" to see the email
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── WebhooksTab ──────────────────────────────────────────────────────────────
+
+interface WebhookItem {
+  id: number
+  name: string
+  url: string
+  events: string[]
+  headers?: string
+  secret?: string
+  enabled: boolean
+}
+
+function WebhooksTab() {
+  const { error: showError, success: showSuccess } = useToast()
+  const qc = useQueryClient()
+  const [modal, setModal] = useState<null | 'create' | WebhookItem>(null)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['settings-webhooks'],
+    queryFn: () => api.get<{ webhooks: WebhookItem[]; events: string[] }>('/api/webhooks'),
+  })
+  const webhooks = data?.webhooks ?? []
+  const eventsList = data?.events ?? []
+
+  const deleteMut = useMutation({
+    mutationFn: (id: number) => api.delete(`/api/webhooks/${id}`),
+    onSuccess: () => { showSuccess('Webhook deleted'); qc.invalidateQueries({ queryKey: ['settings-webhooks'] }) },
+    onError: (err) => showError(err instanceof ApiError ? err.message : 'Delete failed'),
+  })
+
+  const testMut = useMutation({
+    mutationFn: (id: number) => api.post<{ status: number; ok: boolean }>(`/api/webhooks/${id}/test`),
+    onSuccess: (d) => d.ok ? showSuccess(`Test delivered (HTTP ${d.status})`) : showError(`Test failed — HTTP ${d.status}`),
+    onError: (err) => showError(err instanceof ApiError ? err.message : 'Test failed'),
+  })
+
+  async function handleDelete(w: WebhookItem) {
+    const ok = await appConfirm(`Delete webhook "${w.name}"?`, { danger: true, okLabel: 'Delete' })
+    if (ok) deleteMut.mutate(w.id)
+  }
+
+  return (
+    <div className="max-w-3xl">
+      <Toolbar count={webhooks.length} noun="webhook" onNew={() => setModal('create')} />
+      {isLoading ? (
+        <p className="text-sm text-text-muted">Loading webhooks...</p>
+      ) : webhooks.length === 0 ? (
+        <p className="text-center py-12 text-text-muted text-sm">No webhooks configured.</p>
+      ) : (
+        <TableWrap>
+          <thead>
+            <tr className="border-b border-border-light bg-bg">
+              <Th>Name</Th>
+              <Th>URL</Th>
+              <Th>Events</Th>
+              <th className="w-32 px-4 py-2" />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border-light">
+            {webhooks.map((w) => (
+              <tr key={w.id} className="hover:bg-card-hover transition-colors">
+                <td className="px-4 py-2.5 font-medium text-text-dark flex items-center gap-2">
+                  <span className={cn('w-2 h-2 rounded-full shrink-0', w.enabled ? 'bg-success' : 'bg-text-xmuted')} />
+                  {w.name}
+                </td>
+                <td className="px-4 py-2.5 text-xs font-mono text-text-muted truncate max-w-[220px]">{w.url}</td>
+                <td className="px-4 py-2.5 text-xs text-text-muted">{w.events.length} event{w.events.length !== 1 ? 's' : ''}</td>
+                <td className="px-4 py-2.5">
+                  <div className="flex items-center justify-end gap-1">
+                    <button
+                      onClick={() => testMut.mutate(w.id)}
+                      disabled={testMut.isPending}
+                      className="p-1.5 text-text-xmuted hover:text-primary rounded-sm text-[11px] font-medium"
+                      title="Test"
+                    >
+                      Test
+                    </button>
+                    <button onClick={() => setModal(w)} className="p-1.5 text-text-xmuted hover:text-text-dark rounded-sm" title="Edit">
+                      <Pencil size={13} />
+                    </button>
+                    <button onClick={() => handleDelete(w)} className="p-1.5 text-text-xmuted hover:text-danger rounded-sm" title="Delete">
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </TableWrap>
+      )}
+      {modal !== null && (
+        <WebhookModal
+          initial={modal === 'create' ? null : modal}
+          eventsList={eventsList}
+          onClose={() => setModal(null)}
+          onSaved={() => { setModal(null); qc.invalidateQueries({ queryKey: ['settings-webhooks'] }) }}
+        />
+      )}
+    </div>
+  )
+}
+
+function WebhookModal({
+  initial,
+  eventsList,
+  onClose,
+  onSaved,
+}: {
+  initial: WebhookItem | null
+  eventsList: string[]
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const { error: showError, success: showSuccess } = useToast()
+  const [name, setName] = useState(initial?.name ?? '')
+  const [url, setUrl] = useState(initial?.url ?? '')
+  const [selectedEvents, setSelectedEvents] = useState<string[]>(initial?.events ?? [])
+  const [headers, setHeaders] = useState(initial?.headers ?? '')
+  const [secret, setSecret] = useState('')
+  const [enabled, setEnabled] = useState(initial?.enabled ?? true)
+
+  function toggleEvent(ev: string) {
+    setSelectedEvents((prev) =>
+      prev.includes(ev) ? prev.filter((e) => e !== ev) : [...prev, ev],
+    )
+  }
+
+  const saveMut = useMutation({
+    mutationFn: () => {
+      const body: Record<string, unknown> = { name, url, events: selectedEvents, headers, enabled }
+      if (secret) body.secret = secret
+      return initial
+        ? api.put(`/api/webhooks/${initial.id}`, body)
+        : api.post('/api/webhooks', body)
+    },
+    onSuccess: () => { showSuccess(initial ? 'Webhook updated' : 'Webhook created'); onSaved() },
+    onError: (err) => showError(err instanceof ApiError ? err.message : 'Save failed'),
+  })
+
+  return (
+    <Modal
+      title={initial ? 'Edit Webhook' : 'New Webhook'}
+      onClose={onClose}
+      size="md"
+      footer={
+        <>
+          <CancelBtn onClick={onClose} />
+          <SaveBtn
+            pending={saveMut.isPending}
+            disabled={!name.trim() || !url.trim()}
+            label={initial ? 'Save Changes' : 'Create Webhook'}
+            pendingLabel="Saving..."
+            onClick={() => saveMut.mutate()}
+          />
+        </>
+      }
+    >
+      <FieldRow label="Name *"><Input value={name} onChange={setName} placeholder="My webhook" /></FieldRow>
+      <FieldRow label="URL *"><Input value={url} onChange={setUrl} placeholder="https://example.com/hook" /></FieldRow>
+      <div>
+        <label className="block text-xs font-medium text-text-muted mb-1.5">Events</label>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 max-h-40 overflow-y-auto pr-1">
+          {eventsList.map((ev) => (
+            <label key={ev} className="flex items-center gap-2 text-xs text-text-dark cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedEvents.includes(ev)}
+                onChange={() => toggleEvent(ev)}
+                className="accent-primary"
+              />
+              {ev}
+            </label>
+          ))}
+        </div>
+      </div>
+      <FieldRow label="Headers (JSON)">
+        <textarea
+          value={headers}
+          onChange={(e) => setHeaders(e.target.value)}
+          rows={3}
+          placeholder={'{"X-Custom": "value"}'}
+          className="w-full px-3 py-2 border border-input-border rounded-sm bg-input-bg text-sm font-mono text-text-dark focus:outline-none focus:border-input-focus resize-none"
+        />
+      </FieldRow>
+      <FieldRow label={initial ? 'Secret (leave blank to keep)' : 'Secret'}>
+        <Input value={secret} onChange={setSecret} type="password" placeholder="••••••••" />
+      </FieldRow>
+      <label className="flex items-center gap-2 text-sm text-text-dark cursor-pointer">
+        <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="accent-primary" />
+        Enabled
+      </label>
+    </Modal>
+  )
+}
+
+// ─── McpServerTab ─────────────────────────────────────────────────────────────
+
+const MCP_TOOLS = [
+  'search_templates',
+  'get_template',
+  'list_tickets',
+  'get_ticket',
+  'create_ticket',
+  'search_kb_articles',
+  'get_kb_article',
+  'get_stats',
+  'list_users',
+]
+
+function McpServerTab() {
+  const { error: showError, success: showSuccess } = useToast()
+
+  const { data: serverData, isLoading: serverLoading } = useQuery({
+    queryKey: ['settings-mcp-server'],
+    queryFn: () => api.get<{ enabled: boolean }>('/api/settings/mcp-server'),
+  })
+
+  const { data: toolsData, isLoading: toolsLoading } = useQuery({
+    queryKey: ['settings-mcp-tools'],
+    queryFn: () => api.get<{ tools: { name: string; enabled: boolean }[] }>('/api/settings/mcp-server-tools'),
+  })
+
+  const toggleServerMut = useMutation({
+    mutationFn: (enabled: boolean) => api.put('/api/settings/mcp-server', { enabled }),
+    onSuccess: () => showSuccess('MCP server setting saved'),
+    onError: (err) => showError(err instanceof ApiError ? err.message : 'Save failed'),
+  })
+
+  const toggleToolMut = useMutation({
+    mutationFn: ({ name, enabled }: { name: string; enabled: boolean }) =>
+      api.put('/api/settings/mcp-server-tools', { name, enabled }),
+    onSuccess: () => showSuccess('Tool setting saved'),
+    onError: (err) => showError(err instanceof ApiError ? err.message : 'Save failed'),
+  })
+
+  const enabled = serverData?.enabled ?? false
+  const toolMap = Object.fromEntries((toolsData?.tools ?? []).map((t) => [t.name, t.enabled]))
+
+  return (
+    <div className="max-w-lg space-y-5">
+      {/* Enable toggle */}
+      <div className="flex items-center justify-between p-3 border border-border rounded-md bg-bg">
+        <div>
+          <p className="text-sm font-semibold text-text-dark">MCP Server</p>
+          <p className="text-xs text-text-muted mt-0.5">
+            {enabled ? 'Enabled — accepting MCP connections' : 'Disabled'}
+          </p>
+        </div>
+        <button
+          onClick={() => toggleServerMut.mutate(!enabled)}
+          disabled={serverLoading || toggleServerMut.isPending}
+          className={cn(
+            'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none',
+            enabled ? 'bg-primary' : 'bg-border',
+          )}
+          role="switch"
+          aria-checked={enabled}
+        >
+          <span
+            className={cn(
+              'pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform',
+              enabled ? 'translate-x-5' : 'translate-x-0',
+            )}
+          />
+        </button>
+      </div>
+
+      {/* Description */}
+      <p className="text-xs text-text-muted">
+        Expose n8n Library as an MCP server at <code className="font-mono text-text-dark">/mcp</code> — connect from Claude Desktop, Cursor, or other MCP clients using an API key.
+      </p>
+
+      {/* Endpoint URLs */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-text-dark uppercase tracking-wide">Endpoint URLs</p>
+        <div className="space-y-1.5">
+          <div>
+            <p className="text-[11px] text-text-xmuted mb-0.5">HTTP (SSE / streamable-http)</p>
+            <code className="block text-xs font-mono bg-bg border border-border rounded-sm px-2 py-1.5 text-text-dark">
+              POST /mcp{'  '}Authorization: Bearer n8nlib_xxx
+            </code>
+          </div>
+          <div>
+            <p className="text-[11px] text-text-xmuted mb-0.5">stdio</p>
+            <code className="block text-xs font-mono bg-bg border border-border rounded-sm px-2 py-1.5 text-text-dark">
+              node mcp-stdio.js{'  '}or{'  '}npm run mcp
+            </code>
+          </div>
+        </div>
+      </div>
+
+      {/* Per-tool toggles */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-text-dark uppercase tracking-wide">Tools</p>
+        {toolsLoading ? (
+          <p className="text-xs text-text-muted">Loading tools...</p>
+        ) : (
+          <div className="border border-border rounded-md divide-y divide-border-light">
+            {MCP_TOOLS.map((tool) => {
+              const isEnabled = toolMap[tool] ?? true
+              return (
+                <div key={tool} className="flex items-center justify-between px-3 py-2">
+                  <span className="text-sm font-mono text-text-dark">{tool}</span>
+                  <button
+                    onClick={() => toggleToolMut.mutate({ name: tool, enabled: !isEnabled })}
+                    disabled={toggleToolMut.isPending}
+                    className={cn(
+                      'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+                      isEnabled ? 'bg-primary' : 'bg-border',
+                    )}
+                    role="switch"
+                    aria-checked={isEnabled}
+                  >
+                    <span
+                      className={cn(
+                        'pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform',
+                        isEnabled ? 'translate-x-4' : 'translate-x-0',
+                      )}
+                    />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── AiRedirectTab ────────────────────────────────────────────────────────────
+
+function AiRedirectTab() {
+  const navigate = useNavigate()
+  return (
+    <div className="flex flex-col items-start gap-3 py-4">
+      <p className="text-sm text-text-muted">AI configuration has moved to its own page.</p>
+      <button
+        onClick={() => navigate('/ai')}
+        className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover"
+      >
+        <ExternalLink size={12} />
+        Go to AI Config
+      </button>
+    </div>
+  )
+}
+
 // ─── SettingsPage ─────────────────────────────────────────────────────────────
 
 export function SettingsPage() {
@@ -1261,10 +1808,10 @@ function ActiveTabContent({ tabId }: { tabId: string }) {
     case 'branding':      return <BrandingTab />
     case '2fa':           return <TwoFaTab />
     case 'import_export': return <ImportExportTab />
-    case 'email_templates': return <ComingSoon title="Email Templates" />
-    case 'webhooks':      return <ComingSoon title="Webhooks" />
-    case 'ai':            return <ComingSoon title="AI Settings" />
-    case 'mcp':           return <ComingSoon title="MCP" />
+    case 'email_templates': return <EmailTemplatesTab />
+    case 'webhooks':      return <WebhooksTab />
+    case 'ai':            return <AiRedirectTab />
+    case 'mcp':           return <McpServerTab />
     default:              return <ComingSoon title={tabId} />
   }
 }

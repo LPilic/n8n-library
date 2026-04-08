@@ -20,6 +20,8 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #2792 | 1:54 AM | 🔴 | Fixed email template reset API parameter name | ~248 |
+| #2785 | 1:49 AM | 🔵 | Settings component uses no router navigation | ~223 |
 | #2764 | 1:21 AM | 🔵 | Settings implementation shows comprehensive admin feature patterns | ~425 |
 | #2752 | 1:06 AM | 🔵 | RenderComponent Function Location in Approvals Schema Renderer | ~221 |
 | #2751 | " | 🟣 | Data Fields Palette with Webhook Capture in HITL Form Builder | ~453 |
