@@ -76,16 +76,72 @@
 /* Syntax highlighting theme */
 @import "highlight.js/styles/github.css";
 
+/* Code block styling — !important to override Tailwind layer utilities */
+pre:has(> code) {
+  position: relative !important;
+  background: #f6f8fa !important;
+  border: 1px solid var(--color-border-light) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  margin-bottom: 12px !important;
+  padding: 0 !important;
+}
+pre code,
+pre code.hljs {
+  display: block !important;
+  padding: 16px !important;
+  overflow-x: auto !important;
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Cascadia Code', Menlo, Consolas, monospace !important;
+  tab-size: 2;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+}
+/* Language label badge */
+pre code[data-lang]::before {
+  content: attr(data-lang);
+  display: block;
+  margin: -16px -16px 12px -16px;
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  background: rgba(0,0,0,0.03);
+  border-bottom: 1px solid var(--color-border-light);
+}
+/* Inline code */
+:not(pre) > code {
+  background: var(--color-bg-alt) !important;
+  border: 1px solid var(--color-border-light) !important;
+  border-radius: 4px !important;
+  padding: 1px 6px !important;
+  font-size: 0.9em !important;
+  font-family: 'SF Mono', 'Fira Code', Menlo, Consolas, monospace !important;
+  color: var(--color-text-dark);
+}
+
 /* Dark mode override for code blocks */
-[data-theme="dark"] pre {
+[data-theme="dark"] pre:has(> code) {
   background: #1e1e21 !important;
   border-color: var(--color-border) !important;
 }
-[data-theme="dark"] code {
-  background: #222225;
+[data-theme="dark"] pre code[data-lang]::before {
+  background: rgba(255,255,255,0.04);
+  border-color: var(--color-border);
+  color: var(--color-text-xmuted);
 }
-[data-theme="dark"] .hljs {
-  background: #1e1e21;
+[data-theme="dark"] :not(pre) > code {
+  background: #222225 !important;
+  border-color: var(--color-border) !important;
+}
+[data-theme="dark"] pre code,
+[data-theme="dark"] pre code.hljs {
+  background: transparent !important;
   color: #c0c0c8;
 }
 

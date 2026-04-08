@@ -1,14 +1,28 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import CodeBlock from '@tiptap/extension-code-block'
 import Underline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import { cn } from '@/lib/utils'
 import {
   Bold, Italic, Underline as UnderlineIcon, List, ListOrdered,
-  Quote, Code, Link as LinkIcon, RemoveFormatting,
+  Quote, Code, Link as LinkIcon, RemoveFormatting, ChevronDown,
 } from 'lucide-react'
+
+const CODE_LANGUAGES = [
+  { value: '', label: 'Auto-detect' },
+  { value: 'javascript', label: 'JavaScript' },
+  { value: 'typescript', label: 'TypeScript' },
+  { value: 'python', label: 'Python' },
+  { value: 'html', label: 'HTML' },
+  { value: 'css', label: 'CSS' },
+  { value: 'json', label: 'JSON' },
+  { value: 'sql', label: 'SQL' },
+  { value: 'bash', label: 'Bash / Shell' },
+  { value: 'xml', label: 'XML' },
+]
 
 interface Props {
   content: string
@@ -22,6 +36,10 @@ export function RichTextEditor({ content, onChange, placeholder = 'Write somethi
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
+        codeBlock: false,
+      }),
+      CodeBlock.configure({
+        languageClassPrefix: 'language-',
       }),
       Underline,
       Link.configure({ openOnClick: false }),
@@ -46,7 +64,26 @@ export function RichTextEditor({ content, onChange, placeholder = 'Write somethi
     }
   }, [content, editor])
 
+  const [showLangMenu, setShowLangMenu] = useState(false)
+  const langRef = useRef<HTMLDivElement>(null)
+
+  // Close lang menu on outside click
+  useEffect(() => {
+    if (!showLangMenu) return
+    const handler = (e: MouseEvent) => {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) setShowLangMenu(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showLangMenu])
+
   if (!editor) return null
+
+  function insertCodeBlock(language: string) {
+    if (!editor) return
+    editor.chain().focus().toggleCodeBlock({ language: language || null }).run()
+    setShowLangMenu(false)
+  }
 
   function toggleLink() {
     if (!editor) return
@@ -96,9 +133,40 @@ export function RichTextEditor({ content, onChange, placeholder = 'Write somethi
         <Btn active={editor.isActive('blockquote')} onClick={() => editor.chain().focus().toggleBlockquote().run()} title="Blockquote">
           <Quote size={15} />
         </Btn>
-        <Btn active={editor.isActive('codeBlock')} onClick={() => editor.chain().focus().toggleCodeBlock().run()} title="Code block">
-          <Code size={15} />
-        </Btn>
+        <div className="relative" ref={langRef}>
+          <button
+            type="button"
+            title="Code block"
+            onClick={() => {
+              if (editor.isActive('codeBlock')) {
+                editor.chain().focus().toggleCodeBlock().run()
+              } else {
+                setShowLangMenu(!showLangMenu)
+              }
+            }}
+            className={cn(
+              'flex items-center gap-0.5 p-1.5 rounded transition-colors',
+              editor.isActive('codeBlock') ? 'bg-primary/10 text-primary' : 'text-text-muted hover:bg-bg hover:text-text-dark',
+            )}
+          >
+            <Code size={15} />
+            {!editor.isActive('codeBlock') && <ChevronDown size={10} />}
+          </button>
+          {showLangMenu && (
+            <div className="absolute top-full left-0 mt-1 bg-card border border-border rounded-md shadow-lg z-50 py-1 min-w-[160px] dropdown-enter">
+              {CODE_LANGUAGES.map((lang) => (
+                <button
+                  key={lang.value}
+                  type="button"
+                  className="w-full text-left px-3 py-1.5 text-sm text-text-base hover:bg-bg-alt transition-colors"
+                  onClick={() => insertCodeBlock(lang.value)}
+                >
+                  {lang.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <Btn active={editor.isActive('link')} onClick={toggleLink} title="Link">
           <LinkIcon size={15} />
         </Btn>

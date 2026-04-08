@@ -37,7 +37,8 @@ export function markdownToHtml(md: string): string {
     // Code blocks
     if (line.startsWith('```')) {
       if (inCodeBlock) {
-        result.push(`<pre><code class="language-${codeBlockLang}">${codeLines.join('\n')}</code></pre>`)
+        const langClass = codeBlockLang ? ` class="language-${codeBlockLang}"` : ''
+        result.push(`<pre><code${langClass}>${codeLines.join('\n')}</code></pre>`)
         codeLines = []
         inCodeBlock = false
         codeBlockLang = ''
