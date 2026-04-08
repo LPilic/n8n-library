@@ -76,6 +76,19 @@
 /* Syntax highlighting theme */
 @import "highlight.js/styles/github.css";
 
+/* Dark mode override for code blocks */
+[data-theme="dark"] pre {
+  background: #1e1e21 !important;
+  border-color: var(--color-border) !important;
+}
+[data-theme="dark"] code {
+  background: #222225;
+}
+[data-theme="dark"] .hljs {
+  background: #1e1e21;
+  color: #c0c0c8;
+}
+
 /* Base styles */
 body {
   font-family: var(--font-sans);
