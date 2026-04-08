@@ -8,4 +8,10 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #2605 | 8:01 PM | 🔵 | PreviewModal Component Pattern for n8n-demo Integration | ~333 |
+
+### Apr 8, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #2864 | 5:36 PM | 🟣 | Sidebar Enhanced with AI Chat Button and User Profile Footer | ~380 |
 </claude-mem-context>

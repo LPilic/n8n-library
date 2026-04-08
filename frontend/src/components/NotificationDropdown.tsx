@@ -88,7 +88,7 @@ export function NotificationDropdown() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-lg w-80 max-h-96 overflow-hidden z-50 dropdown-enter">
+        <div className="absolute left-0 bottom-full mb-1 bg-card border border-border rounded-lg shadow-lg w-80 max-h-96 overflow-hidden z-50 dropdown-enter">
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
             <span className="text-[13px] font-semibold text-text-dark">Notifications</span>
             {unreadCount > 0 && (

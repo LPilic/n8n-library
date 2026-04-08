@@ -1,5 +1,5 @@
 import { useState, useEffect, type ComponentType } from 'react'
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { Outlet, NavLink } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth'
 import { ErrorBoundary } from './ErrorBoundary'
 import { useThemeStore } from '@/stores/theme'
@@ -93,9 +93,8 @@ export function AppLayout() {
   const logout = useAuthStore((s) => s.logout)
   const { mode, setMode } = useThemeStore()
   const { branding, loadBranding } = useBrandingStore()
-  const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  // userMenuOpen removed — user info is now in sidebar footer
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false)
   const [cmdOpen, setCmdOpen] = useState(false)
   const [aiChatOpen, setAiChatOpen] = useState(false)
@@ -116,13 +115,7 @@ export function AppLayout() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
-  // Close user menu on outside click
-  useEffect(() => {
-    if (!userMenuOpen) return
-    const handler = () => setUserMenuOpen(false)
-    setTimeout(() => document.addEventListener('click', handler), 0)
-    return () => document.removeEventListener('click', handler)
-  }, [userMenuOpen])
+  // User menu moved to sidebar footer
 
   const brandName = branding?.brand_name || 'n8n Library'
 
@@ -160,7 +153,7 @@ export function AppLayout() {
         </div>
 
         {/* Nav items */}
-        <nav className="flex-1 overflow-y-auto sidebar-scroll py-2 px-2">
+        <nav className="flex-1 overflow-y-auto sidebar-scroll py-2 px-2 flex flex-col">
           {visibleItems.map((item) => {
             const showSection = sidebarOpen && item.section && item.section !== lastSection && SECTIONS[item.section]
             if (item.section) lastSection = item.section
@@ -191,7 +184,39 @@ export function AppLayout() {
               </div>
             )
           })}
+
+          {/* AI Chat — pinned at bottom of nav */}
+          {sidebarOpen && (
+            <div className="mt-auto pt-3 border-t border-border-light">
+              <button
+                onClick={() => setAiChatOpen(true)}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium text-text-muted hover:bg-bg hover:text-text-dark transition-all duration-150 w-full"
+              >
+                <MessageSquareText size={18} className="shrink-0" />
+                AI Chat
+              </button>
+            </div>
+          )}
         </nav>
+
+        {/* User footer — matches legacy sidebar bottom */}
+        {sidebarOpen && (
+          <div className="px-3 py-3 border-t border-border shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
+                {(user?.username || 'U').charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[13px] font-medium text-text-dark truncate">{user?.username}</div>
+                <div className="text-[10px] text-text-xmuted">{role}</div>
+              </div>
+              <NotificationDropdown />
+              <button onClick={logout} className="text-text-xmuted hover:text-danger p-1 transition-colors" title="Logout">
+                <LogOut size={15} />
+              </button>
+            </div>
+          </div>
+        )}
       </aside>
 
       {/* Main content */}
@@ -232,37 +257,11 @@ export function AppLayout() {
             )}
           </button>
 
-          {/* Notifications */}
+          {/* Notifications (also in sidebar, keep here for quick access) */}
           <NotificationDropdown />
 
-          {/* User menu */}
-          <div className="relative ml-1">
-            <button
-              onClick={(e) => { e.stopPropagation(); setUserMenuOpen(!userMenuOpen) }}
-              className="flex items-center gap-2 px-2 py-1.5 text-[13px] text-text-dark hover:bg-bg rounded-md transition-colors duration-150"
-            >
-              <span className="font-medium">{user?.username}</span>
-              <span className="text-[11px] text-text-muted capitalize">({role})</span>
-            </button>
-            {userMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-lg py-1 min-w-[160px] z-50 dropdown-enter">
-                <button
-                  onClick={() => { setUserMenuOpen(false); navigate('/settings') }}
-                  className="flex items-center gap-2.5 w-full text-left px-3 py-2 text-[13px] text-text-base hover:bg-bg transition-colors duration-100"
-                >
-                  <Settings size={15} />
-                  Settings
-                </button>
-                <button
-                  onClick={() => { setUserMenuOpen(false); logout() }}
-                  className="flex items-center gap-2.5 w-full text-left px-3 py-2 text-[13px] text-danger hover:bg-bg transition-colors duration-100"
-                >
-                  <LogOut size={15} />
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
+          {/* User name */}
+          <span className="text-[13px] text-text-dark font-medium ml-2 hidden sm:inline">{user?.username}</span>
         </header>
 
         {/* Page content */}
