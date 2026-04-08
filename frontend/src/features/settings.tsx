@@ -7,6 +7,7 @@ import { timeAgo, cn } from '@/lib/utils'
 import { appConfirm } from '@/components/ConfirmDialog'
 import { sanitizeHtml } from '@/lib/sanitize'
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore } from '@/stores/theme'
 import {
   Users,
   Server,
@@ -1179,6 +1180,7 @@ function BrandingPreview({ form }: { form: BrandingForm }) {
 
 function BrandingTab() {
   const { error: showError, success: showSuccess } = useToast()
+  const themeStore = useThemeStore()
   const logoInputRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState<BrandingForm>(BRANDING_DEFAULTS)
   const [loaded, setLoaded] = useState(false)
@@ -1281,7 +1283,7 @@ function BrandingTab() {
                   name="brand_theme"
                   value={t}
                   checked={form.brand_theme === t}
-                  onChange={() => setField('brand_theme', t)}
+                  onChange={() => { setField('brand_theme', t); themeStore.setMode(t) }}
                   className="accent-primary"
                 />
                 {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -1755,7 +1757,8 @@ function WebhooksTab() {
     queryFn: () => api.get<{ webhooks: WebhookItem[]; events: string[] }>('/api/webhooks'),
   })
   const webhooks = data?.webhooks ?? []
-  const eventsList = data?.events ?? []
+  const eventsObj = data?.events ?? {}
+  const eventsList = Array.isArray(eventsObj) ? eventsObj : Object.keys(eventsObj)
 
   const deleteMut = useMutation({
     mutationFn: (id: number) => api.delete(`/api/webhooks/${id}`),
@@ -1827,6 +1830,7 @@ function WebhooksTab() {
         <WebhookModal
           initial={modal === 'create' ? null : modal}
           eventsList={eventsList}
+          eventsLabels={typeof eventsObj === 'object' && !Array.isArray(eventsObj) ? eventsObj as Record<string, string> : {}}
           onClose={() => setModal(null)}
           onSaved={() => { setModal(null); qc.invalidateQueries({ queryKey: ['settings-webhooks'] }) }}
         />
@@ -1838,11 +1842,13 @@ function WebhooksTab() {
 function WebhookModal({
   initial,
   eventsList,
+  eventsLabels,
   onClose,
   onSaved,
 }: {
   initial: WebhookItem | null
   eventsList: string[]
+  eventsLabels: Record<string, string>
   onClose: () => void
   onSaved: () => void
 }) {
@@ -1903,7 +1909,7 @@ function WebhookModal({
                 onChange={() => toggleEvent(ev)}
                 className="accent-primary"
               />
-              {ev}
+              {eventsLabels[ev] || ev}
             </label>
           ))}
         </div>
