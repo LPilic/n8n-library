@@ -2192,33 +2192,35 @@ export function SettingsPage() {
   const [activeTab, setActiveTab] = useState('users')
 
   return (
-    <div className="flex gap-0 min-h-[400px]">
+    <div className="flex gap-6 min-h-[400px]">
       {/* Sidebar */}
-      <nav className="w-48 shrink-0 border-r border-border hidden sm:block pr-2">
-        <ul className="space-y-0.5 py-1">
-          {TABS.map((tab) => (
-            <li key={tab.id}>
-              <button
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  'w-full flex items-center gap-2.5 text-[13px] px-3 py-2 rounded-md text-left transition-colors',
-                  activeTab === tab.id
-                    ? 'bg-primary-light text-primary font-medium'
-                    : 'text-text-muted hover:bg-bg hover:text-text-dark',
-                )}
-              >
-                <span className={cn('shrink-0', activeTab === tab.id ? 'text-primary' : 'text-text-xmuted')}>
-                  {tab.icon}
-                </span>
-                {tab.label}
-              </button>
-            </li>
-          ))}
-        </ul>
+      <nav className="w-52 shrink-0 hidden sm:block">
+        <div className="bg-card border border-border rounded-lg p-2 sticky top-4">
+          <ul className="space-y-0.5">
+            {TABS.map((tab) => (
+              <li key={tab.id}>
+                <button
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    'w-full flex items-center gap-2.5 text-[13px] px-3 py-2 rounded-lg text-left transition-all duration-150',
+                    activeTab === tab.id
+                      ? 'bg-primary text-white font-medium shadow-sm'
+                      : 'text-text-muted hover:bg-bg hover:text-text-dark',
+                  )}
+                >
+                  <span className={cn('shrink-0', activeTab === tab.id ? 'text-white' : 'text-text-xmuted')}>
+                    {tab.icon}
+                  </span>
+                  {tab.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       </nav>
 
       {/* Content */}
-      <div className="flex-1 min-w-0 pl-6">
+      <div className="flex-1 min-w-0">
         <ActiveTabContent tabId={activeTab} />
       </div>
     </div>
