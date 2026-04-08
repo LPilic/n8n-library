@@ -885,11 +885,19 @@ function CredentialStoreTab() {
 
   const recentActivity = auditData.slice(0, 10)
 
+  const [showCreateModal, setShowCreateModal] = useState(false)
+
   return (
     <div>
       {/* Template grid */}
       <div className="mb-6">
-        <h3 className="text-xs font-semibold text-text-muted uppercase mb-3">Available Templates</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xs font-semibold text-text-muted uppercase">Available Templates</h3>
+          <button onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover">
+            <Plus size={12} /> New Template
+          </button>
+        </div>
         {isLoading ? (
           <div className="text-text-muted text-sm">Loading templates...</div>
         ) : templates.length === 0 ? (
@@ -995,6 +1003,140 @@ function CredentialStoreTab() {
           }}
         />
       )}
+
+      {/* Create Store Template Modal */}
+      {showCreateModal && (
+        <CreateStoreTemplateModal
+          onClose={() => setShowCreateModal(false)}
+          onSaved={() => {
+            setShowCreateModal(false)
+            queryClient.invalidateQueries({ queryKey: ['cred-store'] })
+            showSuccess('Template created')
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// ─── Create Store Template Modal ─────────────────────────────────────────────
+
+function CreateStoreTemplateModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const { error: showError } = useToast()
+  const [step, setStep] = useState<'pick-type' | 'configure'>('pick-type')
+  const [typeSearch, setTypeSearch] = useState('')
+  const [selectedType, setSelectedType] = useState('')
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [allowedRoles, setAllowedRoles] = useState<string[]>(['editor', 'viewer'])
+  const [saving, setSaving] = useState(false)
+
+  const { data: allTypes = [] } = useQuery({
+    queryKey: ['cred-types'],
+    queryFn: async () => {
+      const r = await api.get<Array<{ name: string; displayName: string }>>('/api/credentials/types')
+      return Array.isArray(r) ? r : []
+    },
+  })
+
+  const filteredTypes = typeSearch
+    ? allTypes.filter((t) => t.displayName.toLowerCase().includes(typeSearch.toLowerCase()) || t.name.toLowerCase().includes(typeSearch.toLowerCase())).slice(0, 50)
+    : allTypes.slice(0, 50)
+
+  async function handleSave() {
+    if (!name.trim() || !selectedType) return showError('Name and type are required')
+    setSaving(true)
+    try {
+      await api.post('/api/credential-store', {
+        name: name.trim(),
+        description,
+        credential_type: selectedType,
+        allowed_roles: allowedRoles,
+      })
+      onSaved()
+    } catch (err) {
+      showError(err instanceof ApiError ? err.message : 'Save failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center modal-overlay bg-black/30" onClick={onClose}>
+      <div className="bg-card border border-border rounded-lg shadow-lg w-full max-w-lg mx-4 flex flex-col max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
+          <h2 className="text-[15px] font-semibold text-text-dark">New Credential Template</h2>
+          <button onClick={onClose} className="text-text-xmuted hover:text-text-dark text-lg">&times;</button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+          {step === 'pick-type' ? (
+            <>
+              <div>
+                <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Search Credential Type</label>
+                <input type="text" value={typeSearch} onChange={(e) => setTypeSearch(e.target.value)} autoFocus
+                  placeholder="Search types..."
+                  className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring" />
+              </div>
+              <div className="text-[11px] text-text-xmuted text-center">
+                Showing first {filteredTypes.length} of {allTypes.length}. Type to search...
+              </div>
+              <div className="border border-border rounded-md max-h-[300px] overflow-y-auto divide-y divide-border-light">
+                {filteredTypes.map((t) => (
+                  <button key={t.name} onClick={() => { setSelectedType(t.name); setName(t.displayName + ' Template'); setStep('configure') }}
+                    className="w-full text-left px-3 py-2 flex items-center justify-between hover:bg-bg transition-colors">
+                    <span className="text-sm text-text-dark">{t.displayName}</span>
+                    <span className="text-[10px] font-mono text-text-xmuted">{t.name}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">
+                  Type: <span className="text-primary">{formatCredType(selectedType)}</span>
+                </label>
+                <button onClick={() => setStep('pick-type')} className="text-[11px] text-primary hover:text-primary-hover">Change type</button>
+              </div>
+              <div>
+                <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Name *</label>
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+                  className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring" />
+              </div>
+              <div>
+                <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Description</label>
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2}
+                  className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring resize-none"
+                  placeholder="Optional description" />
+              </div>
+              <div>
+                <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Allowed Roles</label>
+                <div className="flex gap-3">
+                  {['editor', 'viewer'].map((r) => (
+                    <label key={r} className="flex items-center gap-1.5 text-sm text-text-dark cursor-pointer capitalize">
+                      <input type="checkbox" checked={allowedRoles.includes(r)}
+                        onChange={(e) => setAllowedRoles(e.target.checked ? [...allowedRoles, r] : allowedRoles.filter((x) => x !== r))}
+                        className="accent-primary" />
+                      {r}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border shrink-0">
+          <button onClick={onClose} className="text-[12px] font-semibold px-3 py-1.5 border border-border text-text-muted rounded-md hover:bg-bg">Cancel</button>
+          {step === 'configure' && (
+            <button onClick={handleSave} disabled={saving || !name.trim()}
+              className="text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover disabled:opacity-50">
+              {saving ? 'Saving...' : 'Save Template'}
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

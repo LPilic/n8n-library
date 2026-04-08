@@ -96,16 +96,7 @@ export function AiChatPanel({ open, onToggle }: AiChatPanelProps) {
 
   return (
     <>
-      {/* FAB */}
-      {!open && (
-        <button
-          onClick={onToggle}
-          className="fixed bottom-5 right-5 z-50 w-12 h-12 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:bg-primary-hover transition-colors"
-          title="Open AI Chat"
-        >
-          <Sparkles size={20} />
-        </button>
-      )}
+      {/* FAB removed — AI Chat is triggered from sidebar */}
 
       {/* Mobile overlay */}
       {open && (

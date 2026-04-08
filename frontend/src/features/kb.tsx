@@ -8,6 +8,7 @@ import { esc, timeAgo, cn } from '@/lib/utils'
 import { markdownToHtml } from '@/lib/markdown'
 import { useHighlight } from '@/hooks/useHighlight'
 import { appConfirm } from '@/components/ConfirmDialog'
+import { RichTextEditor } from '@/components/RichTextEditor'
 import { sanitizeHtml } from '@/lib/sanitize'
 import {
   Search,
@@ -203,16 +204,11 @@ function ArticleFormModal({ categories, initial, onClose, onSaved }: ArticleForm
 
           {/* Content */}
           <div>
-            <label className="block text-xs font-medium text-text-muted mb-1">
-              Content {/* TipTap rich editor comes in Phase 6 */}
-            </label>
-            {/* TODO: replace with TipTap editor in Phase 6 */}
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={12}
-              className="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus font-mono resize-y"
-              placeholder="Article content (HTML)"
+            <label className="block text-xs font-medium text-text-muted mb-1">Content</label>
+            <RichTextEditor
+              content={content}
+              onChange={setContent}
+              placeholder="Write your article content..."
             />
           </div>
 
