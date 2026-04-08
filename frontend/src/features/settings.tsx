@@ -234,13 +234,39 @@ function Th({ children, right }: { children?: React.ReactNode; right?: boolean }
   )
 }
 
+/** Card wrapper matching legacy settings section design */
+function SettingsCard({
+  icon, title, description, action, children,
+}: {
+  icon: React.ReactNode; title: string; description?: string
+  action?: React.ReactNode; children: React.ReactNode
+}) {
+  return (
+    <div className="bg-card border border-border rounded-lg p-6 mb-6">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+            {icon}
+          </div>
+          <div>
+            <h3 className="text-[15px] font-semibold text-text-dark">{title}</h3>
+            {description && <p className="text-xs text-text-muted mt-0.5">{description}</p>}
+          </div>
+        </div>
+        {action}
+      </div>
+      {children}
+    </div>
+  )
+}
+
 function Toolbar({ count, noun, onNew }: { count: number; noun: string; onNew: () => void }) {
   return (
     <div className="flex items-center justify-between mb-4">
       <span className="text-xs text-text-muted">{count} {noun}{count !== 1 ? 's' : ''}</span>
       <button
         onClick={onNew}
-        className="flex items-center gap-1 text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover"
+        className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover"
       >
         <Plus size={12} /> New {noun.charAt(0).toUpperCase() + noun.slice(1)}
       </button>
@@ -423,8 +449,12 @@ function InstancesTab() {
   }
 
   return (
-    <div className="max-w-2xl">
-      <Toolbar count={instances.length} noun="instance" onNew={() => setModal('create')} />
+    <SettingsCard
+      icon={<Cpu size={20} />}
+      title="n8n Instances"
+      description="Manage your n8n environments"
+      action={<button onClick={() => setModal('create')} className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover"><Plus size={12} /> Add Instance</button>}
+    >
       {isLoading ? (
         <p className="text-sm text-text-muted">Loading instances...</p>
       ) : instances.length === 0 ? (
@@ -475,7 +505,7 @@ function InstancesTab() {
           onSaved={() => { setModal(null); qc.invalidateQueries({ queryKey: ['settings-instances'] }) }}
         />
       )}
-    </div>
+    </SettingsCard>
   )
 }
 
