@@ -28,6 +28,7 @@ import {
   Download,
   Cpu,
   ExternalLink,
+  Lock,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -260,19 +261,7 @@ function SettingsCard({
   )
 }
 
-function Toolbar({ count, noun, onNew }: { count: number; noun: string; onNew: () => void }) {
-  return (
-    <div className="flex items-center justify-between mb-4">
-      <span className="text-xs text-text-muted">{count} {noun}{count !== 1 ? 's' : ''}</span>
-      <button
-        onClick={onNew}
-        className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover"
-      >
-        <Plus size={12} /> New {noun.charAt(0).toUpperCase() + noun.slice(1)}
-      </button>
-    </div>
-  )
-}
+// Toolbar removed — action buttons are now in SettingsCard headers
 
 function ActionBtns({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
   return (
@@ -321,8 +310,12 @@ function UsersTab() {
   }
 
   return (
-    <div className="max-w-2xl">
-      <Toolbar count={users.length} noun="user" onNew={() => setModal('create')} />
+    <SettingsCard
+      icon={<Users size={20} />}
+      title="User Management"
+      description="Manage user accounts and roles"
+      action={<button onClick={() => setModal('create')} className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover"><Plus size={12} /> New User</button>}
+    >
       {isLoading ? (
         <p className="text-sm text-text-muted">Loading users...</p>
       ) : users.length === 0 ? (
@@ -369,7 +362,7 @@ function UsersTab() {
           onSaved={() => { setModal(null); qc.invalidateQueries({ queryKey: ['settings-users'] }) }}
         />
       )}
-    </div>
+    </SettingsCard>
   )
 }
 
@@ -664,30 +657,36 @@ function SmtpTab() {
   if (!loaded) return <p className="text-sm text-text-muted">Loading SMTP settings...</p>
 
   return (
-    <div className="max-w-md space-y-3">
-      <FieldRow label="Host"><Input value={host} onChange={setHost} placeholder="smtp.example.com" /></FieldRow>
-      <FieldRow label="Port"><Input value={port} onChange={setPort} type="number" placeholder="587" /></FieldRow>
-      <FieldRow label="Username"><Input value={user} onChange={setUser} placeholder="smtp-user" /></FieldRow>
-      <FieldRow label="Password"><Input value={pass} onChange={setPass} type="password" placeholder="••••••••" /></FieldRow>
-      <FieldRow label="From Address"><Input value={fromAddress} onChange={setFromAddress} type="email" placeholder="noreply@example.com" /></FieldRow>
-      <FieldRow label="App URL"><Input value={appUrl} onChange={setAppUrl} placeholder="https://library.example.com" /></FieldRow>
-      <div className="flex items-center gap-2 pt-2">
-        <button
-          disabled={saveMut.isPending}
-          onClick={() => saveMut.mutate()}
-          className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
-        >
-          {saveMut.isPending ? 'Saving...' : 'Save'}
-        </button>
-        <button
-          disabled={testMut.isPending}
-          onClick={() => testMut.mutate()}
-          className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover disabled:opacity-50"
-        >
-          {testMut.isPending ? 'Sending...' : 'Send Test Email'}
-        </button>
+    <SettingsCard
+      icon={<Mail size={20} />}
+      title="Email (SMTP)"
+      description="Configure email delivery for notifications"
+    >
+      <div className="space-y-3">
+        <FieldRow label="Host"><Input value={host} onChange={setHost} placeholder="smtp.example.com" /></FieldRow>
+        <FieldRow label="Port"><Input value={port} onChange={setPort} type="number" placeholder="587" /></FieldRow>
+        <FieldRow label="Username"><Input value={user} onChange={setUser} placeholder="smtp-user" /></FieldRow>
+        <FieldRow label="Password"><Input value={pass} onChange={setPass} type="password" placeholder="••••••••" /></FieldRow>
+        <FieldRow label="From Address"><Input value={fromAddress} onChange={setFromAddress} type="email" placeholder="noreply@example.com" /></FieldRow>
+        <FieldRow label="App URL"><Input value={appUrl} onChange={setAppUrl} placeholder="https://library.example.com" /></FieldRow>
+        <div className="flex items-center gap-2 pt-2">
+          <button
+            disabled={saveMut.isPending}
+            onClick={() => saveMut.mutate()}
+            className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+          >
+            {saveMut.isPending ? 'Saving...' : 'Save'}
+          </button>
+          <button
+            disabled={testMut.isPending}
+            onClick={() => testMut.mutate()}
+            className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover disabled:opacity-50"
+          >
+            {testMut.isPending ? 'Sending...' : 'Send Test Email'}
+          </button>
+        </div>
       </div>
-    </div>
+    </SettingsCard>
   )
 }
 
@@ -764,7 +763,12 @@ function CategoriesTab() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <SettingsCard
+      icon={<Cpu size={20} />}
+      title="Categories"
+      description="Organize templates, tickets, and articles"
+      action={<button onClick={() => setModal('create')} className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover"><Plus size={12} /> New Category</button>}
+    >
       {/* Type switcher */}
       <div className="flex gap-1 mb-4 p-1 bg-bg border border-border rounded-sm w-fit">
         {(Object.keys(CATEGORY_TYPE_CONFIG) as CategoryType[]).map((t) => (
@@ -782,8 +786,6 @@ function CategoriesTab() {
           </button>
         ))}
       </div>
-
-      <Toolbar count={categories.length} noun="category" onNew={() => setModal('create')} />
 
       {isLoading ? (
         <p className="text-sm text-text-muted">Loading categories...</p>
@@ -837,7 +839,7 @@ function CategoriesTab() {
           }}
         />
       )}
-    </div>
+    </SettingsCard>
   )
 }
 
@@ -974,9 +976,12 @@ function ApiKeysTab() {
   }
 
   return (
-    <div className="max-w-2xl">
-      <Toolbar count={keys.length} noun="key" onNew={() => setShowCreate(true)} />
-
+    <SettingsCard
+      icon={<Key size={20} />}
+      title="API Keys"
+      description="Generate keys for programmatic API access"
+      action={<button onClick={() => setShowCreate(true)} className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover"><Plus size={12} /> New Key</button>}
+    >
       {newKey && (
         <div className="mb-4 p-3 bg-primary-light border border-primary/30 rounded-md">
           <p className="text-xs font-medium text-primary mb-1">API key created — copy it now, it won't be shown again.</p>
@@ -1045,7 +1050,7 @@ function ApiKeysTab() {
           }}
         />
       )}
-    </div>
+    </SettingsCard>
   )
 }
 
@@ -1283,7 +1288,12 @@ function BrandingTab() {
   if (!loaded) return <p className="text-sm text-text-muted">Loading branding settings...</p>
 
   return (
-    <div className="flex gap-8 items-start">
+    <SettingsCard
+      icon={<Palette size={20} />}
+      title="Layout / Design"
+      description="Customize colors and logo"
+    >
+      <div className="flex gap-8 items-start">
       {/* Left: form */}
       <div className="flex-1 min-w-0 space-y-4 max-w-sm">
 
@@ -1388,6 +1398,7 @@ function BrandingTab() {
         <BrandingPreview form={form} />
       </div>
     </div>
+    </SettingsCard>
   )
 }
 
@@ -1439,7 +1450,12 @@ function TwoFaTab() {
   const enabled = status?.enabled ?? false
 
   return (
-    <div className="max-w-sm space-y-4">
+    <SettingsCard
+      icon={<Lock size={20} />}
+      title="Two-Factor Authentication"
+      description="Add an extra layer of security with TOTP"
+    >
+      <div className="space-y-4">
       <div className={cn(
         'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium',
         enabled ? 'bg-success/10 text-success' : 'bg-bg text-text-muted border border-border',
@@ -1510,7 +1526,8 @@ function TwoFaTab() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </SettingsCard>
   )
 }
 
@@ -1560,41 +1577,47 @@ function ImportExportTab() {
   }
 
   return (
-    <div className="max-w-md space-y-6">
-      <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-text-dark">Export</h3>
-        <p className="text-xs text-text-muted">Download a JSON snapshot of all settings, categories, instances, and configuration.</p>
-        <button
-          onClick={handleExport}
-          disabled={exporting}
-          className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
-        >
-          <Download size={12} />
-          {exporting ? 'Exporting...' : 'Download Export'}
-        </button>
-      </div>
-
-      <div className="border-t border-border-light pt-4 space-y-2">
-        <h3 className="text-sm font-semibold text-text-dark">Import</h3>
-        <p className="text-xs text-text-muted">Upload a previously exported JSON file to restore settings. Existing data may be overwritten.</p>
-        <div className="flex items-center gap-2">
-          <input
-            ref={fileRef}
-            type="file"
-            accept="application/json,.json"
-            className="text-xs text-text-muted file:mr-2 file:text-xs file:px-3 file:py-1 file:border file:border-input-border file:rounded-sm file:bg-bg file:text-text-dark file:hover:bg-card-hover file:cursor-pointer"
-          />
+    <SettingsCard
+      icon={<Upload size={20} />}
+      title="Export / Import"
+      description="Backup and restore settings, categories, and alerts"
+    >
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-text-dark">Export</h3>
+          <p className="text-xs text-text-muted">Download a JSON snapshot of all settings, categories, instances, and configuration.</p>
           <button
-            onClick={handleImport}
-            disabled={importing}
-            className="shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover disabled:opacity-50"
+            onClick={handleExport}
+            disabled={exporting}
+            className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
           >
-            <Upload size={12} />
-            {importing ? 'Importing...' : 'Upload'}
+            <Download size={12} />
+            {exporting ? 'Exporting...' : 'Download Export'}
           </button>
         </div>
+
+        <div className="border-t border-border-light pt-4 space-y-2">
+          <h3 className="text-sm font-semibold text-text-dark">Import</h3>
+          <p className="text-xs text-text-muted">Upload a previously exported JSON file to restore settings. Existing data may be overwritten.</p>
+          <div className="flex items-center gap-2">
+            <input
+              ref={fileRef}
+              type="file"
+              accept="application/json,.json"
+              className="text-xs text-text-muted file:mr-2 file:text-xs file:px-3 file:py-1 file:border file:border-input-border file:rounded-sm file:bg-bg file:text-text-dark file:hover:bg-card-hover file:cursor-pointer"
+            />
+            <button
+              onClick={handleImport}
+              disabled={importing}
+              className="shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover disabled:opacity-50"
+            >
+              <Upload size={12} />
+              {importing ? 'Importing...' : 'Upload'}
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
+    </SettingsCard>
   )
 }
 
@@ -1706,7 +1729,12 @@ function EmailTemplatesTab() {
   }))
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6">
+    <SettingsCard
+      icon={<Mail size={20} />}
+      title="Email Templates"
+      description="Customize email notification content"
+    >
+      <div className="flex flex-col lg:flex-row gap-6">
       {/* Left: Editor */}
       <div className="w-full lg:w-1/2 min-w-0 space-y-4">
         <FieldRow label="Template">
@@ -1792,6 +1820,7 @@ function EmailTemplatesTab() {
         </div>
       </div>
     </div>
+    </SettingsCard>
   )
 }
 
@@ -1838,8 +1867,12 @@ function WebhooksTab() {
   }
 
   return (
-    <div className="max-w-3xl">
-      <Toolbar count={webhooks.length} noun="webhook" onNew={() => setModal('create')} />
+    <SettingsCard
+      icon={<ExternalLink size={20} />}
+      title="Webhook Integrations"
+      description="Send event notifications to external services"
+      action={<button onClick={() => setModal('create')} className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover"><Plus size={12} /> New Webhook</button>}
+    >
       {isLoading ? (
         <p className="text-sm text-text-muted">Loading webhooks...</p>
       ) : webhooks.length === 0 ? (
@@ -1895,7 +1928,7 @@ function WebhooksTab() {
           onSaved={() => { setModal(null); qc.invalidateQueries({ queryKey: ['settings-webhooks'] }) }}
         />
       )}
-    </div>
+    </SettingsCard>
   )
 }
 
@@ -2038,7 +2071,12 @@ function McpServerTab() {
   const toolMap = Object.fromEntries((toolsData?.tools ?? []).map((t) => [t.name, t.enabled]))
 
   return (
-    <div className="max-w-lg space-y-5">
+    <SettingsCard
+      icon={<Cpu size={20} />}
+      title="MCP Server"
+      description="Expose n8n Library as an MCP server"
+    >
+      <div className="space-y-5">
       {/* Enable toggle */}
       <div className="flex items-center justify-between p-3 border border-border rounded-md bg-bg">
         <div>
@@ -2125,7 +2163,8 @@ function McpServerTab() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </SettingsCard>
   )
 }
 
