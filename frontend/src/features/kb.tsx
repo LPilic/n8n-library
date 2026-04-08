@@ -104,7 +104,11 @@ function ArticleFormModal({ categories, initial, onClose, onSaved }: ArticleForm
     initial?.category_id != null ? String(initial.category_id) : '',
   )
   const [status, setStatus] = useState(initial?.status ?? 'draft')
-  const [content, setContent] = useState(initial?.body ?? initial?.content ?? '')
+  const [content, setContent] = useState(() => {
+    const raw = initial?.body ?? initial?.content ?? ''
+    // Convert markdown to HTML if the content doesn't look like HTML
+    return raw && !raw.trim().startsWith('<') ? markdownToHtml(raw) : raw
+  })
   const [tags, setTags] = useState((initial?.tags ?? []).map(t => typeof t === 'string' ? t : t.name).join(', '))
   const [saving, setSaving] = useState(false)
 
