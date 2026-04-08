@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import { useToast } from '@/hooks/useToast'
 import { timeAgo, cn } from '@/lib/utils'
+import { sanitizeHtml } from '@/lib/sanitize'
 import {
   Sparkles,
   X,
@@ -608,7 +609,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
     <div className="flex justify-start">
       <div
         className="max-w-[90%] px-3 py-2 rounded-lg bg-card border border-border text-text-dark text-sm leading-relaxed break-words"
-        dangerouslySetInnerHTML={{ __html: formatChatMarkdown(message.content) }}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(formatChatMarkdown(message.content)) }}
       />
     </div>
   )

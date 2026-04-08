@@ -10,6 +10,7 @@ import { NodeFlow } from '@/components/NodeFlow'
 import { PreviewModal, N8nDemoPreview } from '@/components/PreviewModal'
 import { DocsModal } from '@/components/DocsModal'
 import { RichTextEditor } from '@/components/RichTextEditor'
+import { sanitizeHtml } from '@/lib/sanitize'
 
 interface Template {
   id: number
@@ -459,7 +460,7 @@ function TemplateCard({
       </div>
 
       <div className="text-[13px] text-text-muted leading-relaxed mb-2.5 h-10 line-clamp-2 overflow-hidden [&_strong]:text-text-dark [&_a]:text-primary [&_code]:bg-bg [&_code]:px-1 [&_code]:rounded [&_code]:text-xs"
-        dangerouslySetInnerHTML={{ __html: template.description || '<span class="text-text-xmuted">No description</span>' }} />
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(template.description || '<span class="text-text-xmuted">No description</span>') }} />
 
       <div className="flex flex-wrap gap-1.5 mb-2.5 min-h-[22px]">
         {(template.categories ?? []).map((c) => (

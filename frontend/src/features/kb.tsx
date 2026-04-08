@@ -8,6 +8,7 @@ import { esc, timeAgo, cn } from '@/lib/utils'
 import { markdownToHtml } from '@/lib/markdown'
 import { useHighlight } from '@/hooks/useHighlight'
 import { appConfirm } from '@/components/ConfirmDialog'
+import { sanitizeHtml } from '@/lib/sanitize'
 import {
   Search,
   Eye,
@@ -871,7 +872,7 @@ export function KbArticlePage() {
           <div
             ref={highlightRef}
             className="prose prose-sm max-w-none text-text-dark"
-            dangerouslySetInnerHTML={{ __html: markdownToHtml(article.body || article.content || '') }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(markdownToHtml(article.body || article.content || '')) }}
           />
         ) : (
           <p className="text-text-muted text-sm italic">No content available.</p>

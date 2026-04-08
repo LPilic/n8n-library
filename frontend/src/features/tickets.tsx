@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/useToast'
 import { esc, timeAgo, cn } from '@/lib/utils'
 import { useHighlight } from '@/hooks/useHighlight'
 import { markdownToHtml } from '@/lib/markdown'
+import { sanitizeHtml } from '@/lib/sanitize'
 import {
   Search,
   Trash2,
@@ -583,7 +584,7 @@ export function TicketDetailPage() {
               <div
                 className="text-sm text-text-muted prose prose-sm max-w-none"
                 ref={highlightRef}
-                dangerouslySetInnerHTML={{ __html: markdownToHtml(ticket.description || '') }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(markdownToHtml(ticket.description || '')) }}
               />
             )}
             <div className="text-xs text-text-xmuted mt-3">

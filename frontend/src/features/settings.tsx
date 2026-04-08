@@ -5,6 +5,7 @@ import { api, ApiError } from '@/api/client'
 import { useToast } from '@/hooks/useToast'
 import { timeAgo, cn } from '@/lib/utils'
 import { appConfirm } from '@/components/ConfirmDialog'
+import { sanitizeHtml } from '@/lib/sanitize'
 import { useAuthStore } from '@/stores/auth'
 import {
   Users,
@@ -63,12 +64,6 @@ interface SmtpSettings {
   app_url: string
 }
 
-interface Category {
-  id: number
-  name: string
-  icon?: string
-}
-
 interface ApiKey {
   id: number
   name: string
@@ -77,12 +72,6 @@ interface ApiKey {
   last_used_at?: string
   expires_at?: string
   created_at: string
-}
-
-interface BrandingSettings {
-  brand_name: string
-  brand_logo: string
-  brand_primary: string
 }
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
@@ -667,33 +656,98 @@ function SmtpTab() {
 
 // ─── CategoriesTab ────────────────────────────────────────────────────────────
 
+// ─── CategoriesTab helpers ────────────────────────────────────────────────────
+
+import { IconPicker, LucideIcon } from '@/components/IconPicker'
+import { RichTextEditor } from '@/components/RichTextEditor'
+
+type CategoryType = 'workflow' | 'service_desk' | 'kb'
+
+interface RichCategory {
+  id: number
+  name: string
+  icon?: string
+  description?: string
+  slug?: string
+  sort_order?: number
+}
+
+const CATEGORY_TYPE_CONFIG: Record<CategoryType, { label: string; listEndpoint: string; baseEndpoint: string; hasSlug: boolean; hasSortOrder: boolean }> = {
+  workflow: {
+    label: 'Workflow',
+    listEndpoint: '/api/categories',
+    baseEndpoint: '/api/categories',
+    hasSlug: false,
+    hasSortOrder: false,
+  },
+  service_desk: {
+    label: 'Service Desk',
+    listEndpoint: '/api/ticket-categories',
+    baseEndpoint: '/api/ticket-categories',
+    hasSlug: false,
+    hasSortOrder: false,
+  },
+  kb: {
+    label: 'Knowledge Base',
+    listEndpoint: '/api/kb/categories',
+    baseEndpoint: '/api/kb/categories',
+    hasSlug: true,
+    hasSortOrder: true,
+  },
+}
+
 function CategoriesTab() {
   const { error: showError, success: showSuccess } = useToast()
   const qc = useQueryClient()
-  const [modal, setModal] = useState<null | 'create' | Category>(null)
+  const [activeType, setActiveType] = useState<CategoryType>('workflow')
+  const [modal, setModal] = useState<null | 'create' | RichCategory>(null)
+
+  const cfg = CATEGORY_TYPE_CONFIG[activeType]
 
   const { data: categories = [], isLoading } = useQuery({
-    queryKey: ['settings-categories'],
+    queryKey: ['settings-categories', activeType],
     queryFn: async () => {
-      const r = await api.get<{ categories: Category[] }>('/api/categories')
-      return r.categories ?? []
+      const r = await api.get<{ categories: RichCategory[] } | RichCategory[]>(cfg.listEndpoint)
+      return Array.isArray(r) ? r : (r.categories ?? [])
     },
   })
 
   const deleteMut = useMutation({
-    mutationFn: (id: number) => api.delete(`/api/categories/${id}`),
-    onSuccess: () => { showSuccess('Category deleted'); qc.invalidateQueries({ queryKey: ['settings-categories'] }) },
+    mutationFn: (id: number) => api.delete(`${cfg.baseEndpoint}/${id}`),
+    onSuccess: () => {
+      showSuccess('Category deleted')
+      qc.invalidateQueries({ queryKey: ['settings-categories', activeType] })
+    },
     onError: (err) => showError(err instanceof ApiError ? err.message : 'Delete failed'),
   })
 
-  async function handleDelete(c: Category) {
+  async function handleDelete(c: RichCategory) {
     const ok = await appConfirm(`Delete category "${c.name}"?`, { danger: true, okLabel: 'Delete' })
     if (ok) deleteMut.mutate(c.id)
   }
 
   return (
-    <div className="max-w-xl">
+    <div className="max-w-2xl">
+      {/* Type switcher */}
+      <div className="flex gap-1 mb-4 p-1 bg-bg border border-border rounded-sm w-fit">
+        {(Object.keys(CATEGORY_TYPE_CONFIG) as CategoryType[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setActiveType(t)}
+            className={cn(
+              'text-xs px-3 py-1.5 rounded-sm font-medium transition-colors',
+              activeType === t
+                ? 'bg-primary text-white'
+                : 'text-text-muted hover:text-text-dark hover:bg-card-hover',
+            )}
+          >
+            {CATEGORY_TYPE_CONFIG[t].label}
+          </button>
+        ))}
+      </div>
+
       <Toolbar count={categories.length} noun="category" onNew={() => setModal('create')} />
+
       {isLoading ? (
         <p className="text-sm text-text-muted">Loading categories...</p>
       ) : categories.length === 0 ? (
@@ -702,16 +756,30 @@ function CategoriesTab() {
         <TableWrap>
           <thead>
             <tr className="border-b border-border-light bg-bg">
-              <Th>Name</Th>
               <Th>Icon</Th>
+              <Th>Name</Th>
+              <Th>Description</Th>
+              {cfg.hasSlug && <Th>Slug</Th>}
               <th className="w-20 px-4 py-2" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border-light">
             {categories.map((c) => (
               <tr key={c.id} className="hover:bg-card-hover transition-colors">
+                <td className="px-4 py-2.5 w-10"><LucideIcon name={c.icon} /></td>
                 <td className="px-4 py-2.5 font-medium text-text-dark">{c.name}</td>
-                <td className="px-4 py-2.5 text-text-muted text-sm">{c.icon ?? '—'}</td>
+                <td className="px-4 py-2.5 text-xs text-text-muted max-w-[250px]">
+                  {c.description ? (
+                    <div className="line-clamp-2 [&_strong]:font-semibold [&_a]:text-primary" dangerouslySetInnerHTML={{ __html: sanitizeHtml(c.description) }} />
+                  ) : (
+                    <span className="text-text-xmuted">—</span>
+                  )}
+                </td>
+                {cfg.hasSlug && (
+                  <td className="px-4 py-2.5 text-xs text-text-muted font-mono">
+                    {c.slug ?? <span className="text-text-xmuted">—</span>}
+                  </td>
+                )}
                 <td className="px-4 py-2.5">
                   <ActionBtns onEdit={() => setModal(c)} onDelete={() => handleDelete(c)} />
                 </td>
@@ -720,35 +788,72 @@ function CategoriesTab() {
           </tbody>
         </TableWrap>
       )}
+
       {modal !== null && (
         <CategoryModal
           initial={modal === 'create' ? null : modal}
+          categoryType={activeType}
           onClose={() => setModal(null)}
-          onSaved={() => { setModal(null); qc.invalidateQueries({ queryKey: ['settings-categories'] }) }}
+          onSaved={() => {
+            setModal(null)
+            qc.invalidateQueries({ queryKey: ['settings-categories', activeType] })
+          }}
         />
       )}
     </div>
   )
 }
 
-function CategoryModal({ initial, onClose, onSaved }: { initial: Category | null; onClose: () => void; onSaved: () => void }) {
+function CategoryModal({
+  initial,
+  categoryType,
+  onClose,
+  onSaved,
+}: {
+  initial: RichCategory | null
+  categoryType: CategoryType
+  onClose: () => void
+  onSaved: () => void
+}) {
   const { error: showError, success: showSuccess } = useToast()
+  const cfg = CATEGORY_TYPE_CONFIG[categoryType]
+
   const [name, setName] = useState(initial?.name ?? '')
   const [icon, setIcon] = useState(initial?.icon ?? '')
+  const [description, setDescription] = useState(initial?.description ?? '')
+  const [slug, setSlug] = useState(initial?.slug ?? '')
+  const [sortOrder, setSortOrder] = useState<string>(initial?.sort_order?.toString() ?? '')
+  const [slugTouched, setSlugTouched] = useState(!!initial?.slug)
+
+  // Auto-generate slug from name when slug hasn't been manually edited
+  function handleNameChange(v: string) {
+    setName(v)
+    if (!slugTouched && cfg.hasSlug) {
+      setSlug(v.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))
+    }
+  }
 
   const saveMut = useMutation({
-    mutationFn: () =>
-      initial
-        ? api.put(`/api/categories/${initial.id}`, { name, icon })
-        : api.post('/api/categories', { name, icon }),
-    onSuccess: () => { showSuccess(initial ? 'Category updated' : 'Category created'); onSaved() },
+    mutationFn: () => {
+      const body: Record<string, string | number> = { name, icon, description }
+      if (cfg.hasSlug) body.slug = slug
+      if (cfg.hasSortOrder && sortOrder !== '') body.sort_order = parseInt(sortOrder, 10)
+      return initial
+        ? api.put(`${cfg.baseEndpoint}/${initial.id}`, body)
+        : api.post(cfg.baseEndpoint, body)
+    },
+    onSuccess: () => {
+      showSuccess(initial ? 'Category updated' : 'Category created')
+      onSaved()
+    },
     onError: (err) => showError(err instanceof ApiError ? err.message : 'Save failed'),
   })
 
   return (
     <Modal
-      title={initial ? 'Edit Category' : 'New Category'}
+      title={initial ? 'Edit Category' : `New ${cfg.label} Category`}
       onClose={onClose}
+      size="md"
       footer={
         <>
           <CancelBtn onClick={onClose} />
@@ -762,8 +867,35 @@ function CategoryModal({ initial, onClose, onSaved }: { initial: Category | null
         </>
       }
     >
-      <FieldRow label="Name *"><Input value={name} onChange={setName} placeholder="e.g. Automation" /></FieldRow>
-      <FieldRow label="Icon (emoji or text)"><Input value={icon} onChange={setIcon} placeholder="e.g. ⚙️" /></FieldRow>
+      <FieldRow label="Name *">
+        <Input value={name} onChange={handleNameChange} placeholder="e.g. Automation" />
+      </FieldRow>
+      <div>
+        <label className="block text-xs font-medium text-text-muted mb-1">Icon</label>
+        <IconPicker value={icon} onChange={setIcon} />
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-text-muted mb-1">Description</label>
+        <RichTextEditor
+          content={description}
+          onChange={setDescription}
+          placeholder="Category description..."
+        />
+      </div>
+      {cfg.hasSlug && (
+        <FieldRow label="Slug">
+          <Input
+            value={slug}
+            onChange={(v) => { setSlugTouched(true); setSlug(v) }}
+            placeholder="auto-generated-from-name"
+          />
+        </FieldRow>
+      )}
+      {cfg.hasSortOrder && (
+        <FieldRow label="Sort Order">
+          <Input value={sortOrder} onChange={setSortOrder} type="number" placeholder="0" />
+        </FieldRow>
+      )}
     </Modal>
   )
 }
@@ -930,68 +1062,268 @@ function ApiKeyModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
 
 // ─── BrandingTab ──────────────────────────────────────────────────────────────
 
+// ─── BrandingTab helpers ──────────────────────────────────────────────────────
+
+interface BrandingForm {
+  brand_name: string
+  brand_logo: string
+  brand_theme: 'light' | 'dark' | 'system'
+  brand_primary: string
+  brand_primary_hover: string
+  brand_bg: string
+  brand_sidebar: string
+  brand_card: string
+  brand_text: string
+  brand_text_dark: string
+}
+
+const BRANDING_DEFAULTS: BrandingForm = {
+  brand_name: '',
+  brand_logo: '',
+  brand_theme: 'system',
+  brand_primary: '#ff6d5a',
+  brand_primary_hover: '#e0523f',
+  brand_bg: '#f5f5f5',
+  brand_sidebar: '#ffffff',
+  brand_card: '#ffffff',
+  brand_text: '#525356',
+  brand_text_dark: '#1f2229',
+}
+
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <FieldRow label={label}>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-8 w-10 border border-input-border rounded-sm bg-input-bg cursor-pointer p-0.5 flex-shrink-0"
+        />
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="flex-1 px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm font-mono text-text-dark focus:outline-none focus:border-input-focus"
+          placeholder="#000000"
+          maxLength={7}
+        />
+      </div>
+    </FieldRow>
+  )
+}
+
+function BrandingPreview({ form }: { form: BrandingForm }) {
+  return (
+    <div
+      className="rounded-md border overflow-hidden shadow-sm text-[11px] select-none"
+      style={{ background: form.brand_bg, borderColor: '#e2e4e7', width: 340 }}
+    >
+      {/* Header bar */}
+      <div
+        className="flex items-center gap-2 px-3 py-2"
+        style={{ background: form.brand_sidebar, borderBottom: '1px solid #e2e4e7' }}
+      >
+        {form.brand_logo ? (
+          <img src={form.brand_logo} alt="logo" className="h-5 w-5 object-contain rounded" />
+        ) : (
+          <div className="h-5 w-5 rounded flex items-center justify-center text-white text-[9px] font-bold"
+            style={{ background: form.brand_primary }}>N</div>
+        )}
+        <span className="font-semibold flex-1" style={{ color: form.brand_text_dark }}>
+          {form.brand_name || 'n8n Library'}
+        </span>
+        <span
+          className="px-2 py-0.5 rounded text-white font-semibold"
+          style={{ background: form.brand_primary, fontSize: 10 }}
+        >
+          Button
+        </span>
+      </div>
+      {/* Cards */}
+      <div className="p-3 space-y-2">
+        <div
+          className="rounded p-2.5 flex items-center justify-between"
+          style={{ background: form.brand_card, border: '1px solid #e2e4e7' }}
+        >
+          <div>
+            <div className="font-medium" style={{ color: form.brand_text_dark }}>Sample Workflow</div>
+            <div style={{ color: form.brand_text }}>Automation pipeline</div>
+          </div>
+          <div className="flex gap-1">
+            <span className="px-1.5 py-0.5 rounded text-white font-semibold"
+              style={{ background: '#22c55e', fontSize: 10 }}>Active</span>
+            <span className="px-1.5 py-0.5 rounded font-semibold"
+              style={{ background: '#dcfce7', color: '#16a34a', fontSize: 10 }}>Success</span>
+          </div>
+        </div>
+        <div
+          className="rounded p-2.5 flex items-center justify-between"
+          style={{ background: form.brand_card, border: '1px solid #e2e4e7' }}
+        >
+          <div>
+            <div className="font-medium" style={{ color: form.brand_text_dark }}>Another Item</div>
+            <div style={{ color: form.brand_text }}>Service desk ticket</div>
+          </div>
+          <span className="px-1.5 py-0.5 rounded font-semibold"
+            style={{ background: '#fee2e2', color: '#dc2626', fontSize: 10 }}>Error</span>
+        </div>
+        <div className="flex gap-2 pt-1">
+          <div className="h-1.5 rounded-full flex-1" style={{ background: form.brand_primary, opacity: 0.25 }} />
+          <div className="h-1.5 rounded-full" style={{ background: form.brand_primary_hover, opacity: 0.35, width: 60 }} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function BrandingTab() {
   const { error: showError, success: showSuccess } = useToast()
-  const [brandName, setBrandName] = useState('')
-  const [brandLogo, setBrandLogo] = useState('')
-  const [brandPrimary, setBrandPrimary] = useState('#6366f1')
+  const logoInputRef = useRef<HTMLInputElement>(null)
+  const [form, setForm] = useState<BrandingForm>(BRANDING_DEFAULTS)
   const [loaded, setLoaded] = useState(false)
+
+  function setField<K extends keyof BrandingForm>(key: K, value: BrandingForm[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }))
+  }
 
   useQuery({
     queryKey: ['settings-branding'],
     queryFn: async () => {
-      const r = await api.get<BrandingSettings>('/api/settings/branding')
-      setBrandName(r.brand_name ?? '')
-      setBrandLogo(r.brand_logo ?? '')
-      setBrandPrimary(r.brand_primary ?? '#6366f1')
+      const r = await api.get<Record<string, string>>('/api/settings/branding')
+      setForm({
+        brand_name: r.brand_name ?? '',
+        brand_logo: r.brand_logo ?? '',
+        brand_theme: (r.brand_theme as BrandingForm['brand_theme']) ?? 'system',
+        brand_primary: r.brand_primary ?? BRANDING_DEFAULTS.brand_primary,
+        brand_primary_hover: r.brand_primary_hover ?? BRANDING_DEFAULTS.brand_primary_hover,
+        brand_bg: r.brand_bg ?? BRANDING_DEFAULTS.brand_bg,
+        brand_sidebar: r.brand_sidebar ?? BRANDING_DEFAULTS.brand_sidebar,
+        brand_card: r.brand_card ?? BRANDING_DEFAULTS.brand_card,
+        brand_text: r.brand_text ?? BRANDING_DEFAULTS.brand_text,
+        brand_text_dark: r.brand_text_dark ?? BRANDING_DEFAULTS.brand_text_dark,
+      })
       setLoaded(true)
       return r
     },
   })
 
   const saveMut = useMutation({
-    mutationFn: () => api.put('/api/settings/branding', { brand_name: brandName, brand_logo: brandLogo, brand_primary: brandPrimary }),
+    mutationFn: () => api.put('/api/settings/branding', form),
     onSuccess: () => showSuccess('Branding saved'),
     onError: (err) => showError(err instanceof ApiError ? err.message : 'Save failed'),
   })
 
+  function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => setField('brand_logo', reader.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  function handleReset() {
+    setForm(BRANDING_DEFAULTS)
+  }
+
   if (!loaded) return <p className="text-sm text-text-muted">Loading branding settings...</p>
 
   return (
-    <div className="max-w-md space-y-3">
-      <FieldRow label="App Name"><Input value={brandName} onChange={setBrandName} placeholder="n8n Library" /></FieldRow>
-      <FieldRow label="Logo URL"><Input value={brandLogo} onChange={setBrandLogo} placeholder="https://example.com/logo.png" /></FieldRow>
-      <FieldRow label="Primary Colour">
-        <div className="flex items-center gap-2">
-          <input
-            type="color"
-            value={brandPrimary}
-            onChange={(e) => setBrandPrimary(e.target.value)}
-            className="h-8 w-16 border border-input-border rounded-sm bg-input-bg cursor-pointer"
-          />
-          <input
-            type="text"
-            value={brandPrimary}
-            onChange={(e) => setBrandPrimary(e.target.value)}
-            className="flex-1 px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm font-mono text-text-dark focus:outline-none focus:border-input-focus"
-            placeholder="#6366f1"
-          />
+    <div className="flex gap-8 items-start">
+      {/* Left: form */}
+      <div className="flex-1 min-w-0 space-y-4 max-w-sm">
+
+        {/* Logo */}
+        <FieldRow label="Logo">
+          <div className="space-y-2">
+            <div
+              onClick={() => logoInputRef.current?.click()}
+              className="flex flex-col items-center justify-center gap-1 w-full py-5 border-2 border-dashed border-input-border rounded-sm bg-bg cursor-pointer hover:border-primary transition-colors"
+            >
+              {form.brand_logo ? (
+                <img src={form.brand_logo} alt="Logo preview" className="h-10 object-contain" />
+              ) : (
+                <>
+                  <Upload size={18} className="text-text-xmuted" />
+                  <span className="text-xs text-text-muted">Click to upload PNG / JPG / SVG</span>
+                </>
+              )}
+            </div>
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/svg+xml"
+              className="hidden"
+              onChange={handleLogoUpload}
+            />
+            <input
+              type="text"
+              value={form.brand_logo.startsWith('data:') ? '' : form.brand_logo}
+              onChange={(e) => setField('brand_logo', e.target.value)}
+              placeholder="Or paste a logo URL..."
+              className="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus"
+            />
+          </div>
+        </FieldRow>
+
+        {/* App Name */}
+        <FieldRow label="App Name">
+          <Input value={form.brand_name} onChange={(v) => setField('brand_name', v)} placeholder="n8n Library" />
+        </FieldRow>
+
+        {/* Theme */}
+        <FieldRow label="Theme">
+          <div className="flex gap-3">
+            {(['light', 'dark', 'system'] as const).map((t) => (
+              <label key={t} className="flex items-center gap-1.5 cursor-pointer text-sm text-text-dark capitalize">
+                <input
+                  type="radio"
+                  name="brand_theme"
+                  value={t}
+                  checked={form.brand_theme === t}
+                  onChange={() => setField('brand_theme', t)}
+                  className="accent-primary"
+                />
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </label>
+            ))}
+          </div>
+        </FieldRow>
+
+        {/* Colors */}
+        <div className="space-y-3 pt-1">
+          <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Colors</p>
+          <ColorField label="Primary" value={form.brand_primary} onChange={(v) => setField('brand_primary', v)} />
+          <ColorField label="Primary Hover" value={form.brand_primary_hover} onChange={(v) => setField('brand_primary_hover', v)} />
+          <ColorField label="Background" value={form.brand_bg} onChange={(v) => setField('brand_bg', v)} />
+          <ColorField label="Sidebar" value={form.brand_sidebar} onChange={(v) => setField('brand_sidebar', v)} />
+          <ColorField label="Card" value={form.brand_card} onChange={(v) => setField('brand_card', v)} />
+          <ColorField label="Text" value={form.brand_text} onChange={(v) => setField('brand_text', v)} />
+          <ColorField label="Text Dark" value={form.brand_text_dark} onChange={(v) => setField('brand_text_dark', v)} />
         </div>
-      </FieldRow>
-      {brandLogo && (
-        <div className="pt-1">
-          <p className="text-xs text-text-muted mb-1">Preview</p>
-          <img src={brandLogo} alt="Logo preview" className="h-10 object-contain rounded border border-border bg-bg p-1" />
+
+        {/* Actions */}
+        <div className="flex gap-2 pt-2">
+          <button
+            disabled={saveMut.isPending}
+            onClick={() => saveMut.mutate()}
+            className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+          >
+            {saveMut.isPending ? 'Saving...' : 'Save Branding'}
+          </button>
+          <button
+            onClick={handleReset}
+            className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover"
+          >
+            Reset to Defaults
+          </button>
         </div>
-      )}
-      <div className="pt-2">
-        <button
-          disabled={saveMut.isPending}
-          onClick={() => saveMut.mutate()}
-          className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
-        >
-          {saveMut.isPending ? 'Saving...' : 'Save Branding'}
-        </button>
+      </div>
+
+      {/* Right: live preview */}
+      <div className="flex-shrink-0">
+        <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">Live Preview</p>
+        <BrandingPreview form={form} />
       </div>
     </div>
   )

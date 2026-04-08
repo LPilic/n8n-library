@@ -8,6 +8,7 @@ import { cn, esc } from '@/lib/utils'
 import { markdownToHtml } from '@/lib/markdown'
 import { useToast } from '@/hooks/useToast'
 import { useInstanceStore } from '@/stores/instance'
+import { sanitizeHtml } from '@/lib/sanitize'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend)
 
@@ -434,7 +435,7 @@ export function ObservabilityPage() {
       {aiReport && (
         <div
           className="mb-5 bg-card border border-border rounded-md p-4 prose prose-sm max-w-none text-text-dark"
-          dangerouslySetInnerHTML={{ __html: aiReport }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(aiReport) }}
         />
       )}
 
