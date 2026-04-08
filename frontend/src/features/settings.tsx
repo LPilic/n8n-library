@@ -433,32 +433,38 @@ function InstancesTab() {
         <TableWrap>
           <thead>
             <tr className="border-b border-border-light bg-bg">
-              <Th>Name</Th>
-              <Th>URL</Th>
-              <Th>Default</Th>
+              <Th>Instance</Th>
+              <Th>Status</Th>
               <th className="w-20 px-4 py-2" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border-light">
-            {instances.map((inst) => (
-              <tr key={inst.id} className="hover:bg-card-hover transition-colors">
-                <td className="px-4 py-2.5 font-medium text-text-dark flex items-center gap-2">
-                  {inst.color && (
-                    <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ background: inst.color }} />
-                  )}
-                  {inst.name}
-                </td>
-                <td className="px-4 py-2.5 text-xs text-text-muted font-mono truncate max-w-[200px]">{inst.base_url}</td>
-                <td className="px-4 py-2.5">
-                  {inst.is_default && (
-                    <span className="text-[10px] font-semibold bg-primary-light text-primary px-1.5 py-0.5 rounded uppercase">default</span>
-                  )}
-                </td>
-                <td className="px-4 py-2.5">
-                  <ActionBtns onEdit={() => setModal(inst)} onDelete={() => handleDelete(inst)} />
-                </td>
-              </tr>
-            ))}
+            {instances.map((inst) => {
+              const envColor = inst.environment === 'production' ? 'bg-danger text-white' : inst.environment === 'staging' ? 'bg-warning text-white' : 'bg-success text-white'
+              const envLabel = inst.environment === 'production' ? 'PROD' : inst.environment === 'staging' ? 'STG' : inst.environment === 'development' ? 'DEV' : ''
+              return (
+                <tr key={inst.id} className="hover:bg-card-hover transition-colors">
+                  <td className="px-4 py-2.5">
+                    <div className="flex items-center gap-2">
+                      {inst.color && <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ background: inst.color }} />}
+                      <div>
+                        <div className="font-medium text-text-dark">{inst.name}</div>
+                        {inst.base_url && <div className="text-[11px] text-text-muted font-mono truncate max-w-[250px]">{inst.base_url}</div>}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="flex items-center gap-1.5">
+                      {envLabel && <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded', envColor)}>{envLabel}</span>}
+                      {inst.is_default && <span className="text-[9px] font-bold bg-primary-light text-primary px-1.5 py-0.5 rounded uppercase">default</span>}
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <ActionBtns onEdit={() => setModal(inst)} onDelete={() => handleDelete(inst)} />
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </TableWrap>
       )}
@@ -2116,22 +2122,20 @@ function AiRedirectTab() {
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState('users')
 
-  const current = TABS.find((t) => t.id === activeTab) ?? TABS[0]
-
   return (
     <div className="flex gap-0 min-h-[400px]">
       {/* Sidebar */}
-      <nav className="w-44 shrink-0 border-r border-border hidden sm:block">
+      <nav className="w-48 shrink-0 border-r border-border hidden sm:block pr-2">
         <ul className="space-y-0.5 py-1">
           {TABS.map((tab) => (
             <li key={tab.id}>
               <button
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  'w-full flex items-center gap-2.5 text-sm px-3 py-2 rounded-sm text-left transition-colors',
+                  'w-full flex items-center gap-2.5 text-[13px] px-3 py-2 rounded-md text-left transition-colors',
                   activeTab === tab.id
                     ? 'bg-primary-light text-primary font-medium'
-                    : 'text-text-muted hover:bg-card-hover hover:text-text-dark',
+                    : 'text-text-muted hover:bg-bg hover:text-text-dark',
                 )}
               >
                 <span className={cn('shrink-0', activeTab === tab.id ? 'text-primary' : 'text-text-xmuted')}>
@@ -2146,12 +2150,6 @@ export function SettingsPage() {
 
       {/* Content */}
       <div className="flex-1 min-w-0 pl-6">
-        <div className="mb-4 pb-3 border-b border-border-light">
-          <h2 className="text-base font-semibold text-text-dark flex items-center gap-2">
-            <span className="text-text-muted">{current.icon}</span>
-            {current.label}
-          </h2>
-        </div>
         <ActiveTabContent tabId={activeTab} />
       </div>
     </div>
