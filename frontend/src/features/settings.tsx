@@ -1091,6 +1091,22 @@ const BRANDING_DEFAULTS: BrandingForm = {
   brand_text_dark: '#1f2229',
 }
 
+const DARK_COLORS: Partial<BrandingForm> = {
+  brand_bg: '#161618',
+  brand_sidebar: '#131315',
+  brand_card: '#1e1e21',
+  brand_text: '#c0c0c8',
+  brand_text_dark: '#e8e8ee',
+}
+
+const LIGHT_COLORS: Partial<BrandingForm> = {
+  brand_bg: '#f5f5f5',
+  brand_sidebar: '#ffffff',
+  brand_card: '#ffffff',
+  brand_text: '#525356',
+  brand_text_dark: '#1f2229',
+}
+
 function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <FieldRow label={label}>
@@ -1283,7 +1299,15 @@ function BrandingTab() {
                   name="brand_theme"
                   value={t}
                   checked={form.brand_theme === t}
-                  onChange={() => { setField('brand_theme', t); themeStore.setMode(t) }}
+                  onChange={() => {
+                    setField('brand_theme', t)
+                    themeStore.setMode(t)
+                    const resolved = t === 'system'
+                      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+                      : t
+                    const colors = resolved === 'dark' ? DARK_COLORS : LIGHT_COLORS
+                    setForm((f) => ({ ...f, brand_theme: t, ...colors }))
+                  }}
                   className="accent-primary"
                 />
                 {t.charAt(0).toUpperCase() + t.slice(1)}
