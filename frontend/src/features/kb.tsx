@@ -871,7 +871,7 @@ export function KbArticlePage() {
         {(article.body || article.content) ? (
           <div
             ref={highlightRef}
-            className="prose prose-sm max-w-none text-text-dark"
+            className="max-w-none text-[14px] leading-relaxed text-text-dark [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-3 [&_h1]:mt-6 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mb-2 [&_h2]:mt-5 [&_h2]:pb-1 [&_h2]:border-b [&_h2]:border-border-light [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mb-2 [&_h3]:mt-4 [&_h4]:text-sm [&_h4]:font-semibold [&_h4]:mb-1 [&_h4]:mt-3 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-3 [&_li]:mb-1 [&_strong]:font-semibold [&_code]:bg-bg [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-[13px] [&_code]:font-mono [&_pre]:bg-bg [&_pre]:p-4 [&_pre]:rounded-md [&_pre]:overflow-x-auto [&_pre]:mb-3 [&_pre]:text-[13px] [&_a]:text-primary [&_a:hover]:underline [&_blockquote]:border-l-3 [&_blockquote]:border-border [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-text-muted [&_blockquote]:mb-3 [&_hr]:border-border-light [&_hr]:my-4 [&_table]:w-full [&_table]:border-collapse [&_table]:mb-3 [&_th]:text-left [&_th]:p-2 [&_th]:border-b [&_th]:border-border [&_th]:text-xs [&_th]:font-semibold [&_td]:p-2 [&_td]:border-b [&_td]:border-border-light [&_td]:text-sm [&_img]:max-w-full [&_img]:rounded-md"
             dangerouslySetInnerHTML={{ __html: sanitizeHtml(markdownToHtml(article.body || article.content || '')) }}
           />
         ) : (
