@@ -35,6 +35,7 @@ interface SchemaProperty {
 
 interface CredSchema {
   properties?: Record<string, SchemaProperty>
+  required?: string[]
 }
 
 interface AuditEntry {
@@ -1027,8 +1028,6 @@ function CredentialStoreTab() {
 }
 
 // ─── Create Store Template Modal ─────────────────────────────────────────────
-
-interface CredSchema { properties?: Record<string, { type?: string; description?: string }>; required?: string[] }
 
 function CreateStoreTemplateModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const { error: showError } = useToast()

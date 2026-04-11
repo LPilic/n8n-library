@@ -81,7 +81,7 @@ export function RichTextEditor({ content, onChange, placeholder = 'Write somethi
 
   function insertCodeBlock(language: string) {
     if (!editor) return
-    editor.chain().focus().toggleCodeBlock({ language: language || null }).run()
+    editor.chain().focus().toggleCodeBlock({ language: language || '' }).run()
     setShowLangMenu(false)
   }
 

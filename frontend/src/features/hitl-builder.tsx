@@ -569,7 +569,7 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
   // Fetch app_url for webhook URLs (so n8n in Docker can reach the library manager)
   const { data: smtpSettings } = useQuery({
     queryKey: ['settings-smtp'],
-    queryFn: () => api.get<{ app_url?: string }>('/api/settings/smtp').catch(() => ({})),
+    queryFn: () => api.get<{ app_url?: string }>('/api/settings/smtp').catch(() => ({} as { app_url?: string })),
     staleTime: 300_000,
   })
   const appBaseUrl = (smtpSettings?.app_url || window.location.origin).replace(/\/+$/, '')
