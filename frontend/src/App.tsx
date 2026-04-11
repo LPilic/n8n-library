@@ -18,6 +18,7 @@ import { SecurityPage } from '@/features/security'
 import { VariablesPage } from '@/features/variables'
 import { TagsPage } from '@/features/tags'
 import { AuditPage } from '@/features/audit'
+import { UsersPage } from '@/features/users'
 import { SettingsPage } from '@/features/settings'
 import { AiConfigPage } from '@/features/ai-config'
 import { N8nWorkflowsPage } from '@/features/n8n-workflows'
@@ -85,6 +86,7 @@ export default function App() {
               <Route path="variables" element={<VariablesPage />} />
               <Route path="tags" element={<TagsPage />} />
               <Route path="audit" element={<AuditPage />} />
+              <Route path="users" element={<UsersPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>

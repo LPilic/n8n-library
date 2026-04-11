@@ -1,9 +1,11 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/hooks/useToast'
 import { api, ApiError } from '@/api/client'
 
-type View = 'login' | '2fa' | 'forgot' | 'reset'
+interface PublicInstance { id: number; name: string; color?: string }
+
+type View = 'login' | '2fa' | 'forgot' | 'reset' | 'n8n' | 'n8n-setup'
 
 export function LoginPage() {
   const { login, verify2fa, requires2fa } = useAuthStore()
@@ -16,6 +18,18 @@ export function LoginPage() {
   const [resetToken, setResetToken] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [n8nInstances, setN8nInstances] = useState<PublicInstance[]>([])
+  const [selectedInstance, setSelectedInstance] = useState<number | null>(null)
+  const [n8nPassword, setN8nPassword] = useState('')
+
+  useEffect(() => {
+    api.get<PublicInstance[]>('/api/auth/instances').then((data) => {
+      if (Array.isArray(data) && data.length > 0) {
+        setN8nInstances(data)
+        setSelectedInstance(data[0].id)
+      }
+    }).catch(() => {})
+  }, [])
 
   // Check URL for reset token on mount
   useState(() => {
@@ -77,6 +91,55 @@ export function LoginPage() {
       window.history.replaceState({}, '', '/')
     } catch (err) {
       showError(err instanceof ApiError ? err.message : 'Failed to reset password')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleN8nLogin(e: FormEvent) {
+    e.preventDefault()
+    if (!selectedInstance || !email) return
+    setLoading(true)
+    try {
+      const data = await api.post<{ user?: { id: number; username: string; email: string; role: string }; needs_password_setup?: boolean }>('/api/auth/n8n-login', {
+        email,
+        password: n8nPassword || undefined,
+        instance_id: selectedInstance,
+      })
+      if (data.needs_password_setup) {
+        setView('n8n-setup')
+        setLoading(false)
+        return
+      }
+      if (data.user) {
+        // Reload auth state
+        await login(email, n8nPassword)
+      }
+    } catch (err) {
+      showError(err instanceof ApiError ? err.message : 'n8n login failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleN8nSetup(e: FormEvent) {
+    e.preventDefault()
+    if (!selectedInstance || !email || !n8nPassword) return
+    setLoading(true)
+    try {
+      const data = await api.post<{ user?: { id: number; username: string; email: string; role: string } }>('/api/auth/n8n-login', {
+        email,
+        password: n8nPassword,
+        instance_id: selectedInstance,
+      })
+      if (data.user) {
+        showSuccess('Account created! Signing you in...')
+        // Trigger auth check to pick up the session
+        const { checkAuth } = useAuthStore.getState()
+        await checkAuth()
+      }
+    } catch (err) {
+      showError(err instanceof ApiError ? err.message : 'Setup failed')
     } finally {
       setLoading(false)
     }
@@ -147,6 +210,22 @@ export function LoginPage() {
             >
               Forgot password?
             </button>
+            {n8nInstances.length > 0 && (
+              <>
+                <div className="flex items-center gap-2 my-4">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-[11px] text-text-xmuted uppercase">or</span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setView('n8n')}
+                  className="w-full py-2 border border-border rounded-sm text-sm font-medium text-text-dark hover:bg-bg transition-colors"
+                >
+                  Sign in with n8n account
+                </button>
+              </>
+            )}
           </form>
         )}
 
@@ -199,6 +278,87 @@ export function LoginPage() {
               className="w-full py-2 bg-primary text-white rounded-sm text-sm font-medium hover:bg-primary-hover disabled:opacity-50"
             >
               {loading ? 'Resetting...' : 'Reset password'}
+            </button>
+          </form>
+        )}
+
+        {currentView === 'n8n' && (
+          <form onSubmit={handleN8nLogin}>
+            <p className="text-sm text-text-muted mb-4 text-center">
+              Sign in with your n8n account
+            </p>
+            {n8nInstances.length > 1 && (
+              <select
+                value={selectedInstance ?? ''}
+                onChange={(e) => setSelectedInstance(Number(e.target.value))}
+                className={`${inputClass} mb-3`}
+              >
+                {n8nInstances.map((inst) => (
+                  <option key={inst.id} value={inst.id}>{inst.name}</option>
+                ))}
+              </select>
+            )}
+            <input
+              type="email"
+              placeholder="Your n8n email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={`${inputClass} mb-3`}
+              autoFocus
+            />
+            <input
+              type="password"
+              placeholder="Library password"
+              value={n8nPassword}
+              onChange={(e) => setN8nPassword(e.target.value)}
+              className={`${inputClass} mb-4`}
+            />
+            <button
+              type="submit"
+              disabled={loading || !email}
+              className="w-full py-2 bg-primary text-white rounded-sm text-sm font-medium hover:bg-primary-hover disabled:opacity-50"
+            >
+              {loading ? 'Signing in...' : 'Sign in'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setView('login'); setN8nPassword('') }}
+              className="w-full mt-3 text-sm text-text-muted hover:text-primary"
+            >
+              Back to local sign in
+            </button>
+          </form>
+        )}
+
+        {currentView === 'n8n-setup' && (
+          <form onSubmit={handleN8nSetup}>
+            <p className="text-sm text-text-muted mb-4 text-center">
+              Welcome! Set a password for your library account.
+            </p>
+            <p className="text-xs text-text-xmuted mb-3 text-center">
+              {email}
+            </p>
+            <input
+              type="password"
+              placeholder="Choose a password"
+              value={n8nPassword}
+              onChange={(e) => setN8nPassword(e.target.value)}
+              className={`${inputClass} mb-4`}
+              autoFocus
+            />
+            <button
+              type="submit"
+              disabled={loading || !n8nPassword}
+              className="w-full py-2 bg-primary text-white rounded-sm text-sm font-medium hover:bg-primary-hover disabled:opacity-50"
+            >
+              {loading ? 'Setting up...' : 'Set password & sign in'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setView('n8n'); setN8nPassword('') }}
+              className="w-full mt-3 text-sm text-text-muted hover:text-primary"
+            >
+              Back
             </button>
           </form>
         )}

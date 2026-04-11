@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import { useToast } from '@/hooks/useToast'
@@ -22,7 +22,7 @@ const HITL_COMPONENTS: Record<string, { label: string; icon: string; category: s
   text:           { label: 'Text Block',     icon: 'T',  category: 'display', defaults: { text: 'Text content', format: 'plain' } },
   'data-display': { label: 'Data Display',   icon: 'D',  category: 'display', defaults: { field: '', label: 'Label', format: 'text' } },
   'json-viewer':  { label: 'JSON Viewer',    icon: '{}', category: 'display', defaults: { field: '' } },
-  image:          { label: 'Image',          icon: 'I',  category: 'display', defaults: { field: '', alt: 'Image' } },
+  image:          { label: 'Image',          icon: 'I',  category: 'display', defaults: { field: '', src: '', alt: 'Image' } },
   badge:          { label: 'Badge',          icon: 'B',  category: 'display', defaults: { field: '', label: '', thresholds: '{"0.7":"danger","0.4":"warning","0":"success"}' } },
   divider:        { label: 'Divider',        icon: '--', category: 'display', defaults: {} },
   spacer:         { label: 'Spacer',         icon: '|',  category: 'layout',  defaults: { height: 20 } },
@@ -32,7 +32,7 @@ const HITL_COMPONENTS: Record<string, { label: string; icon: string; category: s
   checkbox:       { label: 'Checkbox',       icon: 'X',  category: 'input',   defaults: { name: 'confirm', label: 'Confirm' } },
   radio:          { label: 'Radio',          icon: 'O',  category: 'input',   defaults: { name: 'option', label: 'Pick one', options: 'Option A, Option B' } },
   number:         { label: 'Number',         icon: '#',  category: 'input',   defaults: { name: 'amount', label: 'Amount', min: '', max: '', required: false } },
-  columns:        { label: 'Columns',        icon: '||', category: 'layout',  defaults: { count: 2 } },
+  columns:        { label: 'Columns',        icon: '||', category: 'layout',  defaults: { count: 2, _initChildren: true } },
   section:        { label: 'Section',        icon: '[]', category: 'layout',  defaults: { title: 'Section', collapsible: false } },
   'button-group': { label: 'Action Buttons', icon: '>>', category: 'action',  defaults: { buttons: 'approve:Approve:success,reject:Reject:danger' } },
 }
@@ -52,6 +52,7 @@ interface SchemaComponent {
   id: string
   type: string
   props: Record<string, unknown>
+  children?: SchemaComponent[][] // For columns: one array per column slot
 }
 
 export interface HitlFormBuilderProps {
@@ -162,14 +163,41 @@ function PaletteItem({ type, def }: { type: string; def: typeof HITL_COMPONENTS[
   )
 }
 
+function DataFieldItem({ field }: { field: { key: string; type: string; preview: string } }) {
+  const componentType = field.type === 'score' ? 'badge' : field.type === 'image' ? 'image' : field.type === 'array' || field.type === 'object' ? 'json-viewer' : 'data-display'
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `datafield-${field.key}`,
+    data: { origin: 'data-field', fieldKey: field.key, componentType },
+  })
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      className={cn(
+        'border border-border-light rounded px-2 py-1 text-[12px] cursor-grab hover:border-primary flex items-center gap-1.5 select-none',
+        isDragging && 'opacity-40',
+      )}
+    >
+      <span className="w-4 text-center font-mono text-text-xmuted text-[10px]">{FIELD_TYPE_ICON[field.type] || '·'}</span>
+      <div className="flex-1 min-w-0">
+        <div className="font-semibold truncate">{field.key}</div>
+        <div className="text-[10px] text-text-muted truncate">{field.preview}</div>
+      </div>
+    </div>
+  )
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Sortable canvas item                                                      */
 /* -------------------------------------------------------------------------- */
 
 function CanvasItem({
-  comp, selected, onSelect, onDelete,
+  comp, selected, onSelect, onDelete, selectedChildId, onSelectChild, onDeleteChild,
 }: {
   comp: SchemaComponent; selected: boolean; onSelect: () => void; onDelete: () => void
+  selectedChildId?: string | null; onSelectChild: (id: string) => void; onDeleteChild: (parentId: string, colIdx: number, childId: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: comp.id,
@@ -206,10 +234,48 @@ function CanvasItem({
         </button>
       </div>
 
-      {/* preview */}
-      <div className="px-3 py-2 text-sm text-text-muted">
-        <ComponentPreview comp={comp} />
-      </div>
+      {/* preview / column slots */}
+      {comp.type === 'columns' && comp.children ? (
+        <div className="px-3 py-2">
+          <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${comp.children.length}, minmax(0, 1fr))` }}>
+            {comp.children.map((colItems, colIdx) => (
+              <ColumnSlotDropZone key={colIdx} parentId={comp.id} colIndex={colIdx}>
+                {colItems.length === 0 ? (
+                  <div className="text-[11px] text-text-xmuted italic text-center py-3">Drop here</div>
+                ) : (
+                  colItems.map(child => (
+                    <div
+                      key={child.id}
+                      className={cn(
+                        'bg-card border border-border rounded mb-1 px-2 py-1 text-sm text-text-muted cursor-pointer group/child',
+                        child.id === selectedChildId && 'ring-2 ring-primary',
+                      )}
+                      onClick={(e) => { e.stopPropagation(); onSelectChild(child.id) }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-danger">
+                          {HITL_COMPONENTS[child.type]?.label ?? child.type}
+                        </span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onDeleteChild(comp.id, colIdx, child.id) }}
+                          className="opacity-0 group-hover/child:opacity-100 text-text-muted hover:text-danger"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                      <ComponentPreview comp={child} />
+                    </div>
+                  ))
+                )}
+              </ColumnSlotDropZone>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="px-3 py-2 text-sm text-text-muted">
+          <ComponentPreview comp={comp} />
+        </div>
+      )}
     </div>
   )
 }
@@ -230,7 +296,7 @@ function ComponentPreview({ comp }: { comp: SchemaComponent }) {
     case 'json-viewer':
       return <div className="font-mono text-[12px]">{`{ ${String(p.field || '...')} }`}</div>
     case 'image':
-      return <div className="text-[13px] italic">Image: {`{${String(p.field || 'url')}}`}</div>
+      return p.src ? <img src={String(p.src)} alt={String(p.alt || '')} className="max-w-full max-h-[120px] rounded" /> : <div className="text-[13px] italic">Image: {`{${String(p.field || 'url')}}`}</div>
     case 'badge':
       return <div className="text-[13px]"><span className="inline-block px-1.5 rounded bg-muted text-[11px]">{String(p.label || 'Badge')}</span></div>
     case 'divider':
@@ -334,7 +400,7 @@ function PropertyEditor({
       fields.push(field('Field', 'field'))
       break
     case 'image':
-      fields.push(field('URL Field', 'field'), field('Alt', 'alt'))
+      fields.push(field('Direct URL', 'src'), field('Data Field', 'field'), field('Alt', 'alt'))
       break
     case 'badge':
       fields.push(field('Field', 'field'), field('Label', 'label'), field('Thresholds (JSON)', 'thresholds', 'textarea'))
@@ -386,57 +452,69 @@ function LivePreview({ components, sampleData }: { components: SchemaComponent[]
     return key in data ? String(data[key]) : `{${key}}`
   }
 
+  const renderComp = (comp: SchemaComponent) => {
+    const p = comp.props
+    switch (comp.type) {
+      case 'heading': {
+        const Tag = `h${p.level || 3}` as keyof JSX.IntrinsicElements
+        return <Tag key={comp.id} className="font-bold text-lg">{String(p.text)}</Tag>
+      }
+      case 'text':
+        return <p key={comp.id} className="text-sm">{String(p.text)}</p>
+      case 'data-display':
+        return <div key={comp.id} className="text-sm"><strong>{String(p.label)}:</strong> {resolve(p.field)}</div>
+      case 'json-viewer':
+        return <pre key={comp.id} className="bg-muted/30 rounded p-2 text-xs font-mono overflow-auto">{JSON.stringify(p.field ? data[String(p.field)] : data, null, 2)}</pre>
+      case 'image':
+        return <img key={comp.id} src={String(p.src || '') || resolve(p.field)} alt={String(p.alt)} className="max-w-full rounded" />
+      case 'badge':
+        return <span key={comp.id} className="inline-block px-2 py-0.5 rounded bg-muted text-sm">{String(p.label || resolve(p.field))}</span>
+      case 'divider':
+        return <hr key={comp.id} className="border-border" />
+      case 'spacer':
+        return <div key={comp.id} style={{ height: Number(p.height || 20) }} />
+      case 'text-input':
+        return <div key={comp.id} className="mb-2"><label className="block text-sm font-medium mb-0.5">{String(p.label)}{p.required ? ' *' : ''}</label><input type="text" placeholder={String(p.placeholder || '')} className="w-full border border-border rounded px-2 py-1 text-sm bg-bg" /></div>
+      case 'textarea':
+        return <div key={comp.id} className="mb-2"><label className="block text-sm font-medium mb-0.5">{String(p.label)}{p.required ? ' *' : ''}</label><textarea placeholder={String(p.placeholder || '')} className="w-full border border-border rounded px-2 py-1 text-sm bg-bg min-h-[60px]" /></div>
+      case 'select': {
+        const opts = String(p.options || '').split(',').map(s => s.trim()).filter(Boolean)
+        return <div key={comp.id} className="mb-2"><label className="block text-sm font-medium mb-0.5">{String(p.label)}{p.required ? ' *' : ''}</label><select className="w-full border border-border rounded px-2 py-1 text-sm bg-bg"><option value="">Select...</option>{opts.map(o => <option key={o}>{o}</option>)}</select></div>
+      }
+      case 'checkbox':
+        return <label key={comp.id} className="flex items-center gap-2 text-sm"><input type="checkbox" />{String(p.label)}</label>
+      case 'radio': {
+        const opts = String(p.options || '').split(',').map(s => s.trim()).filter(Boolean)
+        return <fieldset key={comp.id} className="mb-2"><legend className="text-sm font-medium mb-1">{String(p.label)}</legend>{opts.map(o => <label key={o} className="flex items-center gap-1.5 text-sm"><input type="radio" name={String(p.name)} />{o}</label>)}</fieldset>
+      }
+      case 'number':
+        return <div key={comp.id} className="mb-2"><label className="block text-sm font-medium mb-0.5">{String(p.label)}{p.required ? ' *' : ''}</label><input type="number" min={String(p.min)} max={String(p.max)} className="w-full border border-border rounded px-2 py-1 text-sm bg-bg" /></div>
+      case 'section':
+        return <div key={comp.id} className="border-l-2 border-primary pl-3 py-1"><div className="font-medium text-sm">{String(p.title)}</div></div>
+      case 'columns': {
+        const colCount = Number(p.count) || 2
+        return (
+          <div key={comp.id} className="grid gap-3 mb-2" style={{ gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))` }}>
+            {(comp.children || []).map((col, colIdx) => (
+              <div key={colIdx}>
+                {col.map(child => renderComp(child))}
+              </div>
+            ))}
+          </div>
+        )
+      }
+      case 'button-group': {
+        const btns = String(p.buttons || '').split(',').map(b => b.split(':'))
+        return <div key={comp.id} className="flex gap-2 mt-2">{btns.map(([key, label, color], i) => <button key={i} className={cn('px-4 py-1.5 rounded text-sm font-medium text-white', color === 'danger' ? 'bg-danger' : color === 'success' ? 'bg-success' : 'bg-primary')}>{label || key}</button>)}</div>
+      }
+      default:
+        return null
+    }
+  }
+
   return (
     <div className="space-y-3">
-      {components.map(comp => {
-        const p = comp.props
-        switch (comp.type) {
-          case 'heading': {
-            const Tag = `h${p.level || 3}` as keyof JSX.IntrinsicElements
-            return <Tag key={comp.id} className="font-bold text-lg">{String(p.text)}</Tag>
-          }
-          case 'text':
-            return <p key={comp.id} className="text-sm">{String(p.text)}</p>
-          case 'data-display':
-            return <div key={comp.id} className="text-sm"><strong>{String(p.label)}:</strong> {resolve(p.field)}</div>
-          case 'json-viewer':
-            return <pre key={comp.id} className="bg-muted/30 rounded p-2 text-xs font-mono overflow-auto">{JSON.stringify(p.field ? data[String(p.field)] : data, null, 2)}</pre>
-          case 'image':
-            return <img key={comp.id} src={resolve(p.field)} alt={String(p.alt)} className="max-w-full rounded" />
-          case 'badge':
-            return <span key={comp.id} className="inline-block px-2 py-0.5 rounded bg-muted text-sm">{String(p.label || resolve(p.field))}</span>
-          case 'divider':
-            return <hr key={comp.id} className="border-border" />
-          case 'spacer':
-            return <div key={comp.id} style={{ height: Number(p.height || 20) }} />
-          case 'text-input':
-            return <div key={comp.id} className="mb-2"><label className="block text-sm font-medium mb-0.5">{String(p.label)}{p.required ? ' *' : ''}</label><input type="text" placeholder={String(p.placeholder || '')} className="w-full border border-border rounded px-2 py-1 text-sm bg-bg" /></div>
-          case 'textarea':
-            return <div key={comp.id} className="mb-2"><label className="block text-sm font-medium mb-0.5">{String(p.label)}{p.required ? ' *' : ''}</label><textarea placeholder={String(p.placeholder || '')} className="w-full border border-border rounded px-2 py-1 text-sm bg-bg min-h-[60px]" /></div>
-          case 'select': {
-            const opts = String(p.options || '').split(',').map(s => s.trim()).filter(Boolean)
-            return <div key={comp.id} className="mb-2"><label className="block text-sm font-medium mb-0.5">{String(p.label)}{p.required ? ' *' : ''}</label><select className="w-full border border-border rounded px-2 py-1 text-sm bg-bg"><option value="">Select...</option>{opts.map(o => <option key={o}>{o}</option>)}</select></div>
-          }
-          case 'checkbox':
-            return <label key={comp.id} className="flex items-center gap-2 text-sm"><input type="checkbox" />{String(p.label)}</label>
-          case 'radio': {
-            const opts = String(p.options || '').split(',').map(s => s.trim()).filter(Boolean)
-            return <fieldset key={comp.id} className="mb-2"><legend className="text-sm font-medium mb-1">{String(p.label)}</legend>{opts.map(o => <label key={o} className="flex items-center gap-1.5 text-sm"><input type="radio" name={String(p.name)} />{o}</label>)}</fieldset>
-          }
-          case 'number':
-            return <div key={comp.id} className="mb-2"><label className="block text-sm font-medium mb-0.5">{String(p.label)}{p.required ? ' *' : ''}</label><input type="number" min={String(p.min)} max={String(p.max)} className="w-full border border-border rounded px-2 py-1 text-sm bg-bg" /></div>
-          case 'section':
-            return <div key={comp.id} className="border-l-2 border-primary pl-3 py-1"><div className="font-medium text-sm">{String(p.title)}</div></div>
-          case 'columns':
-            return <div key={comp.id} className="text-sm text-text-muted italic">[{String(p.count)}-column layout]</div>
-          case 'button-group': {
-            const btns = String(p.buttons || '').split(',').map(b => b.split(':'))
-            return <div key={comp.id} className="flex gap-2 mt-2">{btns.map(([key, label, color], i) => <button key={i} className={cn('px-4 py-1.5 rounded text-sm font-medium text-white', color === 'danger' ? 'bg-danger' : color === 'success' ? 'bg-success' : 'bg-primary')}>{label || key}</button>)}</div>
-          }
-          default:
-            return null
-        }
-      })}
+      {components.map(comp => renderComp(comp))}
       {components.length === 0 && <p className="text-text-muted text-sm italic">No components to preview</p>}
     </div>
   )
@@ -462,11 +540,39 @@ function CanvasDropZone({ children }: { children: React.ReactNode }) {
 }
 
 /* -------------------------------------------------------------------------- */
+/*  Column drop zone                                                          */
+/* -------------------------------------------------------------------------- */
+
+function ColumnSlotDropZone({ parentId, colIndex, children }: { parentId: string; colIndex: number; children: React.ReactNode }) {
+  const droppableId = `col-${parentId}-${colIndex}`
+  const { setNodeRef, isOver } = useDroppable({ id: droppableId, data: { origin: 'column-slot', parentId, colIndex } })
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        'flex-1 min-h-[60px] border border-dashed border-border rounded p-2 transition-colors',
+        isOver && 'bg-primary/10 border-primary',
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
 /*  Main component                                                            */
 /* -------------------------------------------------------------------------- */
 
 export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilderProps) {
   const toast = useToast()
+
+  // Fetch app_url for webhook URLs (so n8n in Docker can reach the library manager)
+  const { data: smtpSettings } = useQuery({
+    queryKey: ['settings-smtp'],
+    queryFn: () => api.get<{ app_url?: string }>('/api/settings/smtp').catch(() => ({})),
+    staleTime: 300_000,
+  })
+  const appBaseUrl = (smtpSettings?.app_url || window.location.origin).replace(/\/+$/, '')
 
   /* State */
   const [name, setName] = useState('')
@@ -474,6 +580,7 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
   const [description, setDescription] = useState('')
   const [components, setComponents] = useState<SchemaComponent[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(null)
   const [previewMode, setPreviewMode] = useState(false)
   const [sampleData, setSampleData] = useState('{\n  "amount": 1250,\n  "vendor": "Acme Corp"\n}')
   const [saving, setSaving] = useState(false)
@@ -482,29 +589,47 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
   const [capturing, setCapturing] = useState(false)
 
   /* Load existing template */
-  useQuery({
+  const { data: loadedTemplate } = useQuery({
     queryKey: ['hitl-template', templateId],
-    queryFn: async () => {
-      const t = await api.get<{ name: string; slug: string; description: string; schema: { components: SchemaComponent[] } }>(`/api/hitl/templates/${templateId}`)
-      setName(t.name)
-      setSlug(t.slug)
-      setDescription(t.description || '')
-      // Ensure every component has a unique id (legacy schemas may not have them)
-      const comps = (t.schema?.components ?? []).map((c) => ({
-        id: c.id || uid(),
-        type: c.type || 'text',
-        props: c.props || {},
-      }))
-      setComponents(comps)
-      return t
-    },
+    queryFn: () => api.get<{ name: string; slug: string; description: string; schema: { components: SchemaComponent[] } }>(`/api/hitl/templates/${templateId}`),
     enabled: !!templateId,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   })
+
+  const [hydrated, setHydrated] = useState(false)
+  useEffect(() => {
+    if (!loadedTemplate || hydrated) return
+    setName(loadedTemplate.name)
+    setSlug(loadedTemplate.slug)
+    setDescription(loadedTemplate.description || '')
+    const hydrateComp = (c: SchemaComponent): SchemaComponent => ({
+      id: c.id || uid(),
+      type: c.type || 'text',
+      props: c.props || {},
+      ...(c.children ? { children: c.children.map(col => col.map(hydrateComp)) } : {}),
+    })
+    setComponents((loadedTemplate.schema?.components ?? []).map(hydrateComp))
+    setHydrated(true)
+  }, [loadedTemplate, hydrated])
 
   /* DnD sensors */
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
-  const selectedComp = useMemo(() => components.find(c => c.id === selectedId) ?? null, [components, selectedId])
+  const selectedComp = useMemo(() => {
+    // Check for selected child inside columns first
+    if (selectedChildId) {
+      for (const c of components) {
+        if (c.children) {
+          for (const col of c.children) {
+            const found = col.find(ch => ch.id === selectedChildId)
+            if (found) return found
+          }
+        }
+      }
+    }
+    return components.find(c => c.id === selectedId) ?? null
+  }, [components, selectedId, selectedChildId])
   const canvasIds = useMemo(() => components.map(c => c.id), [components])
 
   /* DnD handlers */
@@ -512,27 +637,73 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
     setActiveDragId(String(e.active.id))
   }
 
+  const makeNewComp = (type: string, extraProps?: Record<string, unknown>): SchemaComponent => {
+    const def = HITL_COMPONENTS[type]
+    const comp: SchemaComponent = { id: uid(), type, props: { ...def?.defaults, ...extraProps } }
+    if (type === 'columns') {
+      const count = Number(comp.props.count) || 2
+      comp.children = Array.from({ length: count }, () => [])
+      delete comp.props._initChildren
+    }
+    return comp
+  }
+
   const handleDragEnd = (e: DragEndEvent) => {
     setActiveDragId(null)
     const { active, over } = e
     if (!over) return
 
-    const activeData = active.data.current as { origin: string; type?: string } | undefined
+    const activeData = active.data.current as { origin: string; type?: string; fieldKey?: string; componentType?: string } | undefined
+    const overData = over.data.current as { origin?: string; parentId?: string; colIndex?: number } | undefined
 
-    /* Palette -> Canvas: add new component */
+    /* Helper: insert into column slot */
+    const insertIntoColumn = (newComp: SchemaComponent) => {
+      if (overData?.origin === 'column-slot' && overData.parentId != null && overData.colIndex != null) {
+        setComponents(prev => prev.map(c => {
+          if (c.id !== overData.parentId || !c.children) return c
+          const cols = c.children.map((col, i) => i === overData.colIndex ? [...col, newComp] : col)
+          return { ...c, children: cols }
+        }))
+        setSelectedChildId(newComp.id)
+        setSelectedId(overData.parentId)
+        return true
+      }
+      return false
+    }
+
+    /* Palette -> Canvas or Column: add new component */
     if (activeData?.origin === 'palette' && activeData.type) {
       const def = HITL_COMPONENTS[activeData.type]
       if (!def) return
-      const newComp: SchemaComponent = { id: uid(), type: activeData.type, props: { ...def.defaults } }
-      // If dropped on a specific canvas item, insert before it
+      const newComp = makeNewComp(activeData.type)
+      if (insertIntoColumn(newComp)) return
       const overIndex = components.findIndex(c => c.id === over.id)
       if (overIndex >= 0) {
         setComponents(prev => { const next = [...prev]; next.splice(overIndex, 0, newComp); return next })
       } else {
-        // Dropped on canvas zone itself or unknown target — append
         setComponents(prev => [...prev, newComp])
       }
       setSelectedId(newComp.id)
+      setSelectedChildId(null)
+      return
+    }
+
+    /* Data field -> Canvas or Column: add data-bound component */
+    if (activeData?.origin === 'data-field' && activeData.fieldKey && activeData.componentType) {
+      const type = activeData.componentType
+      const def = HITL_COMPONENTS[type]
+      if (!def) return
+      const label = activeData.fieldKey.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+      const newComp = makeNewComp(type, { field: activeData.fieldKey, label })
+      if (insertIntoColumn(newComp)) return
+      const overIndex = components.findIndex(c => c.id === over.id)
+      if (overIndex >= 0) {
+        setComponents(prev => { const next = [...prev]; next.splice(overIndex, 0, newComp); return next })
+      } else {
+        setComponents(prev => [...prev, newComp])
+      }
+      setSelectedId(newComp.id)
+      setSelectedChildId(null)
       return
     }
 
@@ -547,15 +718,33 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
     }
   }
 
-  /* Update component props */
+  /* Delete a child inside a column */
+  const deleteChild = (parentId: string, colIdx: number, childId: string) => {
+    setComponents(prev => prev.map(c => {
+      if (c.id !== parentId || !c.children) return c
+      const cols = c.children.map((col, i) => i === colIdx ? col.filter(ch => ch.id !== childId) : col)
+      return { ...c, children: cols }
+    }))
+    if (selectedChildId === childId) setSelectedChildId(null)
+  }
+
+  /* Update component props (supports both top-level and children) */
   const updateProps = (id: string, props: Record<string, unknown>) => {
-    setComponents(prev => prev.map(c => c.id === id ? { ...c, props } : c))
+    // Check if it's a child inside columns
+    setComponents(prev => prev.map(c => {
+      if (c.id === id) return { ...c, props }
+      if (c.children) {
+        const updated = c.children.map(col => col.map(ch => ch.id === id ? { ...ch, props } : ch))
+        if (updated.some((col, i) => col !== c.children![i])) return { ...c, children: updated }
+      }
+      return c
+    }))
   }
 
   /* Delete component */
   const deleteComponent = (id: string) => {
     setComponents(prev => prev.filter(c => c.id !== id))
-    if (selectedId === id) setSelectedId(null)
+    if (selectedId === id) { setSelectedId(null); setSelectedChildId(null) }
   }
 
   /* Auto-slug from name */
@@ -597,10 +786,13 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
           const check = await api.get<{ captured?: boolean; payload?: Record<string, unknown> }>(`/api/hitl/capture/${res.token}`)
           if (check.captured && check.payload) {
             clearInterval(poll)
-            setSampleData(JSON.stringify(check.payload, null, 2))
+            // Unwrap: n8n sends arrays like [{...}] — extract first element
+            const raw = check.payload
+            const obj = Array.isArray(raw) ? (raw[0] ?? {}) : raw
+            setSampleData(JSON.stringify(obj, null, 2))
             setCaptureToken(null)
             setCapturing(false)
-            toast.success(`Webhook captured! ${Object.keys(check.payload).length} fields found.`)
+            toast.success(`Webhook captured! ${Object.keys(obj).length} fields found.`)
           }
         } catch {
           clearInterval(poll)
@@ -623,16 +815,18 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
     }
   }
 
-  const captureUrl = captureToken ? `${window.location.origin}/api/hitl/capture/${captureToken}` : ''
-  const prodWebhookUrl = slug ? `${window.location.origin}/api/hitl/webhook/${slug}` : ''
-  const testWebhookUrl = slug ? `${window.location.origin}/api/hitl/webhook/test/${slug}` : ''
+  const captureUrl = captureToken ? `${appBaseUrl}/api/hitl/capture/${captureToken}` : ''
+  const prodWebhookUrl = slug ? `${appBaseUrl}/api/hitl/webhook/${slug}` : ''
+  const testWebhookUrl = slug ? `${appBaseUrl}/api/hitl/webhook/test/${slug}` : ''
 
   /* Parse sample data for data fields palette */
   const dataFields = useMemo(() => {
     try {
-      const obj = JSON.parse(sampleData)
-      if (typeof obj !== 'object' || obj === null) return []
-      return Object.entries(obj).map(([key, val]) => ({
+      let parsed = JSON.parse(sampleData)
+      if (typeof parsed !== 'object' || parsed === null) return []
+      // Unwrap arrays (n8n sends [{...}])
+      if (Array.isArray(parsed)) parsed = parsed[0] ?? {}
+      return Object.entries(parsed).map(([key, val]) => ({
         key,
         type: inferFieldType(val),
         preview: fieldPreview(val),
@@ -654,6 +848,17 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
         </div>
       )
     }
+    if (activeDragId.startsWith('datafield-')) {
+      const key = activeDragId.replace('datafield-', '')
+      const f = dataFields.find(d => d.key === key)
+      if (!f) return null
+      return (
+        <div className="border border-primary rounded px-2 py-1 text-[12px] flex items-center gap-1.5 bg-card shadow-lg">
+          <span className="w-4 text-center font-mono text-text-xmuted text-[10px]">{FIELD_TYPE_ICON[f.type] || '·'}</span>
+          <span className="font-semibold">{f.key}</span>
+        </div>
+      )
+    }
     const comp = components.find(c => c.id === activeDragId)
     if (!comp) return null
     const def = HITL_COMPONENTS[comp.type]
@@ -662,7 +867,7 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
         <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-danger">{def?.label ?? comp.type}</div>
       </div>
     )
-  }, [activeDragId, components])
+  }, [activeDragId, components, dataFields])
 
   /* ======================================================================== */
   /*  Render                                                                  */
@@ -780,48 +985,54 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
                 })}
               {/* Data Fields section */}
               <div className="border-t border-border mt-2 pt-2 px-2">
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-text-xmuted">Data Fields</span>
-                  {!capturing ? (
-                    <button onClick={startCapture} className="text-[10px] text-primary hover:text-primary-hover font-semibold">
-                      Listen for webhook...
-                    </button>
-                  ) : (
-                    <button onClick={stopCapture} className="text-[10px] text-danger hover:text-danger/80 font-semibold">
-                      Stop listening
-                    </button>
-                  )}
                 </div>
-                {capturing && captureUrl && (
-                  <div className="mb-2 p-2 bg-success/5 border border-success/20 rounded text-[11px]">
-                    <div className="flex items-center gap-1 text-success font-semibold mb-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-success health-pulse" /> Listening...
+
+                {/* Webhook capture card */}
+                {capturing && captureUrl ? (
+                  <div className="mb-2 p-3 bg-success-light border border-success/30 rounded-lg">
+                    <div className="flex items-center gap-1.5 text-success font-bold text-[12px] mb-2">
+                      <span className="w-2 h-2 rounded-full bg-success health-pulse" />
+                      Listening for webhook...
                     </div>
-                    <input type="text" readOnly value={captureUrl} onClick={e => (e.target as HTMLInputElement).select()}
-                      className="w-full px-1.5 py-0.5 border border-border rounded text-[10px] font-mono bg-bg mb-1" />
-                    <div className="text-text-xmuted">Send a POST with JSON body from your n8n workflow</div>
-                  </div>
-                )}
-                {dataFields.length > 0 ? (
-                  <div className="space-y-0.5">
-                    {dataFields.map((f) => (
-                      <div key={f.key}
-                        className="border border-border-light rounded px-2 py-1 text-[12px] cursor-pointer hover:border-primary flex items-center gap-1.5"
-                        onClick={() => {
-                          const type = f.type === 'score' ? 'badge' : f.type === 'image' ? 'image' : f.type === 'array' || f.type === 'object' ? 'json-viewer' : 'data-display'
-                          const def = HITL_COMPONENTS[type]
-                          const newComp: SchemaComponent = { id: uid(), type, props: { ...def.defaults, field: f.key, label: f.key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) } }
-                          setComponents(prev => [...prev, newComp])
-                          setSelectedId(newComp.id)
-                        }}
-                        title={`Click to add ${f.key} as a component`}
+                    <div className="flex items-center gap-1 mb-2">
+                      <input
+                        type="text" readOnly value={captureUrl}
+                        onClick={e => (e.target as HTMLInputElement).select()}
+                        className="flex-1 px-2 py-1 border border-border rounded text-[11px] font-mono bg-bg-light truncate"
+                      />
+                      <button
+                        onClick={() => { navigator.clipboard.writeText(captureUrl); toast.success('URL copied!') }}
+                        className="p-1 border border-border rounded hover:bg-bg transition-colors shrink-0"
+                        title="Copy URL"
                       >
-                        <span className="w-4 text-center font-mono text-text-xmuted text-[10px]">{FIELD_TYPE_ICON[f.type] || '·'}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold truncate">{f.key}</div>
-                          <div className="text-[10px] text-text-muted truncate">{f.preview}</div>
-                        </div>
-                      </div>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                      </button>
+                    </div>
+                    <div className="text-[10px] text-text-muted mb-2">
+                      Send a POST request with JSON body to this URL from your n8n workflow
+                    </div>
+                    <button
+                      onClick={stopCapture}
+                      className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-semibold text-danger border border-danger/30 rounded-md hover:bg-danger-light transition-colors"
+                    >
+                      <span className="w-2 h-2 bg-danger rounded-sm" /> Stop listening
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={startCapture}
+                    className="w-full mb-2 py-2 text-[11px] font-semibold text-primary border border-primary/30 rounded-lg hover:bg-primary-light transition-colors"
+                  >
+                    Listen for webhook...
+                  </button>
+                )}
+
+                {dataFields.length > 0 ? (
+                  <div className="space-y-1">
+                    {dataFields.map((f) => (
+                      <DataFieldItem key={f.key} field={f} />
                     ))}
                   </div>
                 ) : (
@@ -844,8 +1055,11 @@ export function HitlFormBuilder({ templateId, onSave, onCancel }: HitlFormBuilde
                     <CanvasItem
                       key={comp.id} comp={comp}
                       selected={comp.id === selectedId}
-                      onSelect={() => setSelectedId(comp.id)}
+                      onSelect={() => { setSelectedId(comp.id); setSelectedChildId(null) }}
                       onDelete={() => deleteComponent(comp.id)}
+                      selectedChildId={selectedChildId}
+                      onSelectChild={(id) => { setSelectedChildId(id); setSelectedId(comp.id) }}
+                      onDeleteChild={deleteChild}
                     />
                   ))
                 )}

@@ -12,13 +12,13 @@ interface Alert {
   name: string
   condition: string
   threshold?: number
-  recipients: string[]
+  recipients: Array<string | { email?: string; name?: string }>
   enabled: boolean
 }
 
 interface AlertsResponse {
   alerts: Alert[]
-  conditions: string[]
+  conditions: Record<string, string>
 }
 
 interface AlertForm {
@@ -60,7 +60,7 @@ export function AlertsPage() {
   })
 
   const alerts = data?.alerts ?? []
-  const conditions = data?.conditions ?? []
+  const conditions = data?.conditions ?? {}
 
   return (
     <div>
@@ -103,12 +103,16 @@ export function AlertsPage() {
                   </span>
                 </div>
                 <div className="text-xs text-text-muted mt-0.5">
-                  <span className="font-medium">{esc(alert.condition)}</span>
+                  <span className="font-medium">{esc(conditions[alert.condition] || alert.condition)}</span>
                   {alert.threshold != null && <span className="ml-1">threshold: {alert.threshold}</span>}
                 </div>
                 {alert.recipients.length > 0 && (
                   <div className="text-xs text-text-xmuted mt-0.5 truncate">
-                    {alert.recipients.join(', ')}
+                    {alert.recipients.map((r) => {
+                      if (r && typeof r === 'object' && 'email' in r) return (r as {email: string}).email
+                      if (r && typeof r === 'object' && 'name' in r) return (r as {name: string}).name
+                      return String(r)
+                    }).join(', ')}
                   </div>
                 )}
               </div>
@@ -165,7 +169,7 @@ function AlertModal({
   onSaved,
 }: {
   initial: Alert | null
-  conditions: string[]
+  conditions: Record<string, string>
   onClose: () => void
   onSaved: () => void
 }) {
@@ -176,7 +180,7 @@ function AlertModal({
           name: initial.name,
           condition: initial.condition,
           threshold: initial.threshold != null ? String(initial.threshold) : '',
-          recipients: initial.recipients.join(', '),
+          recipients: initial.recipients.map((r) => typeof r === 'object' && r !== null ? ('email' in r ? r.email : r.name) || '' : String(r)).join(', '),
           enabled: initial.enabled,
         }
       : EMPTY_FORM,
@@ -232,8 +236,8 @@ function AlertModal({
                 className="w-full text-sm px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark"
               >
                 <option value="">Select condition...</option>
-                {conditions.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                {Object.entries(conditions).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
                 ))}
               </select>
             </div>

@@ -696,6 +696,12 @@ async function migrate() {
 
   // Note: API key encryption is handled by server.js at startup (same encryption key context)
 
+  // --- n8n user linkage ---
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS n8n_user_id TEXT DEFAULT NULL;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS n8n_instance_id INTEGER DEFAULT NULL;
+  `);
+
   console.log('Migration complete.');
   await pool.end();
 }

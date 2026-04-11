@@ -1,5 +1,7 @@
 import { useState, useEffect, type ComponentType } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
 import { ErrorBoundary } from './ErrorBoundary'
 import { useThemeStore } from '@/stores/theme'
@@ -35,6 +37,7 @@ import {
   LogOut,
   Search,
   MoreHorizontal,
+  Users as UsersIcon,
   type LucideProps,
 } from 'lucide-react'
 
@@ -62,6 +65,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/variables', label: 'Variables', icon: Wrench, minRole: 'editor', section: 'admin' },
   { path: '/tags', label: 'Tags', icon: Tag, minRole: 'editor', section: 'admin' },
   { path: '/security', label: 'Security', icon: Shield, minRole: 'admin', section: 'admin' },
+  { path: '/users', label: 'Users', icon: UsersIcon, minRole: 'admin', section: 'admin' },
   { path: '/audit', label: 'Audit Log', icon: ClipboardList, minRole: 'admin', section: 'admin' },
   { path: '/settings', label: 'Settings', icon: Settings, minRole: 'admin', section: 'admin' },
 ]
@@ -101,6 +105,21 @@ export function AppLayout() {
 
   const role = user?.role ?? 'viewer'
   const visibleItems = NAV_ITEMS.filter((item) => hasAccess(role, item.minRole))
+
+  // Sidebar badges — open tickets + pending approvals
+  const { data: ticketData } = useQuery({
+    queryKey: ['open-ticket-count'],
+    queryFn: () => api.get<{ total: number }>('/api/tickets?status=open&limit=1'),
+    refetchInterval: 60_000,
+  })
+  const { data: approvalData } = useQuery({
+    queryKey: ['pending-approval-count'],
+    queryFn: () => api.get<{ count: number }>('/api/hitl/pending-count'),
+    refetchInterval: 60_000,
+  })
+  const navBadges: Record<string, number> = {}
+  if (ticketData?.total) navBadges['/tickets'] = ticketData.total
+  if (approvalData?.count) navBadges['/approvals'] = approvalData.count
 
   useEffect(() => { loadBranding() }, [loadBranding])
 
@@ -180,6 +199,11 @@ export function AppLayout() {
                 >
                   <item.icon size={18} className="shrink-0" />
                   {sidebarOpen && <span className="truncate">{item.label}</span>}
+                  {sidebarOpen && navBadges[item.path] > 0 && (
+                    <span className="ml-auto bg-primary text-white text-[10px] font-bold min-w-[20px] h-5 flex items-center justify-center rounded-full px-1.5">
+                      {navBadges[item.path]}
+                    </span>
+                  )}
                 </NavLink>
               </div>
             )

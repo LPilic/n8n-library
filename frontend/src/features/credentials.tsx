@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import { useToast } from '@/hooks/useToast'
 import { esc, timeAgo, cn } from '@/lib/utils'
+import { useInstanceStore } from '@/stores/instance'
 import {
   Plus, Search, KeyRound, ArrowRightLeft, Trash2, Pencil,
   ShieldCheck, User, Clock, ChevronRight, Package, Eye, EyeOff,
@@ -53,6 +54,9 @@ interface StoreTemplate {
   allowed_roles?: string[]
   creator?: string
   schema?: Record<string, SchemaProperty>
+  instanceId?: number
+  instance_id?: number
+  instance_name?: string
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -575,7 +579,7 @@ function ProvisionModal({
 
   const provisionMut = useMutation({
     mutationFn: () =>
-      api.post(`/api/credential-store/${template.id}/provision`, { name, userData }),
+      api.post(`/api/credential-store/${template.id}/provision`, { name, data: userData }),
     onSuccess: () => { showSuccess('Credential provisioned'); onDone() },
     onError: (err) => showError(err instanceof ApiError ? err.message : 'Provision failed'),
   })
@@ -915,8 +919,11 @@ function CredentialStoreTab() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-text-dark truncate">{esc(tpl.name)}</p>
-                    <div className="mt-0.5">
+                    <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
                       <TypeBadge type={tpl.type} />
+                      {tpl.instance_name && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">{tpl.instance_name}</span>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-1 shrink-0">
@@ -1021,8 +1028,12 @@ function CredentialStoreTab() {
 
 // ─── Create Store Template Modal ─────────────────────────────────────────────
 
+interface CredSchema { properties?: Record<string, { type?: string; description?: string }>; required?: string[] }
+
 function CreateStoreTemplateModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const { error: showError } = useToast()
+  const instances = useInstanceStore((s) => s.instances)
+  const activeInstanceId = useInstanceStore((s) => s.activeId)
   const [step, setStep] = useState<'pick-type' | 'configure'>('pick-type')
   const [typeSearch, setTypeSearch] = useState('')
   const [selectedType, setSelectedType] = useState('')
@@ -1030,6 +1041,11 @@ function CreateStoreTemplateModal({ onClose, onSaved }: { onClose: () => void; o
   const [description, setDescription] = useState('')
   const [allowedRoles, setAllowedRoles] = useState<string[]>(['editor', 'viewer'])
   const [saving, setSaving] = useState(false)
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({})
+  const [userFields, setUserFields] = useState<string[]>([])
+  const [visibleFields, setVisibleFields] = useState<Set<string>>(new Set())
+  const [jsonFallback, setJsonFallback] = useState('')
+  const [instanceId, setInstanceId] = useState<number | null>(activeInstanceId)
 
   const { data: allTypes = [] } = useQuery({
     queryKey: ['cred-types'],
@@ -1039,19 +1055,59 @@ function CreateStoreTemplateModal({ onClose, onSaved }: { onClose: () => void; o
     },
   })
 
+  const { data: schema, isLoading: schemaLoading } = useQuery({
+    queryKey: ['cred-schema', selectedType],
+    queryFn: () => api.get<CredSchema>(`/api/credentials/schema/${encodeURIComponent(selectedType)}`),
+    enabled: !!selectedType,
+  })
+
+  const schemaFields = useMemo(() => {
+    if (!schema?.properties) return []
+    return Object.entries(schema.properties)
+      .filter(([k, p]) => p.type !== 'notice' && k !== 'oauthTokenData' && k !== 'notice')
+      .map(([k, p]) => ({ key: k, type: p.type, desc: p.description, required: (schema.required || []).includes(k) }))
+  }, [schema])
+
   const filteredTypes = typeSearch
     ? allTypes.filter((t) => t.displayName.toLowerCase().includes(typeSearch.toLowerCase()) || t.name.toLowerCase().includes(typeSearch.toLowerCase())).slice(0, 50)
     : allTypes.slice(0, 50)
 
+  function setFieldValue(key: string, val: string) {
+    setFieldValues((prev) => ({ ...prev, [key]: val }))
+  }
+
+  function toggleUserField(key: string) {
+    setUserFields((prev) => prev.includes(key) ? prev.filter((f) => f !== key) : [...prev, key])
+  }
+
+  function toggleVisibility(key: string) {
+    setVisibleFields((prev) => { const next = new Set(prev); next.has(key) ? next.delete(key) : next.add(key); return next })
+  }
+
   async function handleSave() {
     if (!name.trim() || !selectedType) return showError('Name and type are required')
+
+    let sharedData: Record<string, unknown> = {}
+    if (schemaFields.length > 0) {
+      for (const f of schemaFields) {
+        if (fieldValues[f.key]) sharedData[f.key] = fieldValues[f.key]
+      }
+    } else if (jsonFallback.trim()) {
+      try { sharedData = JSON.parse(jsonFallback) } catch { return showError('Invalid JSON in shared data') }
+    }
+
+    if (Object.keys(sharedData).length === 0) return showError('At least one shared data field is required')
+
     setSaving(true)
     try {
       await api.post('/api/credential-store', {
         name: name.trim(),
         description,
         credential_type: selectedType,
+        shared_data: sharedData,
+        user_fields: userFields,
         allowed_roles: allowedRoles,
+        instance_id: instanceId,
       })
       onSaved()
     } catch (err) {
@@ -1097,7 +1153,7 @@ function CreateStoreTemplateModal({ onClose, onSaved }: { onClose: () => void; o
                 <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">
                   Type: <span className="text-primary">{formatCredType(selectedType)}</span>
                 </label>
-                <button onClick={() => setStep('pick-type')} className="text-[11px] text-primary hover:text-primary-hover">Change type</button>
+                <button onClick={() => { setStep('pick-type'); setFieldValues({}); setUserFields([]) }} className="text-[11px] text-primary hover:text-primary-hover">Change type</button>
               </div>
               <div>
                 <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Name *</label>
@@ -1110,6 +1166,82 @@ function CreateStoreTemplateModal({ onClose, onSaved }: { onClose: () => void; o
                   className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring resize-none"
                   placeholder="Optional description" />
               </div>
+
+              {/* Schema fields */}
+              <div>
+                <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-2">Credential Fields</label>
+                {schemaLoading ? (
+                  <div className="text-sm text-text-muted py-2">Loading schema...</div>
+                ) : schemaFields.length > 0 ? (
+                  <div className="space-y-3">
+                    {schemaFields.map((f) => {
+                      const sensitive = isSensitiveField(f.key)
+                      const visible = visibleFields.has(f.key)
+                      return (
+                        <div key={f.key} className="border border-border rounded-md p-3 bg-bg/50">
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-[13px] font-medium text-text-dark">
+                              {camelToLabel(f.key)}
+                              {f.required && <span className="text-danger ml-0.5">*</span>}
+                            </label>
+                            <label className="flex items-center gap-1 text-[11px] text-text-muted cursor-pointer">
+                              <input type="checkbox" checked={userFields.includes(f.key)} onChange={() => toggleUserField(f.key)}
+                                className="accent-primary" />
+                              User field
+                            </label>
+                          </div>
+                          {f.type === 'boolean' ? (
+                            <label className="flex items-center gap-2 text-sm text-text-dark">
+                              <input type="checkbox" checked={fieldValues[f.key] === 'true'}
+                                onChange={(e) => setFieldValue(f.key, e.target.checked ? 'true' : '')}
+                                className="accent-primary" />
+                              {camelToLabel(f.key)}
+                            </label>
+                          ) : (
+                            <div className="relative">
+                              <input
+                                type={sensitive && !visible ? 'password' : 'text'}
+                                value={fieldValues[f.key] || ''}
+                                onChange={(e) => setFieldValue(f.key, e.target.value)}
+                                placeholder={f.desc || f.type || 'string'}
+                                className="w-full px-3 py-1.5 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring pr-8"
+                              />
+                              {sensitive && (
+                                <button type="button" onClick={() => toggleVisibility(f.key)}
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-dark">
+                                  {visible ? <EyeOff size={14} /> : <Eye size={14} />}
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div>
+                    <div className="text-[13px] text-text-muted mb-2">Could not load schema. Enter shared data as JSON.</div>
+                    <textarea value={jsonFallback} onChange={(e) => setJsonFallback(e.target.value)} rows={4}
+                      className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark font-mono focus-ring resize-none"
+                      placeholder='{"clientId": "...", "clientSecret": "..."}' />
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Target Instance *</label>
+                <select
+                  value={instanceId ?? ''}
+                  onChange={(e) => setInstanceId(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring"
+                >
+                  {instances.map((inst) => (
+                    <option key={inst.id} value={inst.id}>{inst.name}</option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-text-xmuted mt-1">Credentials from this template will be provisioned to this instance</p>
+              </div>
+
               <div>
                 <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Allowed Roles</label>
                 <div className="flex gap-3">

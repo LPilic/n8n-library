@@ -84,6 +84,7 @@ export function MonitoringPage() {
   const queryClient = useQueryClient()
   const iUrl = useInstanceStore((s) => s.url)
   const activeInstanceId = useInstanceStore((s) => s.activeId)
+  const instanceLoaded = useInstanceStore((s) => s.loaded)
   const [tab, setTab] = useState<'executions' | 'workflows'>('executions')
   const [statusFilter, setStatusFilter] = useState('')
   const [workflowFilter, setWorkflowFilter] = useState('')
@@ -114,9 +115,10 @@ export function MonitoringPage() {
   const { data: fetchedStats } = useQuery({
     queryKey: ['monitoring-stats', activeInstanceId],
     queryFn: () => api.get<MonStats>(iUrl('/api/monitoring/stats')),
+    enabled: instanceLoaded,
     refetchInterval: autoRefresh || 30_000,
   })
-  const stats = sseStats || fetchedStats
+  const stats = sseStats ? { ...fetchedStats, ...sseStats } : fetchedStats
 
   // Executions query
   const { data: execData, isLoading: execLoading } = useQuery({
@@ -128,6 +130,7 @@ export function MonitoringPage() {
       params.set('limit', String(50 * page))
       return api.get<{ data: Execution[] }>(iUrl(`/api/monitoring/executions?${params}`))
     },
+    enabled: instanceLoaded,
     refetchInterval: autoRefresh || undefined,
   })
 
@@ -135,6 +138,7 @@ export function MonitoringPage() {
   const { data: wfData } = useQuery({
     queryKey: ['monitoring-workflows', activeInstanceId],
     queryFn: () => api.get<{ data: Workflow[] }>(iUrl('/api/monitoring/workflows')),
+    enabled: instanceLoaded,
     refetchInterval: autoRefresh || undefined,
   })
 
@@ -199,6 +203,7 @@ export function MonitoringPage() {
   const runningIds = executions.filter((e) => e.status === 'running').map((e) => e.id)
 
   const handleRefresh = () => {
+    setSseStats(null)
     queryClient.invalidateQueries({ queryKey: ['monitoring-stats'] })
     queryClient.invalidateQueries({ queryKey: ['monitoring-executions'] })
     queryClient.invalidateQueries({ queryKey: ['monitoring-workflows'] })

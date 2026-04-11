@@ -203,11 +203,152 @@ router.post('/api/auth/2fa/disable', requireAuth, async (req, res) => {
   }
 });
 
+// --- Public instance list (for n8n login selector) ---
+
+router.get('/api/auth/instances', async (_req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT id, name, color FROM n8n_instances ORDER BY name');
+    res.json(rows);
+  } catch (err) {
+    res.json([]);
+  }
+});
+
+// --- n8n login ---
+
+router.post('/api/auth/n8n-login', authLimiter, async (req, res) => {
+  try {
+    const { email, password, instance_id } = req.body;
+    if (!email || !instance_id) return res.status(400).json({ error: 'Email and instance required' });
+
+    // Verify user exists in n8n
+    const { fetchN8nUsers } = require('../lib/n8n-api');
+    let n8nUsers;
+    try {
+      n8nUsers = await fetchN8nUsers(instance_id);
+    } catch (e) {
+      return res.status(502).json({ error: 'Cannot reach n8n instance' });
+    }
+    const n8nUser = (Array.isArray(n8nUsers) ? n8nUsers : []).find(u =>
+      u.email && u.email.toLowerCase() === email.toLowerCase().trim()
+    );
+    if (!n8nUser) return res.status(401).json({ error: 'User not found in n8n instance' });
+
+    // Find or check library user
+    const { rows } = await pool.query(
+      'SELECT * FROM users WHERE email = $1 AND n8n_instance_id = $2',
+      [email.toLowerCase().trim(), instance_id]
+    );
+
+    if (rows.length === 0) {
+      // Auto-create library account for this n8n user
+      const username = n8nUser.firstName
+        ? `${n8nUser.firstName} ${n8nUser.lastName || ''}`.trim()
+        : email.split('@')[0];
+
+      if (!password) {
+        return res.status(200).json({ needs_password_setup: true, message: 'Please set a password for your library account' });
+      }
+      const pwErr = validatePassword(password);
+      if (pwErr) return res.status(400).json({ error: pwErr });
+
+      const hash = await bcrypt.hash(password, 10);
+      const { rows: newRows } = await pool.query(
+        `INSERT INTO users (username, email, password_hash, role, n8n_user_id, n8n_instance_id)
+         VALUES ($1, $2, $3, 'viewer', $4, $5) RETURNING id, username, email, role`,
+        [username, email.toLowerCase().trim(), hash, n8nUser.id, instance_id]
+      );
+      const userData = newRows[0];
+      await new Promise((resolve, reject) => {
+        req.session.regenerate((err) => { if (err) return reject(err); req.session.user = userData; resolve(); });
+      });
+      auditLog(null, 'n8n_login_created', 'user', userData.id, `${userData.username} via n8n`);
+      return res.json({ user: userData });
+    }
+
+    const user = rows[0];
+
+    // Check if user has a real password set
+    if (!user.password_hash || user.password_hash === 'n8n-external') {
+      if (!password) {
+        return res.status(200).json({ needs_password_setup: true, message: 'Please set a password for your library account' });
+      }
+      // Set the password
+      const pwErr = validatePassword(password);
+      if (pwErr) return res.status(400).json({ error: pwErr });
+      const hash = await bcrypt.hash(password, 10);
+      await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, user.id]);
+      const userData = { id: user.id, username: user.username, email: user.email, role: user.role };
+      await new Promise((resolve, reject) => {
+        req.session.regenerate((err) => { if (err) return reject(err); req.session.user = userData; resolve(); });
+      });
+      return res.json({ user: userData });
+    }
+
+    // Normal password check
+    if (!password) return res.status(400).json({ error: 'Password required' });
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) return res.status(401).json({ error: 'Invalid password' });
+
+    const userData = { id: user.id, username: user.username, email: user.email, role: user.role };
+    await new Promise((resolve, reject) => {
+      req.session.regenerate((err) => { if (err) return reject(err); req.session.user = userData; resolve(); });
+    });
+    res.json({ user: userData });
+  } catch (err) {
+    console.error('n8n login error:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // --- User management (admin only) ---
+
+// Sync n8n users into library
+router.post('/api/users/sync-n8n', requireRole('admin'), async (req, res) => {
+  try {
+    const { instance_id } = req.body;
+    if (!instance_id) return res.status(400).json({ error: 'Instance ID required' });
+
+    const { fetchN8nUsers } = require('../lib/n8n-api');
+    const n8nUsers = await fetchN8nUsers(instance_id);
+    const users = Array.isArray(n8nUsers) ? n8nUsers : [];
+    let created = 0, skipped = 0;
+
+    for (const nu of users) {
+      if (!nu.email) { skipped++; continue; }
+      const email = nu.email.toLowerCase().trim();
+      // Check if already exists
+      const { rows } = await pool.query(
+        'SELECT id FROM users WHERE email = $1 OR (n8n_user_id = $2 AND n8n_instance_id = $3)',
+        [email, nu.id, instance_id]
+      );
+      if (rows.length > 0) { skipped++; continue; }
+      const username = nu.firstName ? `${nu.firstName} ${nu.lastName || ''}`.trim() : email.split('@')[0];
+      await pool.query(
+        `INSERT INTO users (username, email, password_hash, role, n8n_user_id, n8n_instance_id)
+         VALUES ($1, $2, 'n8n-external', 'viewer', $3, $4)`,
+        [username, email, nu.id, instance_id]
+      );
+      created++;
+    }
+
+    auditLog(req.user, 'synced', 'n8n_users', null, `${created} created, ${skipped} skipped from instance ${instance_id}`);
+    res.json({ created, skipped, total: users.length });
+  } catch (err) {
+    console.error('Sync n8n users error:', err.message);
+    res.status(502).json({ error: 'Failed to sync users from n8n: ' + err.message });
+  }
+});
 
 router.get('/api/users', requireRole('admin'), async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT id, username, email, role, created_at FROM users ORDER BY id');
+    const { rows } = await pool.query(`
+      SELECT u.id, u.username, u.email, u.role, u.created_at, u.n8n_user_id, u.n8n_instance_id,
+             ni.name as instance_name
+      FROM users u
+      LEFT JOIN n8n_instances ni ON ni.id = u.n8n_instance_id
+      ORDER BY u.id
+    `);
     res.json({ users: rows });
   } catch (err) {
     console.error('Load users error:', err.message);

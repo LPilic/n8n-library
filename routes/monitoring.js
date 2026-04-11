@@ -411,10 +411,26 @@ function startMonitoringPush() {
           const recent = executions.slice(0, 50);
           enrichExecutions(recent, wfMap);
 
+          let activeWorkflows = 0, totalWorkflows = 0;
+          try {
+            const wfs = await fetchAllWorkflows(inst.id);
+            totalWorkflows = wfs.length;
+            activeWorkflows = wfs.filter(w => w.active).length;
+          } catch {}
+
+          let health = 'unknown';
+          try {
+            const r = await fetch(`${inst.base_url}/healthz`, { signal: AbortSignal.timeout(3000) });
+            health = r.ok ? 'healthy' : 'unhealthy';
+          } catch { health = 'unreachable'; }
+
           const stats = {
+            health,
             total: executions.length,
             counts,
             avgDurationMs: durationCount > 0 ? Math.round(totalDuration / durationCount) : 0,
+            activeWorkflows,
+            totalWorkflows,
             successRate: executions.length > 0 ? Math.round((counts.success / executions.length) * 100) : 0,
           };
 

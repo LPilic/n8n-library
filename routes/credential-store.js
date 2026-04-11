@@ -21,7 +21,7 @@ router.get('/api/credential-store', requireAuth, async (req, res) => {
     `);
     // Filter by user role
     const userRole = req.user.role;
-    const visible = rows.filter(r => r.allowed_roles.includes(userRole));
+    const visible = userRole === 'admin' ? rows : rows.filter(r => r.allowed_roles.includes(userRole));
     res.json(visible);
   } catch (err) {
     console.error('Credential store list error:', err.message);
@@ -185,8 +185,8 @@ router.post('/api/credential-store/:id/provision', requireAuth, credentialLimite
     if (rows.length === 0) return res.status(404).json({ error: 'Template not found' });
     const tpl = rows[0];
 
-    // Check role access
-    if (!tpl.allowed_roles.includes(req.user.role)) {
+    // Check role access (admins always have access)
+    if (req.user.role !== 'admin' && !tpl.allowed_roles.includes(req.user.role)) {
       return res.status(403).json({ error: 'You do not have access to this credential template' });
     }
 
@@ -239,6 +239,9 @@ router.post('/api/credential-store/:id/provision', requireAuth, credentialLimite
     res.status(201).json({ success: true, credentialId: created.id, name: credName });
   } catch (err) {
     console.error('Credential provision error:', err.message);
+    if (err.cause?.code === 'ENOTFOUND' || err.cause?.code === 'ECONNREFUSED' || err.message === 'fetch failed') {
+      return res.status(502).json({ error: `Cannot reach n8n instance. Check that the instance URL is accessible from this server.` });
+    }
     res.status(500).json({ error: 'Internal server error' });
   }
 });
