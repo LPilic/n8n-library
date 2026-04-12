@@ -619,6 +619,7 @@ function InstanceModal({ initial, onClose, onSaved }: { initial: Instance | null
 
 function SmtpTab() {
   const { error: showError, success: showSuccess, info: showInfo } = useToast()
+  const currentUserEmail = useAuthStore((s) => s.user)?.email ?? ''
   const [host, setHost] = useState('')
   const [port, setPort] = useState('587')
   const [user, setUser] = useState('')
@@ -649,8 +650,8 @@ function SmtpTab() {
   })
 
   const testMut = useMutation({
-    mutationFn: () => api.post('/api/settings/smtp/test'),
-    onSuccess: () => showInfo('Test email sent — check your inbox'),
+    mutationFn: () => api.post('/api/settings/smtp/test', { to: currentUserEmail }),
+    onSuccess: () => showInfo(`Test email sent to ${currentUserEmail}`),
     onError: (err) => showError(err instanceof ApiError ? err.message : 'Test failed'),
   })
 
