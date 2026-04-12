@@ -2054,16 +2054,18 @@ function McpServerTab() {
     queryFn: () => api.get<{ tools: { name: string; enabled: boolean }[] }>('/api/settings/mcp-server-tools'),
   })
 
+  const qc = useQueryClient()
+
   const toggleServerMut = useMutation({
     mutationFn: (enabled: boolean) => api.put('/api/settings/mcp-server', { enabled }),
-    onSuccess: () => showSuccess('MCP server setting saved'),
+    onSuccess: () => { showSuccess('MCP server setting saved'); qc.invalidateQueries({ queryKey: ['settings-mcp-server'] }) },
     onError: (err) => showError(err instanceof ApiError ? err.message : 'Save failed'),
   })
 
   const toggleToolMut = useMutation({
     mutationFn: ({ name, enabled }: { name: string; enabled: boolean }) =>
-      api.put('/api/settings/mcp-server-tools', { name, enabled }),
-    onSuccess: () => showSuccess('Tool setting saved'),
+      api.put('/api/settings/mcp-server-tools', { tool: name, enabled }),
+    onSuccess: () => { showSuccess('Tool setting saved'); qc.invalidateQueries({ queryKey: ['settings-mcp-tools'] }) },
     onError: (err) => showError(err instanceof ApiError ? err.message : 'Save failed'),
   })
 
