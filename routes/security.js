@@ -88,11 +88,24 @@ function transformAuditResponse(data) {
           severity = 'medium';
         }
         if (hasSettings) {
-          const settingNames = Object.keys(section.settings);
-          if (settingNames.length > 0) {
-            itemDetails = settingNames.map(k => `${k}: ${section.settings[k]}`).join(', ');
+          // Settings are nested: { group: { key: value, ... }, ... }
+          // Create one item per group with flattened key-value pairs
+          const groups = Object.keys(section.settings);
+          for (const group of groups) {
+            const entries = section.settings[group];
+            if (typeof entries === 'object' && entries !== null) {
+              const pairs = Object.keys(entries).map(k => {
+                const v = entries[k];
+                return `${k}: ${typeof v === 'boolean' ? (v ? 'enabled' : 'disabled') : v}`;
+              });
+              result[targetCat].push({
+                severity: 'low',
+                message: `${section.title} — ${group}`,
+                details: pairs.join(', '),
+              });
+            }
           }
-          severity = 'low';
+          continue;
         }
         result[targetCat].push({ severity, message, details: itemDetails });
       }
