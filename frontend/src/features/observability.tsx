@@ -29,9 +29,12 @@ export interface HistoryPoint {
 
 export interface Worker {
   id: string
+  name?: string
   host?: string
+  url?: string
   version?: string
   status?: string
+  ready?: boolean
   metrics?: Record<string, number>
 }
 
@@ -147,6 +150,7 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
 export function ObservabilityPage() {
   const iUrl = useInstanceStore((s) => s.url)
   const activeInstanceId = useInstanceStore((s) => s.activeId)
+  const instanceLoaded = useInstanceStore((s) => s.loaded)
   const { error: showError } = useToast()
   const queryClient = useQueryClient()
 
@@ -189,6 +193,7 @@ export function ObservabilityPage() {
       }
       return entries
     },
+    enabled: instanceLoaded,
     refetchInterval: false,
   })
 
@@ -198,12 +203,14 @@ export function ObservabilityPage() {
       const raw = await api.get<Array<Record<string, unknown>>>(iUrl('/api/monitoring/metrics/history'))
       return normalizeHistory(raw)
     },
+    enabled: instanceLoaded,
     refetchInterval: false,
   })
 
   const { data: workers } = useQuery({
     queryKey: ['obs-workers', instanceId],
     queryFn: () => api.get<Worker[]>(iUrl('/api/monitoring/workers')),
+    enabled: instanceLoaded,
     refetchInterval: false,
   })
 
@@ -515,21 +522,22 @@ export function ObservabilityPage() {
             <div className="mb-6">
               <h3 className="text-sm font-semibold text-text-dark mb-2">Workers</h3>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {workers.map((w) => {
-                  const wRss    = w.metrics?.process_resident_memory_bytes ?? 0
-                  const wHeapU  = w.metrics?.nodejs_heap_size_used_bytes ?? 0
-                  const wHeapT  = w.metrics?.nodejs_heap_size_total_bytes ?? 0
+                {workers.map((w, idx) => {
+                  const m = w.metrics || {}
+                  const wRss    = m.memoryRss ?? m.process_resident_memory_bytes ?? 0
+                  const wHeapU  = m.heapUsed ?? m.nodejs_heap_size_used_bytes ?? 0
+                  const wHeapT  = m.heapTotal ?? m.nodejs_heap_size_total_bytes ?? 0
                   const wHeapPct= wHeapT > 0 ? Math.round((wHeapU / wHeapT) * 100) : 0
-                  const wLag    = (w.metrics?.nodejs_eventloop_lag_seconds ?? 0) * 1000
-                  const wUptime = w.metrics?.process_uptime_seconds ?? 0
+                  const wLag    = (m.eventLoopLag ?? m.nodejs_eventloop_lag_seconds ?? 0) * 1000
+                  const wUptime = m.uptime ?? m.process_uptime_seconds ?? 0
                   const healthy = w.status === 'healthy' || w.status === 'ready'
 
                   return (
-                    <div key={w.id} className="bg-card border border-border rounded-md overflow-hidden flex">
+                    <div key={w.id || w.name || idx} className="bg-card border border-border rounded-md overflow-hidden flex">
                       <div className={cn('w-1 shrink-0', healthy ? 'bg-success' : 'bg-danger')} />
                       <div className="flex-1 px-3 py-2.5">
                         <div className="flex items-center justify-between mb-1.5 gap-2">
-                          <span className="text-sm font-medium text-text-dark truncate">{w.host || w.id}</span>
+                          <span className="text-sm font-medium text-text-dark truncate">{w.name || w.host || w.url || w.id}</span>
                           <div className="flex items-center gap-1 shrink-0">
                             {w.status && (
                               <span className={cn(
