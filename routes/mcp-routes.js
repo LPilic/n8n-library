@@ -1,13 +1,13 @@
 const express = require('express');
 const pool = require('../db');
-const { requireRole } = require('../lib/middleware');
+const { requireAuth, requireRole } = require('../lib/middleware');
 const { aiLimiter } = require('../lib/middleware');
 const { mcpClients, connectMcpServer, disconnectMcpServer } = require('../lib/mcp');
 
 const router = express.Router();
 
 // MCP CRUD endpoints
-router.get('/api/mcp/servers', requireRole('admin'), async (_req, res) => {
+router.get('/api/mcp/servers', requireAuth, async (_req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM mcp_servers ORDER BY created_at');
     const servers = rows.map(s => {
@@ -84,7 +84,7 @@ router.post('/api/mcp/servers/:id/reconnect', requireRole('admin'), async (req, 
   }
 });
 
-router.get('/api/mcp/tools', requireRole('admin', 'editor'), async (_req, res) => {
+router.get('/api/mcp/tools', requireAuth, async (_req, res) => {
   const tools = [];
   for (const [id, entry] of mcpClients) {
     if (entry.status === 'connected') {
@@ -96,7 +96,7 @@ router.get('/api/mcp/tools', requireRole('admin', 'editor'), async (_req, res) =
   res.json({ tools });
 });
 
-router.post('/api/mcp/tools/call', requireRole('admin', 'editor'), aiLimiter, async (req, res) => {
+router.post('/api/mcp/tools/call', requireAuth, aiLimiter, async (req, res) => {
   try {
     const { serverId, toolName, args } = req.body;
     const entry = mcpClients.get(serverId);
