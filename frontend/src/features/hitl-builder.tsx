@@ -12,6 +12,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { X, GripVertical, Eye, Save, Trash2 } from 'lucide-react'
+import CustomSelect from '@/components/CustomSelect'
 
 /* -------------------------------------------------------------------------- */
 /*  Component definitions                                                     */
@@ -359,10 +360,9 @@ function PropertyEditor({
       return (
         <div key={key} className="mb-2">
           <label htmlFor={id} className="block text-[12px] font-medium text-text-muted mb-0.5">{label}</label>
-          <select id={id} value={String(p[key] ?? '')} onChange={e => set(key, e.target.value)}
-            className="w-full border border-border rounded px-2 py-1 text-sm bg-bg">
-            {options?.map(o => <option key={o} value={o}>{o}</option>)}
-          </select>
+          <CustomSelect id={id} value={String(p[key] ?? '')} onChange={v => set(key, v)}
+            options={(options ?? []).map(o => ({ value: o, label: o }))}
+            className="w-full" />
         </div>
       )
     }
@@ -479,7 +479,7 @@ function LivePreview({ components, sampleData }: { components: SchemaComponent[]
         return <div key={comp.id} className="mb-2"><label className="block text-sm font-medium mb-0.5">{String(p.label)}{p.required ? ' *' : ''}</label><textarea placeholder={String(p.placeholder || '')} className="w-full border border-border rounded px-2 py-1 text-sm bg-bg min-h-[60px]" /></div>
       case 'select': {
         const opts = String(p.options || '').split(',').map(s => s.trim()).filter(Boolean)
-        return <div key={comp.id} className="mb-2"><label className="block text-sm font-medium mb-0.5">{String(p.label)}{p.required ? ' *' : ''}</label><select className="w-full border border-border rounded px-2 py-1 text-sm bg-bg"><option value="">Select...</option>{opts.map(o => <option key={o}>{o}</option>)}</select></div>
+        return <div key={comp.id} className="mb-2"><label className="block text-sm font-medium mb-0.5">{String(p.label)}{p.required ? ' *' : ''}</label><CustomSelect value="" onChange={() => {}} placeholder="Select..." options={[{ value: '', label: 'Select...' }, ...opts.map(o => ({ value: o, label: o }))]} className="w-full" /></div>
       }
       case 'checkbox':
         return <label key={comp.id} className="flex items-center gap-2 text-sm"><input type="checkbox" />{String(p.label)}</label>

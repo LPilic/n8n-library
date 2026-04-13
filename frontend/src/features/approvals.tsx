@@ -22,6 +22,7 @@ import {
   ArrowLeft,
   Wrench,
 } from 'lucide-react'
+import CustomSelect from '@/components/CustomSelect'
 
 // --- Types --------------------------------------------------------------------
 
@@ -259,17 +260,17 @@ function RenderComponent({
       return (
         <div className="flex flex-col gap-1">
           {comp.label && <label className="text-xs font-medium text-text-muted">{comp.label}{comp.required && <span className="text-danger ml-0.5">*</span>}</label>}
-          <select
+          <CustomSelect
             value={String(inputValue)}
-            onChange={(e) => onChange(field, e.target.value)}
+            onChange={(v) => onChange(field, v)}
             disabled={readOnly}
-            className="w-full text-sm px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark disabled:opacity-60"
-          >
-            <option value="">Select...</option>
-            {(comp.options ?? []).map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
+            placeholder="Select..."
+            options={[
+              { value: '', label: 'Select...' },
+              ...(comp.options ?? []).map((o) => ({ value: o.value, label: o.label })),
+            ]}
+            className="w-full"
+          />
         </div>
       )
 
@@ -1052,15 +1053,13 @@ export function TemplateModal({
               <div className="space-y-2">
                 {/* Add component row */}
                 <div className="flex gap-2">
-                  <select
+                  <CustomSelect
                     value={newCompType}
-                    onChange={(e) => setNewCompType(e.target.value as ComponentType)}
-                    className="flex-1 text-xs px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark"
-                  >
-                    {COMPONENT_TYPES.map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
+                    onChange={(v) => setNewCompType(v as ComponentType)}
+                    options={COMPONENT_TYPES.map((t) => ({ value: t, label: t }))}
+                    size="sm"
+                    className="flex-1"
+                  />
                   <button
                     onClick={addComponent}
                     className="flex items-center gap-1 text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover"

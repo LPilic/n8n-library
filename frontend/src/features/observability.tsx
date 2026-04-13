@@ -8,6 +8,7 @@ import { cn, esc } from '@/lib/utils'
 import { markdownToHtml } from '@/lib/markdown'
 import { useToast } from '@/hooks/useToast'
 import { useInstanceStore } from '@/stores/instance'
+import CustomSelect from '@/components/CustomSelect'
 import { sanitizeHtml } from '@/lib/sanitize'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend)
@@ -409,17 +410,18 @@ export function ObservabilityPage() {
         <h2 className="text-base font-semibold text-text-dark">Observability</h2>
         <span className="text-xs text-text-muted ml-1">Updated {updatedAt}</span>
         <div className="ml-auto flex items-center gap-2">
-          <select
-            value={refreshInterval}
-            onChange={(e) => setRefreshInterval(parseInt(e.target.value, 10))}
-            className="text-xs px-2 py-1 border border-input-border rounded-sm bg-input-bg text-text-dark"
-          >
-            <option value="0">Off</option>
-            <option value="10">10s</option>
-            <option value="20">20s</option>
-            <option value="30">30s</option>
-            <option value="60">60s</option>
-          </select>
+          <CustomSelect
+            value={String(refreshInterval)}
+            onChange={(v) => setRefreshInterval(parseInt(v, 10))}
+            options={[
+              { value: '0', label: 'Off' },
+              { value: '10', label: '10s' },
+              { value: '20', label: '20s' },
+              { value: '30', label: '30s' },
+              { value: '60', label: '60s' },
+            ]}
+            size="sm"
+          />
           <button
             onClick={refetchAll}
             className="flex items-center gap-1.5 text-xs px-2.5 py-1 border border-input-border rounded-sm bg-input-bg text-text-dark hover:bg-card-hover"

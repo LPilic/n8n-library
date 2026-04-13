@@ -8,6 +8,7 @@ import { appConfirm } from '@/components/ConfirmDialog'
 import { sanitizeHtml } from '@/lib/sanitize'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
+import CustomSelect from '@/components/CustomSelect'
 import {
   Users,
   Server,
@@ -147,15 +148,12 @@ function Select({
   options: { value: string; label: string }[]
 }) {
   return (
-    <select
+    <CustomSelect
       value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus"
-    >
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>{o.label}</option>
-      ))}
-    </select>
+      onChange={onChange}
+      options={options}
+      className="w-full"
+    />
   )
 }
 
@@ -559,12 +557,17 @@ function InstanceModal({ initial, onClose, onSaved }: { initial: Instance | null
         <Input value={apiKey} onChange={setApiKey} type="password" placeholder="n8n_api_..." />
       </FieldRow>
       <FieldRow label="Environment">
-        <select value={environment} onChange={(e) => setEnvironment(e.target.value)}
-          className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark">
-          <option value="production">Production</option>
-          <option value="staging">Staging</option>
-          <option value="development">Development</option>
-        </select>
+        <CustomSelect
+          value={environment}
+          onChange={setEnvironment}
+          options={[
+            { value: 'production', label: 'Production' },
+            { value: 'staging', label: 'Staging' },
+            { value: 'development', label: 'Development' },
+          ]}
+          className="w-full"
+          triggerClassName="px-3 py-2 rounded-md"
+        />
       </FieldRow>
 
       {/* Workers */}

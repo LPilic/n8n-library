@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { esc, timeAgo } from '@/lib/utils'
 import { Search } from 'lucide-react'
+import CustomSelect from '@/components/CustomSelect'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -68,26 +69,24 @@ export function AuditPage() {
             className="w-full pl-8 pr-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus"
           />
         </div>
-        <select
+        <CustomSelect
           value={entityType}
-          onChange={(e) => { setEntityType(e.target.value); setPage(1) }}
-          className="text-xs px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark"
-        >
-          <option value="">All Entity Types</option>
-          {ENTITY_TYPES.map((t) => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </select>
-        <select
+          onChange={(v) => { setEntityType(v); setPage(1) }}
+          options={[
+            { value: '', label: 'All Entity Types' },
+            ...ENTITY_TYPES.map((t) => ({ value: t, label: t })),
+          ]}
+          size="sm"
+        />
+        <CustomSelect
           value={action}
-          onChange={(e) => { setAction(e.target.value); setPage(1) }}
-          className="text-xs px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark"
-        >
-          <option value="">All Actions</option>
-          {ACTIONS.map((a) => (
-            <option key={a} value={a}>{a}</option>
-          ))}
-        </select>
+          onChange={(v) => { setAction(v); setPage(1) }}
+          options={[
+            { value: '', label: 'All Actions' },
+            ...ACTIONS.map((a) => ({ value: a, label: a })),
+          ]}
+          size="sm"
+        />
         <span className="text-xs text-text-muted ml-auto hidden sm:inline">{total} entries</span>
       </div>
 

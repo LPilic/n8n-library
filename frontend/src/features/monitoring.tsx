@@ -38,6 +38,7 @@ import {
   Sparkles,
   ExternalLink,
 } from 'lucide-react'
+import CustomSelect from '@/components/CustomSelect'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend)
 
@@ -295,19 +296,18 @@ export function MonitoringPage() {
 
       {/* Toolbar */}
       <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <div className="relative">
-          <select
-            value={autoRefresh}
-            onChange={(e) => setAutoRefresh(Number(e.target.value))}
-            className="text-[12px] font-semibold px-2.5 py-[5px] rounded-md border border-input-border bg-input-bg text-text-dark appearance-none pr-6"
-          >
-            <option value={0}>Auto-refresh: Off</option>
-            <option value={10000}>Auto-refresh: 10s</option>
-            <option value={30000}>Auto-refresh: 30s</option>
-            <option value={60000}>Auto-refresh: 60s</option>
-          </select>
-          <ChevronDown size={12} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-        </div>
+        <CustomSelect
+          value={String(autoRefresh)}
+          onChange={(v) => setAutoRefresh(Number(v))}
+          options={[
+            { value: '0', label: 'Auto-refresh: Off' },
+            { value: '10000', label: 'Auto-refresh: 10s' },
+            { value: '30000', label: 'Auto-refresh: 30s' },
+            { value: '60000', label: 'Auto-refresh: 60s' },
+          ]}
+          size="sm"
+          triggerClassName="text-[12px] font-semibold px-2.5 py-[5px] rounded-md"
+        />
         <button onClick={handleRefresh}
           className="text-[12px] font-semibold px-2.5 py-[5px] rounded-md border border-input-border bg-input-bg text-text-dark hover:bg-card-hover flex items-center gap-1">
           <RefreshCw size={12} /> Refresh
@@ -359,21 +359,28 @@ export function MonitoringPage() {
         <div>
           {/* Filters row */}
           <div className="flex items-center gap-2 mb-3 flex-wrap">
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-              className="text-xs px-2 py-1 border border-input-border rounded-sm bg-input-bg text-text-dark">
-              <option value="">All Statuses</option>
-              <option value="success">Success</option>
-              <option value="error">Error</option>
-              <option value="running">Running</option>
-              <option value="waiting">Waiting</option>
-            </select>
-            <select value={workflowFilter} onChange={(e) => setWorkflowFilter(e.target.value)}
-              className="text-xs px-2 py-1 border border-input-border rounded-sm bg-input-bg text-text-dark max-w-[200px]">
-              <option value="">All Workflows</option>
-              {workflows.map((wf) => (
-                <option key={wf.id} value={wf.id}>{wf.name}</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={[
+                { value: '', label: 'All Statuses' },
+                { value: 'success', label: 'Success' },
+                { value: 'error', label: 'Error' },
+                { value: 'running', label: 'Running' },
+                { value: 'waiting', label: 'Waiting' },
+              ]}
+              size="sm"
+            />
+            <CustomSelect
+              value={workflowFilter}
+              onChange={setWorkflowFilter}
+              options={[
+                { value: '', label: 'All Workflows' },
+                ...workflows.map((wf) => ({ value: wf.id, label: wf.name })),
+              ]}
+              size="sm"
+              triggerClassName="text-xs px-2 py-1 max-w-[200px]"
+            />
           </div>
 
           {execLoading ? (
@@ -933,29 +940,38 @@ function ReportIssueModal({
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Priority</label>
-              <select value={priority} onChange={(e) => setPriority(e.target.value)}
-                className="w-full px-2 py-1.5 border border-input-border rounded-md bg-input-bg text-sm text-text-dark">
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
-              </select>
+              <CustomSelect value={priority} onChange={setPriority}
+                options={[
+                  { value: 'low', label: 'Low' },
+                  { value: 'medium', label: 'Medium' },
+                  { value: 'high', label: 'High' },
+                  { value: 'critical', label: 'Critical' },
+                ]}
+                className="w-full"
+                triggerClassName="px-2 py-1.5 rounded-md"
+              />
             </div>
             <div>
               <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Category</label>
-              <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full px-2 py-1.5 border border-input-border rounded-md bg-input-bg text-sm text-text-dark">
-                <option value="">None</option>
-                {(ticketCategories ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <CustomSelect value={categoryId} onChange={setCategoryId}
+                options={[
+                  { value: '', label: 'None' },
+                  ...(ticketCategories ?? []).map((c) => ({ value: String(c.id), label: c.name })),
+                ]}
+                className="w-full"
+                triggerClassName="px-2 py-1.5 rounded-md"
+              />
             </div>
             <div>
               <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Assign To</label>
-              <select value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)}
-                className="w-full px-2 py-1.5 border border-input-border rounded-md bg-input-bg text-sm text-text-dark">
-                <option value="">Unassigned</option>
-                {(assignableUsers ?? []).map((u) => <option key={u.id} value={u.id}>{u.username}</option>)}
-              </select>
+              <CustomSelect value={assigneeId} onChange={setAssigneeId}
+                options={[
+                  { value: '', label: 'Unassigned' },
+                  ...(assignableUsers ?? []).map((u) => ({ value: String(u.id), label: u.username })),
+                ]}
+                className="w-full"
+                triggerClassName="px-2 py-1.5 rounded-md"
+              />
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/hooks/useToast'
 import { api, ApiError } from '@/api/client'
+import CustomSelect from '@/components/CustomSelect'
 
 interface PublicInstance { id: number; name: string; color?: string }
 
@@ -288,15 +289,16 @@ export function LoginPage() {
               Sign in with your n8n account
             </p>
             {n8nInstances.length > 1 && (
-              <select
-                value={selectedInstance ?? ''}
-                onChange={(e) => setSelectedInstance(Number(e.target.value))}
-                className={`${inputClass} mb-3`}
-              >
-                {n8nInstances.map((inst) => (
-                  <option key={inst.id} value={inst.id}>{inst.name}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={String(selectedInstance ?? '')}
+                onChange={(v) => setSelectedInstance(Number(v))}
+                options={n8nInstances.map((inst) => ({
+                  value: String(inst.id),
+                  label: inst.name,
+                }))}
+                className={`mb-3`}
+                triggerClassName={inputClass}
+              />
             )}
             <input
               type="email"

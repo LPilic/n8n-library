@@ -18,6 +18,7 @@ import {
   XCircle,
   Loader2,
 } from 'lucide-react'
+import CustomSelect from '@/components/CustomSelect'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -253,26 +254,24 @@ export function TicketsPage() {
               className="w-full pl-8 pr-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus"
             />
           </div>
-          <select
+          <CustomSelect
             value={status}
-            onChange={(e) => { setStatus(e.target.value); setPage(1) }}
-            className="text-xs px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark"
-          >
-            <option value="">All Statuses</option>
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s}>{s.replace('_', ' ')}</option>
-            ))}
-          </select>
-          <select
+            onChange={(v) => { setStatus(v); setPage(1) }}
+            options={[
+              { value: '', label: 'All Statuses' },
+              ...STATUS_OPTIONS.map((s) => ({ value: s, label: s.replace('_', ' ') })),
+            ]}
+            size="sm"
+          />
+          <CustomSelect
             value={priority}
-            onChange={(e) => { setPriority(e.target.value); setPage(1) }}
-            className="text-xs px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark"
-          >
-            <option value="">All Priorities</option>
-            {PRIORITY_OPTIONS.map((p) => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
+            onChange={(v) => { setPriority(v); setPage(1) }}
+            options={[
+              { value: '', label: 'All Priorities' },
+              ...PRIORITY_OPTIONS.map((p) => ({ value: p, label: p })),
+            ]}
+            size="sm"
+          />
           <span className="text-xs text-text-muted ml-auto hidden sm:inline">
             {data?.total ?? 0} ticket{(data?.total ?? 0) !== 1 ? 's' : ''}
           </span>
@@ -464,28 +463,24 @@ function CreateTicketModal({ onClose, onCreated }: { onClose: () => void; onCrea
           <div className="flex gap-2">
             <div className="flex-1">
               <label className="block text-xs font-medium text-text-muted mb-1">Priority</label>
-              <select
+              <CustomSelect
                 value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-                className="w-full text-sm px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark"
-              >
-                {PRIORITY_OPTIONS.map((p) => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
+                onChange={setPriority}
+                options={PRIORITY_OPTIONS.map((p) => ({ value: p, label: p }))}
+                className="w-full"
+              />
             </div>
             <div className="flex-1">
               <label className="block text-xs font-medium text-text-muted mb-1">Category</label>
-              <select
+              <CustomSelect
                 value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full text-sm px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark"
-              >
-                <option value="">None</option>
-                {(categories ?? []).map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+                onChange={setCategoryId}
+                options={[
+                  { value: '', label: 'None' },
+                  ...(categories ?? []).map((c) => ({ value: String(c.id), label: c.name })),
+                ]}
+                className="w-full"
+              />
             </div>
           </div>
         </div>
@@ -659,60 +654,53 @@ export function TicketDetailPage() {
         {/* Sidebar: metadata */}
         <aside className="w-full lg:w-72 shrink-0 space-y-3">
           <TicketMetaCard label="Status">
-            <select
+            <CustomSelect
               value={ticket.status}
-              onChange={(e) => updateMut.mutate({ status: e.target.value })}
-              className={cn(
-                'w-full text-xs px-2 py-1.5 border rounded-sm focus:outline-none focus:border-input-focus',
-                'border-input-border bg-input-bg text-text-dark',
-              )}
-            >
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s} value={s}>{s.replace('_', ' ')}</option>
-              ))}
-            </select>
+              onChange={(v) => updateMut.mutate({ status: v })}
+              options={STATUS_OPTIONS.map((s) => ({ value: s, label: s.replace('_', ' ') }))}
+              size="sm"
+              className="w-full"
+            />
           </TicketMetaCard>
 
           <TicketMetaCard label="Priority">
-            <select
+            <CustomSelect
               value={ticket.priority}
-              onChange={(e) => updateMut.mutate({ priority: e.target.value })}
-              className="w-full text-xs px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark focus:outline-none focus:border-input-focus"
-            >
-              {PRIORITY_OPTIONS.map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
+              onChange={(v) => updateMut.mutate({ priority: v })}
+              options={PRIORITY_OPTIONS.map((p) => ({ value: p, label: p }))}
+              size="sm"
+              className="w-full"
+            />
           </TicketMetaCard>
 
           <TicketMetaCard label="Assignee">
-            <select
-              value={ticket.assignee_id ?? ''}
-              onChange={(e) =>
-                updateMut.mutate({ assignee_id: e.target.value ? Number(e.target.value) : null })
+            <CustomSelect
+              value={String(ticket.assignee_id ?? '')}
+              onChange={(v) =>
+                updateMut.mutate({ assignee_id: v ? Number(v) : null })
               }
-              className="w-full text-xs px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark focus:outline-none focus:border-input-focus"
-            >
-              <option value="">Unassigned</option>
-              {(assignableUsers ?? []).map((u) => (
-                <option key={u.id} value={u.id}>{u.username}</option>
-              ))}
-            </select>
+              options={[
+                { value: '', label: 'Unassigned' },
+                ...(assignableUsers ?? []).map((u) => ({ value: String(u.id), label: u.username })),
+              ]}
+              size="sm"
+              className="w-full"
+            />
           </TicketMetaCard>
 
           <TicketMetaCard label="Category">
-            <select
-              value={ticket.category_id ?? ''}
-              onChange={(e) =>
-                updateMut.mutate({ category_id: e.target.value ? Number(e.target.value) : null })
+            <CustomSelect
+              value={String(ticket.category_id ?? '')}
+              onChange={(v) =>
+                updateMut.mutate({ category_id: v ? Number(v) : null })
               }
-              className="w-full text-xs px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark focus:outline-none focus:border-input-focus"
-            >
-              <option value="">None</option>
-              {(categories ?? []).map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+              options={[
+                { value: '', label: 'None' },
+                ...(categories ?? []).map((c) => ({ value: String(c.id), label: c.name })),
+              ]}
+              size="sm"
+              className="w-full"
+            />
           </TicketMetaCard>
 
           {/* Linked Executions */}

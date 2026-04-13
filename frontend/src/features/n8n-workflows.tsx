@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/useToast'
 import { esc, timeAgo, cn } from '@/lib/utils'
 import { Search, ChevronLeft, ChevronRight, Sparkles, FileText, Loader2, X, Tag, ChevronDown } from 'lucide-react'
 import { NodeFlow } from '@/components/NodeFlow'
+import CustomSelect from '@/components/CustomSelect'
 import { PreviewModal, N8nDemoPreview } from '@/components/PreviewModal'
 import { DocsModal } from '@/components/DocsModal'
 import { RichTextEditor } from '@/components/RichTextEditor'
@@ -506,14 +507,16 @@ export function N8nWorkflowsPage() {
 
           {/* Owner select */}
           {availableOwners.length > 0 && (
-            <select value={selectedOwner}
-              onChange={(e) => { setSelectedOwner(e.target.value); setPage(1) }}
-              className="text-xs px-2 py-1.5 border border-input-border rounded-md bg-input-bg text-text-dark max-w-[200px]">
-              <option value="">All Owners</option>
-              {availableOwners.map((o) => (
-                <option key={o.id} value={o.id}>{o.name}</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={selectedOwner}
+              onChange={(v) => { setSelectedOwner(v); setPage(1) }}
+              options={[
+                { value: '', label: 'All Owners' },
+                ...availableOwners.map((o) => ({ value: o.id, label: o.name })),
+              ]}
+              size="sm"
+              triggerClassName="text-xs px-2 py-1.5 rounded-md max-w-[200px]"
+            />
           )}
 
           {/* Clear all */}

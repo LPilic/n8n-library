@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useInstanceStore } from '@/stores/instance'
 import { Server } from 'lucide-react'
+import CustomSelect from '@/components/CustomSelect'
 
 export function InstanceSelector() {
   const { instances, activeId, loaded, load, setActive } = useInstanceStore()
@@ -17,17 +18,16 @@ export function InstanceSelector() {
   return (
     <div className="flex items-center gap-1.5 mr-2">
       <Server size={14} className="text-text-xmuted shrink-0" />
-      <select
-        value={activeId ?? ''}
-        onChange={(e) => setActive(Number(e.target.value))}
-        className="text-[12px] font-medium px-2 py-1 border border-input-border rounded-md bg-input-bg text-text-dark max-w-[160px] truncate"
-      >
-        {instances.map((inst) => (
-          <option key={inst.id} value={inst.id}>
-            {inst.name}{inst.is_default ? ' (default)' : ''}
-          </option>
-        ))}
-      </select>
+      <CustomSelect
+        value={String(activeId ?? '')}
+        onChange={(v) => setActive(Number(v))}
+        options={instances.map((inst) => ({
+          value: String(inst.id),
+          label: `${inst.name}${inst.is_default ? ' (default)' : ''}`,
+        }))}
+        size="sm"
+        triggerClassName="text-[12px] font-medium px-2 py-1 rounded-md max-w-[160px]"
+      />
       {active?.color && (
         <span className="w-2 h-2 rounded-full shrink-0" style={{ background: active.color }} />
       )}

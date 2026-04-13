@@ -7,6 +7,7 @@ import { appConfirm } from '@/components/ConfirmDialog'
 import { cn, timeAgo } from '@/lib/utils'
 import { useInstanceStore } from '@/stores/instance'
 import { Plus, Pencil, Trash2, Users, Eye, EyeOff, RefreshCw, Server } from 'lucide-react'
+import CustomSelect from '@/components/CustomSelect'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -84,15 +85,16 @@ export function UsersPage() {
           {instances.length > 0 && (
             <div className="flex items-center gap-1.5">
               {instances.length > 1 && (
-                <select
-                  value={syncInstanceId ?? ''}
-                  onChange={(e) => setSyncInstanceId(Number(e.target.value))}
-                  className="text-[12px] px-2 py-1.5 border border-input-border rounded-md bg-input-bg text-text-dark"
-                >
-                  {instances.map((inst) => (
-                    <option key={inst.id} value={inst.id}>{inst.name}</option>
-                  ))}
-                </select>
+                <CustomSelect
+                  value={String(syncInstanceId ?? '')}
+                  onChange={(v) => setSyncInstanceId(Number(v))}
+                  options={instances.map((inst) => ({
+                    value: String(inst.id),
+                    label: inst.name,
+                  }))}
+                  size="sm"
+                  triggerClassName="text-[12px] px-2 py-1.5 rounded-md"
+                />
               )}
               <button
                 onClick={() => syncInstanceId && syncMut.mutate(syncInstanceId)}
@@ -300,15 +302,17 @@ function UserModal({
           </div>
           <div>
             <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Role</label>
-            <select
+            <CustomSelect
               value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring"
-            >
-              <option value="viewer">Viewer</option>
-              <option value="editor">Editor</option>
-              <option value="admin">Admin</option>
-            </select>
+              onChange={setRole}
+              options={[
+                { value: 'viewer', label: 'Viewer' },
+                { value: 'editor', label: 'Editor' },
+                { value: 'admin', label: 'Admin' },
+              ]}
+              className="w-full"
+              triggerClassName="px-3 py-2 rounded-md"
+            />
           </div>
         </div>
 

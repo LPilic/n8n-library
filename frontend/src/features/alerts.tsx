@@ -4,6 +4,7 @@ import { api, ApiError } from '@/api/client'
 import { useToast } from '@/hooks/useToast'
 import { esc, cn } from '@/lib/utils'
 import { Plus, Trash2, Pencil, Bell, BellOff } from 'lucide-react'
+import CustomSelect from '@/components/CustomSelect'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -230,16 +231,16 @@ function AlertModal({
           <div className="flex gap-2">
             <div className="flex-1">
               <label className="block text-xs font-medium text-text-muted mb-1">Condition *</label>
-              <select
+              <CustomSelect
                 value={form.condition}
-                onChange={(e) => set('condition', e.target.value)}
-                className="w-full text-sm px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark"
-              >
-                <option value="">Select condition...</option>
-                {Object.entries(conditions).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
-                ))}
-              </select>
+                onChange={(v) => set('condition', v)}
+                placeholder="Select condition..."
+                options={[
+                  { value: '', label: 'Select condition...' },
+                  ...Object.entries(conditions).map(([key, label]) => ({ value: key, label: String(label) })),
+                ]}
+                className="w-full"
+              />
             </div>
             <div className="w-28">
               <label className="block text-xs font-medium text-text-muted mb-1">Threshold</label>

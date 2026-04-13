@@ -9,6 +9,7 @@ import {
   Plus, Search, KeyRound, ArrowRightLeft, Trash2, Pencil,
   ShieldCheck, User, Clock, ChevronRight, Package, Eye, EyeOff,
 } from 'lucide-react'
+import CustomSelect from '@/components/CustomSelect'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -534,16 +535,16 @@ function TransferModal({
           <p className="text-xs text-text-muted">
             Transfer <span className="font-medium text-text-dark">{esc(cred.name)}</span> to a project:
           </p>
-          <select
+          <CustomSelect
             value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
-            className="w-full text-sm px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark focus:outline-none focus:border-input-focus"
-          >
-            <option value="">Select project...</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+            onChange={setProjectId}
+            placeholder="Select project..."
+            options={[
+              { value: '', label: 'Select project...' },
+              ...projects.map((p) => ({ value: p.id, label: p.name })),
+            ]}
+            className="w-full"
+          />
         </div>
         <div className="flex justify-end gap-2 px-4 py-3 border-t border-border">
           <button onClick={onClose} className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover">
@@ -735,26 +736,24 @@ function CredentialsTab() {
               className="w-full pl-8 pr-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus"
             />
           </div>
-          <select
+          <CustomSelect
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="text-xs px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark"
-          >
-            <option value="">All Types</option>
-            {credTypes.map((t) => (
-              <option key={t.name} value={t.name}>{t.displayName}</option>
-            ))}
-          </select>
-          <select
+            onChange={setTypeFilter}
+            options={[
+              { value: '', label: 'All Types' },
+              ...credTypes.map((t) => ({ value: t.name, label: t.displayName })),
+            ]}
+            size="sm"
+          />
+          <CustomSelect
             value={ownerFilter}
-            onChange={(e) => setOwnerFilter(e.target.value)}
-            className="text-xs px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark"
-          >
-            <option value="">All Owners</option>
-            {owners.map((o) => (
-              <option key={o} value={o}>{o}</option>
-            ))}
-          </select>
+            onChange={setOwnerFilter}
+            options={[
+              { value: '', label: 'All Owners' },
+              ...owners.map((o) => ({ value: o, label: o })),
+            ]}
+            size="sm"
+          />
           <button
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-1 text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover ml-auto"
@@ -1235,15 +1234,16 @@ function CreateStoreTemplateModal({ onClose, onSaved }: { onClose: () => void; o
 
               <div>
                 <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Target Instance *</label>
-                <select
-                  value={instanceId ?? ''}
-                  onChange={(e) => setInstanceId(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring"
-                >
-                  {instances.map((inst) => (
-                    <option key={inst.id} value={inst.id}>{inst.name}</option>
-                  ))}
-                </select>
+                <CustomSelect
+                  value={String(instanceId ?? '')}
+                  onChange={(v) => setInstanceId(Number(v))}
+                  options={instances.map((inst) => ({
+                    value: String(inst.id),
+                    label: inst.name,
+                  }))}
+                  className="w-full"
+                  triggerClassName="px-3 py-2 rounded-md"
+                />
                 <p className="text-[11px] text-text-xmuted mt-1">Credentials from this template will be provisioned to this instance</p>
               </div>
 

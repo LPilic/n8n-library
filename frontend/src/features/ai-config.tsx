@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/useToast'
 import { appConfirm } from '@/components/ConfirmDialog'
 import { RefreshCw, Pencil, Trash2, Plus, Sparkles, Server, MessageSquareText, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import CustomSelect from '@/components/CustomSelect'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -146,14 +147,15 @@ function McpServerModal({
           {/* Transport type */}
           <div>
             <label className="block text-xs font-medium text-text-muted mb-1">Transport Type</label>
-            <select
+            <CustomSelect
               value={form.type}
-              onChange={(e) => set({ type: e.target.value as 'http' | 'stdio' })}
-              className="w-full text-sm px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark focus:outline-none focus:border-input-focus"
-            >
-              <option value="http">HTTP</option>
-              <option value="stdio">stdio</option>
-            </select>
+              onChange={(v) => set({ type: v as 'http' | 'stdio' })}
+              options={[
+                { value: 'http', label: 'HTTP' },
+                { value: 'stdio', label: 'stdio' },
+              ]}
+              className="w-full"
+            />
           </div>
 
           {/* HTTP fields */}
@@ -322,16 +324,17 @@ function LlmProviderSection() {
           {/* Provider */}
           <div>
             <label className={labelCls}>Provider</label>
-            <select
+            <CustomSelect
               value={provider}
-              onChange={(e) => setProvider(e.target.value)}
-              className={inputCls}
-            >
-              <option value="anthropic">Anthropic Claude</option>
-              <option value="openai">OpenAI</option>
-              <option value="ollama">Ollama</option>
-              <option value="openai-compatible">OpenAI Compatible</option>
-            </select>
+              onChange={setProvider}
+              options={[
+                { value: 'anthropic', label: 'Anthropic Claude' },
+                { value: 'openai', label: 'OpenAI' },
+                { value: 'ollama', label: 'Ollama' },
+                { value: 'openai-compatible', label: 'OpenAI Compatible' },
+              ]}
+              className="w-full"
+            />
           </div>
 
           {/* API Key */}
@@ -373,16 +376,16 @@ function LlmProviderSection() {
             <label className={labelCls}>Model</label>
             <div className="flex gap-2">
               {models.length > 0 ? (
-                <select
+                <CustomSelect
                   value={model}
-                  onChange={(e) => setModel(e.target.value)}
-                  className={cn(inputCls, 'flex-1')}
-                >
-                  <option value="">Select model...</option>
-                  {models.map((m) => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
+                  onChange={setModel}
+                  placeholder="Select model..."
+                  options={[
+                    { value: '', label: 'Select model...' },
+                    ...models.map((m) => ({ value: m, label: m })),
+                  ]}
+                  className="flex-1"
+                />
               ) : (
                 <input
                   type="text"

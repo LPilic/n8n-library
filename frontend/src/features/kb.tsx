@@ -10,6 +10,7 @@ import { useHighlight } from '@/hooks/useHighlight'
 import { appConfirm } from '@/components/ConfirmDialog'
 import { RichTextEditor } from '@/components/RichTextEditor'
 import { sanitizeHtml } from '@/lib/sanitize'
+import CustomSelect from '@/components/CustomSelect'
 import {
   Search,
   Eye,
@@ -179,30 +180,28 @@ function ArticleFormModal({ categories, initial, onClose, onSaved }: ArticleForm
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-text-muted mb-1">Category</label>
-              <select
+              <CustomSelect
                 value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus"
-              >
-                <option value="">No category</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+                onChange={setCategoryId}
+                options={[
+                  { value: '', label: 'No category' },
+                  ...categories.map((c) => ({ value: String(c.id), label: c.name })),
+                ]}
+                className="w-full"
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-text-muted mb-1">Status</label>
-              <select
+              <CustomSelect
                 value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus"
-              >
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="archived">Archived</option>
-              </select>
+                onChange={setStatus}
+                options={[
+                  { value: 'draft', label: 'Draft' },
+                  { value: 'published', label: 'Published' },
+                  { value: 'archived', label: 'Archived' },
+                ]}
+                className="w-full"
+              />
             </div>
           </div>
 
@@ -543,26 +542,26 @@ export function KbPage() {
 
         {/* Mobile: category + tag filters */}
         <div className="flex gap-2 mb-4 lg:hidden flex-wrap">
-          <select
+          <CustomSelect
             value={categoryFilter}
-            onChange={(e) => { setCategoryFilter(e.target.value); setPage(1) }}
-            className="text-xs px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark"
-          >
-            <option value="">All Categories</option>
-            {(categories ?? []).map((c) => (
-              <option key={c.id} value={c.name}>{c.name}</option>
-            ))}
-          </select>
-          <select
+            onChange={(v) => { setCategoryFilter(v); setPage(1) }}
+            options={[
+              { value: '', label: 'All Categories' },
+              ...(categories ?? []).map((c) => ({ value: c.name, label: c.name })),
+            ]}
+            size="sm"
+          />
+          <CustomSelect
             value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
-            className="text-xs px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark"
-          >
-            <option value="">All Statuses</option>
-            <option value="published">Published</option>
-            <option value="draft">Draft</option>
-            <option value="archived">Archived</option>
-          </select>
+            onChange={(v) => { setStatusFilter(v); setPage(1) }}
+            options={[
+              { value: '', label: 'All Statuses' },
+              { value: 'published', label: 'Published' },
+              { value: 'draft', label: 'Draft' },
+              { value: 'archived', label: 'Archived' },
+            ]}
+            size="sm"
+          />
         </div>
 
         {/* Article list */}

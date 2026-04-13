@@ -17,6 +17,7 @@ import {
   Sparkles,
   RotateCcw,
 } from 'lucide-react'
+import CustomSelect from '@/components/CustomSelect'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -205,27 +206,27 @@ export function PromptsPage() {
             className="w-full pl-8 pr-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus"
           />
         </div>
-        <select
+        <CustomSelect
           value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
-          className="text-xs px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark"
-        >
-          <option value="">All Statuses</option>
-          <option value="draft">Draft</option>
-          <option value="published">Published</option>
-          <option value="archived">Archived</option>
-        </select>
+          onChange={(v) => { setStatusFilter(v); setPage(1) }}
+          options={[
+            { value: '', label: 'All Statuses' },
+            { value: 'draft', label: 'Draft' },
+            { value: 'published', label: 'Published' },
+            { value: 'archived', label: 'Archived' },
+          ]}
+          size="sm"
+        />
         {allCategories.length > 0 && (
-          <select
+          <CustomSelect
             value={categoryFilter}
-            onChange={(e) => { setCategoryFilter(e.target.value); setPage(1) }}
-            className="text-xs px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark"
-          >
-            <option value="">All Categories</option>
-            {allCategories.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
+            onChange={(v) => { setCategoryFilter(v); setPage(1) }}
+            options={[
+              { value: '', label: 'All Categories' },
+              ...allCategories.map((c) => ({ value: c, label: c })),
+            ]}
+            size="sm"
+          />
         )}
         <span className="text-xs text-text-muted ml-auto hidden sm:inline">
           {data?.total ?? 0} prompt{(data?.total ?? 0) !== 1 ? 's' : ''}
@@ -398,15 +399,16 @@ function CreatePromptModal({ onClose, onCreated }: { onClose: () => void; onCrea
             </div>
             <div className="w-32">
               <label className="block text-xs font-medium text-text-muted mb-1">Status</label>
-              <select
+              <CustomSelect
                 value={status}
-                onChange={(e) => setStatus(e.target.value as PromptStatus)}
-                className="w-full text-sm px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark"
-              >
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="archived">Archived</option>
-              </select>
+                onChange={(v) => setStatus(v as PromptStatus)}
+                options={[
+                  { value: 'draft', label: 'Draft' },
+                  { value: 'published', label: 'Published' },
+                  { value: 'archived', label: 'Archived' },
+                ]}
+                className="w-full"
+              />
             </div>
           </div>
           <div className="flex gap-2">
@@ -533,15 +535,16 @@ function EditPromptModal({
             </div>
             <div className="w-32">
               <label className="block text-xs font-medium text-text-muted mb-1">Status</label>
-              <select
+              <CustomSelect
                 value={status}
-                onChange={(e) => setStatus(e.target.value as PromptStatus)}
-                className="w-full text-sm px-2 py-1.5 border border-input-border rounded-sm bg-input-bg text-text-dark"
-              >
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="archived">Archived</option>
-              </select>
+                onChange={(v) => setStatus(v as PromptStatus)}
+                options={[
+                  { value: 'draft', label: 'Draft' },
+                  { value: 'published', label: 'Published' },
+                  { value: 'archived', label: 'Archived' },
+                ]}
+                className="w-full"
+              />
             </div>
           </div>
           <div className="flex gap-2">
@@ -976,27 +979,27 @@ export function PromptDetailPage() {
                   <GitCompare size={12} /> Version Diff
                 </h3>
                 <div className="flex items-center gap-2 ml-auto">
-                  <select
-                    value={diffFrom ?? ''}
-                    onChange={(e) => setDiffFrom(e.target.value ? Number(e.target.value) : null)}
-                    className="text-xs px-2 py-1 border border-input-border rounded-sm bg-input-bg text-text-dark"
-                  >
-                    <option value="">From version...</option>
-                    {(versions ?? []).map((v) => (
-                      <option key={v.id} value={v.version}>v{v.version}</option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    value={String(diffFrom ?? '')}
+                    onChange={(v) => setDiffFrom(v ? Number(v) : null)}
+                    placeholder="From version..."
+                    options={[
+                      { value: '', label: 'From version...' },
+                      ...(versions ?? []).map((ver) => ({ value: String(ver.version), label: `v${ver.version}` })),
+                    ]}
+                    size="sm"
+                  />
                   <span className="text-text-xmuted text-xs">&rarr;</span>
-                  <select
-                    value={diffTo ?? ''}
-                    onChange={(e) => setDiffTo(e.target.value ? Number(e.target.value) : null)}
-                    className="text-xs px-2 py-1 border border-input-border rounded-sm bg-input-bg text-text-dark"
-                  >
-                    <option value="">To version...</option>
-                    {(versions ?? []).map((v) => (
-                      <option key={v.id} value={v.version}>v{v.version}</option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    value={String(diffTo ?? '')}
+                    onChange={(v) => setDiffTo(v ? Number(v) : null)}
+                    placeholder="To version..."
+                    options={[
+                      { value: '', label: 'To version...' },
+                      ...(versions ?? []).map((ver) => ({ value: String(ver.version), label: `v${ver.version}` })),
+                    ]}
+                    size="sm"
+                  />
                 </div>
               </div>
               {diff && diffTokens ? (
