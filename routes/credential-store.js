@@ -217,8 +217,8 @@ router.post('/api/credential-store/:id/provision', requireAuth, credentialLimite
     const credName = (req.body.name || `${tpl.name} - ${req.user.username}`).trim();
 
     // Fetch credential schema to fill in required fields with defaults.
-    // n8n's public API validates ALL required fields (including OAuth2 boilerplate
-    // like sendAdditionalBodyProperties, additionalBodyProperties, etc.)
+    // n8n's public API validates ALL required fields strictly — missing required
+    // fields or extra disallowed fields both cause errors.
     try {
       const schemaRes = await fetch(`${base}/api/v1/credentials/schema/${encodeURIComponent(tpl.credential_type)}`, {
         headers: { 'X-N8N-API-KEY': inst.api_key },
@@ -226,21 +226,24 @@ router.post('/api/credential-store/:id/provision', requireAuth, credentialLimite
       if (schemaRes.ok) {
         const schema = await schemaRes.json();
 
-        // Recursively collect all sub-schemas (root + allOf at any depth, including $ref-resolved)
+        // Recursively collect all sub-schemas (root + allOf/oneOf/anyOf at any depth)
         function collectSchemas(s, out = []) {
           if (!s) return out;
           out.push(s);
-          if (Array.isArray(s.allOf)) s.allOf.forEach(sub => collectSchemas(sub, out));
-          if (Array.isArray(s.oneOf)) s.oneOf.forEach(sub => collectSchemas(sub, out));
-          if (Array.isArray(s.anyOf)) s.anyOf.forEach(sub => collectSchemas(sub, out));
+          for (const key of ['allOf', 'oneOf', 'anyOf']) {
+            if (Array.isArray(s[key])) s[key].forEach(sub => collectSchemas(sub, out));
+          }
           return out;
         }
         const allSchemas = collectSchemas(schema);
 
+        // Also collect the set of all allowed property names to strip extras
+        const allowedKeys = new Set();
         for (const s of allSchemas) {
           if (!s.properties) continue;
           const required = s.required || [];
           for (const [key, prop] of Object.entries(s.properties)) {
+            allowedKeys.add(key);
             if (mergedData[key] === undefined) {
               if (required.includes(key) || prop.default !== undefined) {
                 mergedData[key] = prop.default !== undefined ? prop.default
@@ -252,26 +255,26 @@ router.post('/api/credential-store/:id/provision', requireAuth, credentialLimite
             }
           }
         }
-      }
-    } catch { /* schema fetch is best-effort, fallback below covers common cases */ }
 
-    // Fallback: ensure standard OAuth2 fields are present if this is an OAuth2 type.
-    // n8n's API always requires these for any OAuth2-based credential.
-    const typeLower = tpl.credential_type.toLowerCase();
-    if (typeLower.includes('oauth2') || typeLower.includes('oauth')) {
-      const oauth2Defaults = {
-        authUrl: '', accessTokenUrl: '', scope: '',
-        authQueryParameters: '', authentication: 'header',
-        grantType: 'authorizationCode',
-        sendAdditionalBodyProperties: false,
-        additionalBodyProperties: {},
-        additionalQueryProperties: {},
-        additionalHeaderProperties: {},
-        ignoreSSLIssues: false,
-      };
-      for (const [key, val] of Object.entries(oauth2Defaults)) {
-        if (mergedData[key] === undefined) mergedData[key] = val;
+        // Remove any keys not in the schema (n8n rejects additional properties)
+        const hasAdditionalProps = allSchemas.some(s => s.additionalProperties !== false);
+        if (!hasAdditionalProps && allowedKeys.size > 0) {
+          for (const key of Object.keys(mergedData)) {
+            if (!allowedKeys.has(key)) {
+              console.log('[provision] Stripping disallowed key:', key);
+              delete mergedData[key];
+            }
+          }
+        }
+
+        console.log('[provision] Schema applied for', tpl.credential_type,
+          '— allowed:', [...allowedKeys].join(', '),
+          '— final:', Object.keys(mergedData).join(', '));
+      } else {
+        console.warn('[provision] Schema fetch failed:', schemaRes.status);
       }
+    } catch (schemaErr) {
+      console.warn('[provision] Schema fetch error:', schemaErr.message);
     }
 
     // Create credential on n8n
