@@ -216,27 +216,63 @@ router.post('/api/credential-store/:id/provision', requireAuth, credentialLimite
     const mergedData = { ...sharedData, ...userFieldsOnly };
     const credName = (req.body.name || `${tpl.name} - ${req.user.username}`).trim();
 
-    // Fetch credential schema to fill in required fields with defaults
-    // (e.g. OAuth2 types require sendAdditionalBodyProperties, additionalBodyProperties, etc.)
+    // Fetch credential schema to fill in required fields with defaults.
+    // n8n's public API validates ALL required fields (including OAuth2 boilerplate
+    // like sendAdditionalBodyProperties, additionalBodyProperties, etc.)
     try {
       const schemaRes = await fetch(`${base}/api/v1/credentials/schema/${encodeURIComponent(tpl.credential_type)}`, {
         headers: { 'X-N8N-API-KEY': inst.api_key },
       });
       if (schemaRes.ok) {
         const schema = await schemaRes.json();
-        // Walk allOf / properties to find required fields with defaults
-        const allSchemas = [schema, ...(schema.allOf || [])];
+
+        // Recursively collect all sub-schemas (root + allOf at any depth, including $ref-resolved)
+        function collectSchemas(s, out = []) {
+          if (!s) return out;
+          out.push(s);
+          if (Array.isArray(s.allOf)) s.allOf.forEach(sub => collectSchemas(sub, out));
+          if (Array.isArray(s.oneOf)) s.oneOf.forEach(sub => collectSchemas(sub, out));
+          if (Array.isArray(s.anyOf)) s.anyOf.forEach(sub => collectSchemas(sub, out));
+          return out;
+        }
+        const allSchemas = collectSchemas(schema);
+
         for (const s of allSchemas) {
           if (!s.properties) continue;
           const required = s.required || [];
           for (const [key, prop] of Object.entries(s.properties)) {
-            if (mergedData[key] === undefined && (required.includes(key) || prop.default !== undefined)) {
-              mergedData[key] = prop.default !== undefined ? prop.default : (prop.type === 'object' ? {} : '');
+            if (mergedData[key] === undefined) {
+              if (required.includes(key) || prop.default !== undefined) {
+                mergedData[key] = prop.default !== undefined ? prop.default
+                  : prop.type === 'object' ? {}
+                  : prop.type === 'boolean' ? false
+                  : prop.type === 'number' ? 0
+                  : '';
+              }
             }
           }
         }
       }
-    } catch { /* schema fetch is best-effort */ }
+    } catch { /* schema fetch is best-effort, fallback below covers common cases */ }
+
+    // Fallback: ensure standard OAuth2 fields are present if this is an OAuth2 type.
+    // n8n's API always requires these for any OAuth2-based credential.
+    const typeLower = tpl.credential_type.toLowerCase();
+    if (typeLower.includes('oauth2') || typeLower.includes('oauth')) {
+      const oauth2Defaults = {
+        authUrl: '', accessTokenUrl: '', scope: '',
+        authQueryParameters: '', authentication: 'header',
+        grantType: 'authorizationCode',
+        sendAdditionalBodyProperties: false,
+        additionalBodyProperties: {},
+        additionalQueryProperties: {},
+        additionalHeaderProperties: {},
+        ignoreSSLIssues: false,
+      };
+      for (const [key, val] of Object.entries(oauth2Defaults)) {
+        if (mergedData[key] === undefined) mergedData[key] = val;
+      }
+    }
 
     // Create credential on n8n
     const r = await fetch(`${base}/api/v1/credentials`, {
