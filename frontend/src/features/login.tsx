@@ -1,5 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react'
 import { useAuthStore } from '@/stores/auth'
+import { useBrandingStore } from '@/stores/branding'
 import { useToast } from '@/hooks/useToast'
 import { api, ApiError } from '@/api/client'
 import CustomSelect from '@/components/CustomSelect'
@@ -10,6 +11,7 @@ type View = 'login' | '2fa' | 'forgot' | 'reset' | 'n8n' | 'n8n-setup'
 
 export function LoginPage() {
   const { login, verify2fa, requires2fa } = useAuthStore()
+  const { branding, loadBranding } = useBrandingStore()
   const { error: showError, success: showSuccess } = useToast()
 
   const [view, setView] = useState<View>('login')
@@ -22,6 +24,8 @@ export function LoginPage() {
   const [n8nInstances, setN8nInstances] = useState<PublicInstance[]>([])
   const [selectedInstance, setSelectedInstance] = useState<number | null>(null)
   const [n8nPassword, setN8nPassword] = useState('')
+
+  useEffect(() => { loadBranding() }, [loadBranding])
 
   useEffect(() => {
     api.get<PublicInstance[]>('/api/auth/instances').then((data) => {
@@ -151,9 +155,14 @@ export function LoginPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-bg">
       <div className="w-full max-w-sm bg-card border border-border rounded-lg p-8 shadow-lg">
-        <h1 className="text-xl font-semibold text-text-dark text-center mb-6">
-          n8n Library
-        </h1>
+        <div className="flex flex-col items-center mb-6">
+          {branding?.brand_logo && (
+            <img src={branding.brand_logo} alt="" className="h-12 max-w-[200px] object-contain mb-3" />
+          )}
+          <h1 className="text-xl font-semibold text-text-dark text-center">
+            {branding?.brand_name || 'n8n Library'}
+          </h1>
+        </div>
 
         {currentView === '2fa' && (
           <form onSubmit={handle2fa}>
