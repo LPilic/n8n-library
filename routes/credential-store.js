@@ -216,6 +216,28 @@ router.post('/api/credential-store/:id/provision', requireAuth, credentialLimite
     const mergedData = { ...sharedData, ...userFieldsOnly };
     const credName = (req.body.name || `${tpl.name} - ${req.user.username}`).trim();
 
+    // Fetch credential schema to fill in required fields with defaults
+    // (e.g. OAuth2 types require sendAdditionalBodyProperties, additionalBodyProperties, etc.)
+    try {
+      const schemaRes = await fetch(`${base}/api/v1/credentials/schema/${encodeURIComponent(tpl.credential_type)}`, {
+        headers: { 'X-N8N-API-KEY': inst.api_key },
+      });
+      if (schemaRes.ok) {
+        const schema = await schemaRes.json();
+        // Walk allOf / properties to find required fields with defaults
+        const allSchemas = [schema, ...(schema.allOf || [])];
+        for (const s of allSchemas) {
+          if (!s.properties) continue;
+          const required = s.required || [];
+          for (const [key, prop] of Object.entries(s.properties)) {
+            if (mergedData[key] === undefined && (required.includes(key) || prop.default !== undefined)) {
+              mergedData[key] = prop.default !== undefined ? prop.default : (prop.type === 'object' ? {} : '');
+            }
+          }
+        }
+      }
+    } catch { /* schema fetch is best-effort */ }
+
     // Create credential on n8n
     const r = await fetch(`${base}/api/v1/credentials`, {
       method: 'POST',
