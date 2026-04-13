@@ -15,16 +15,20 @@
     fa.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css';
     document.head.appendChild(fa);
   }
+
+  // Expose the library host base URL for API calls in later IIFEs
+  window.__n8nLibBaseUrl = baseUrl;
 })();
 
 // Template detail page: back button + unified info box
 (function() {
+  var LIB = window.__n8nLibBaseUrl || '';
   var lastUrl = '';
   var dataCache = {};
   var nodeCreds = null;
 
   // Fetch node credential map once
-  fetch('/api/node-creds').then(function(r) { return r.json(); }).then(function(d) {
+  fetch(LIB + '/api/node-creds').then(function(r) { return r.json(); }).then(function(d) {
     nodeCreds = d;
   }).catch(function() { nodeCreds = {}; });
 
@@ -243,6 +247,7 @@
 
 // Support ticket widget — floating button + modal
 (function() {
+  var LIB = window.__n8nLibBaseUrl || '';
   var ticketCategories = [];
   var n8nUser = null;
 
@@ -279,7 +284,7 @@
     observer.observe(document.body, { childList: true, subtree: true });
 
     // Fetch categories
-    fetch('/api/public/ticket-categories')
+    fetch(LIB + '/api/public/ticket-categories')
       .then(function(r) { return r.json(); })
       .then(function(d) { ticketCategories = d; })
       .catch(function() {});
@@ -413,7 +418,7 @@
       // Show uploading preview
       var preview = addImagePreview(file.name, null, true);
 
-      fetch('/api/public/ticket-image', {
+      fetch(LIB + '/api/public/ticket-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: base64 })
@@ -604,7 +609,7 @@
     btn.disabled = true;
     btn.textContent = 'Submitting...';
 
-    fetch('/api/public/ticket', {
+    fetch(LIB + '/api/public/ticket', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
