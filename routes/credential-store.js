@@ -237,21 +237,20 @@ router.post('/api/credential-store/:id/provision', requireAuth, credentialLimite
         }
         const allSchemas = collectSchemas(schema);
 
-        // Also collect the set of all allowed property names to strip extras
+        // Collect all allowed property names and fill in ALL missing ones.
+        // n8n's allOf validation requires every declared property to be present,
+        // even if not listed in the top-level "required" array.
         const allowedKeys = new Set();
         for (const s of allSchemas) {
           if (!s.properties) continue;
-          const required = s.required || [];
           for (const [key, prop] of Object.entries(s.properties)) {
             allowedKeys.add(key);
             if (mergedData[key] === undefined) {
-              if (required.includes(key) || prop.default !== undefined) {
-                mergedData[key] = prop.default !== undefined ? prop.default
-                  : prop.type === 'object' ? {}
-                  : prop.type === 'boolean' ? false
-                  : prop.type === 'number' ? 0
-                  : '';
-              }
+              mergedData[key] = prop.default !== undefined ? prop.default
+                : prop.type === 'object' ? {}
+                : prop.type === 'boolean' ? false
+                : prop.type === 'number' ? 0
+                : '';
             }
           }
         }
