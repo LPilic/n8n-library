@@ -1,9 +1,9 @@
-import { useState, useMemo, useRef, useCallback } from 'react'
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import { useToast } from '@/hooks/useToast'
 import { esc, timeAgo, cn } from '@/lib/utils'
-import { Search, ChevronLeft, ChevronRight, Sparkles, FileText, Loader2 } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, Sparkles, FileText, Loader2, X, Tag, ChevronDown } from 'lucide-react'
 import { NodeFlow } from '@/components/NodeFlow'
 import { PreviewModal, N8nDemoPreview } from '@/components/PreviewModal'
 import { DocsModal } from '@/components/DocsModal'
@@ -20,6 +20,11 @@ interface N8nNode {
   position?: number[]
 }
 
+interface N8nTag {
+  id: string
+  name: string
+}
+
 interface N8nWorkflowFull {
   id: string
   name: string
@@ -30,6 +35,9 @@ interface N8nWorkflowFull {
   pinData?: Record<string, unknown>
   updatedAt?: string
   createdAt?: string
+  tags?: N8nTag[]
+  ownerName?: string
+  ownerProjectId?: string
 }
 
 interface N8nWorkflowLight {
@@ -39,6 +47,10 @@ interface N8nWorkflowLight {
   nodeCount: number
   nodePreview: N8nNode[]
   updatedAt?: string
+  tagIds: string[]
+  tagNames: string[]
+  ownerId?: string
+  ownerName?: string
 }
 
 interface Category {
@@ -215,10 +227,22 @@ function WorkflowCard({
           {workflow.active ? '\u25CF Active' : '\u25CB Inactive'}
         </span>
       </div>
-      <div className="text-[12px] text-text-muted mb-3">
+      <div className="text-[12px] text-text-muted mb-1.5">
         {workflow.nodeCount} node{workflow.nodeCount !== 1 ? 's' : ''}
         {workflow.updatedAt && <> &middot; Updated {timeAgo(workflow.updatedAt)}</>}
       </div>
+      {workflow.tagNames.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-2">
+          {workflow.tagNames.slice(0, 3).map((tag) => (
+            <span key={tag} className="text-[10px] px-1.5 py-0.5 bg-bg border border-border-light rounded text-text-muted">
+              {tag}
+            </span>
+          ))}
+          {workflow.tagNames.length > 3 && (
+            <span className="text-[10px] text-text-xmuted">+{workflow.tagNames.length - 3}</span>
+          )}
+        </div>
+      )}
       <div className="flex items-center gap-1.5 flex-wrap pt-3 mt-auto border-t border-border-light">
         <button onClick={onImport}
           className="text-[12px] font-semibold px-2.5 py-[5px] bg-success text-white rounded-md hover:bg-success/90 transition-colors">
@@ -243,6 +267,56 @@ function WorkflowCard({
   )
 }
 
+// --- Tags Dropdown ---
+
+function TagsDropdown({ tags, selected, onChange }: {
+  tags: { id: string; name: string }[]
+  selected: string[]
+  onChange: (ids: string[]) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  function toggle(id: string) {
+    onChange(selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id])
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      <button onClick={() => setOpen(!open)}
+        className={cn('text-[12px] font-semibold px-2.5 py-[5px] rounded-md border flex items-center gap-1.5',
+          selected.length > 0
+            ? 'border-primary bg-primary/10 text-primary'
+            : 'border-input-border bg-input-bg text-text-dark hover:bg-card-hover')}>
+        <Tag size={12} />
+        Tags{selected.length > 0 && ` (${selected.length})`}
+        <ChevronDown size={10} />
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 w-56 max-h-60 overflow-y-auto bg-bg-light border border-border rounded-md shadow-lg z-50 py-1">
+          {tags.map((t) => (
+            <label key={t.id}
+              className="flex items-center gap-2 px-3 py-1.5 hover:bg-card-hover cursor-pointer text-xs text-text-dark">
+              <input type="checkbox" checked={selected.includes(t.id)}
+                onChange={() => toggle(t.id)}
+                className="rounded border-border" />
+              {t.name}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // --- Main Page ---
 
 const PAGE_SIZE = 20
@@ -252,8 +326,12 @@ export function N8nWorkflowsPage() {
   const queryClient = useQueryClient()
   const iUrl = useInstanceStore((s) => s.url)
   const activeInstanceId = useInstanceStore((s) => s.activeId)
+  const instanceLoaded = useInstanceStore((s) => s.loaded)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [selectedOwner, setSelectedOwner] = useState<string>('')
   const [importingWf, setImportingWf] = useState<N8nWorkflowFull | null>(null)
   const [previewWf, setPreviewWf] = useState<{ title: string; data: { nodes: unknown[]; connections: unknown } } | null>(null)
   const [renamingId, setRenamingId] = useState<string | null>(null)
@@ -284,8 +362,13 @@ export function N8nWorkflowsPage() {
           group: n.group, position: n.position,
         })),
         updatedAt: w.updatedAt,
+        tagIds: (w.tags || []).map(t => String(t.id)),
+        tagNames: (w.tags || []).map(t => t.name),
+        ownerId: w.ownerProjectId || undefined,
+        ownerName: w.ownerName || undefined,
       }))
     },
+    enabled: instanceLoaded && !!activeInstanceId,
     staleTime: 60_000,
   })
 
@@ -333,11 +416,47 @@ export function N8nWorkflowsPage() {
     setDocsTarget({ name, nodes: wf.nodes || [], connections: wf.connections || {} })
   }
 
+  const availableTags = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const w of workflows) {
+      for (let i = 0; i < w.tagIds.length; i++) {
+        map.set(w.tagIds[i], w.tagNames[i])
+      }
+    }
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [workflows])
+
+  const availableOwners = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const w of workflows) {
+      if (w.ownerId && w.ownerName) map.set(w.ownerId, w.ownerName)
+    }
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [workflows])
+
+  const activeFilterCount = (statusFilter !== 'all' ? 1 : 0) + (selectedTags.length > 0 ? 1 : 0) + (selectedOwner ? 1 : 0)
+
+  function clearAllFilters() {
+    setStatusFilter('all')
+    setSelectedTags([])
+    setSelectedOwner('')
+    setPage(1)
+  }
+
   const filtered = useMemo(() => {
+    let list = workflows
     const q = search.trim().toLowerCase()
-    if (!q) return workflows
-    return workflows.filter((w) => w.name.toLowerCase().includes(q))
-  }, [workflows, search])
+    if (q) list = list.filter((w) => w.name.toLowerCase().includes(q))
+    if (statusFilter === 'active') list = list.filter((w) => w.active)
+    if (statusFilter === 'inactive') list = list.filter((w) => !w.active)
+    if (selectedTags.length > 0) list = list.filter((w) => selectedTags.every((t) => w.tagIds.includes(t)))
+    if (selectedOwner) list = list.filter((w) => w.ownerId === selectedOwner)
+    return list
+  }, [workflows, search, statusFilter, selectedTags, selectedOwner])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
@@ -354,15 +473,65 @@ export function N8nWorkflowsPage() {
         </div>
         <span className="text-sm text-text-muted">
           {filtered.length} workflow{filtered.length !== 1 ? 's' : ''}
+          {activeFilterCount > 0 && workflows.length !== filtered.length && (
+            <> of {workflows.length}</>
+          )}
         </span>
       </div>
+
+      {/* Filter bar */}
+      {!isLoading && workflows.length > 0 && (
+        <div className="flex items-center gap-3 mb-4 flex-wrap">
+          {/* Status button group */}
+          <div className="flex items-center gap-1">
+            {(['all', 'active', 'inactive'] as const).map((f) => (
+              <button key={f} onClick={() => { setStatusFilter(f); setPage(1) }}
+                className={cn('text-[12px] font-semibold px-2.5 py-[5px] rounded-md border capitalize',
+                  statusFilter === f
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-input-border bg-input-bg text-text-dark hover:bg-card-hover')}>
+                {f}
+              </button>
+            ))}
+          </div>
+
+          {/* Tags dropdown */}
+          {availableTags.length > 0 && (
+            <TagsDropdown
+              tags={availableTags}
+              selected={selectedTags}
+              onChange={(ids) => { setSelectedTags(ids); setPage(1) }}
+            />
+          )}
+
+          {/* Owner select */}
+          {availableOwners.length > 0 && (
+            <select value={selectedOwner}
+              onChange={(e) => { setSelectedOwner(e.target.value); setPage(1) }}
+              className="text-xs px-2 py-1.5 border border-input-border rounded-md bg-input-bg text-text-dark max-w-[200px]">
+              <option value="">All Owners</option>
+              {availableOwners.map((o) => (
+                <option key={o.id} value={o.id}>{o.name}</option>
+              ))}
+            </select>
+          )}
+
+          {/* Clear all */}
+          {activeFilterCount > 0 && (
+            <button onClick={clearAllFilters}
+              className="text-[12px] font-semibold px-2 py-1 text-text-muted hover:text-text-dark flex items-center gap-1">
+              <X size={12} /> Clear filters
+            </button>
+          )}
+        </div>
+      )}
 
       {isLoading ? (
         <div className="text-text-muted text-sm">Loading workflows...</div>
       ) : paged.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-text-muted">No workflows found</p>
-          {search && <p className="text-xs text-text-xmuted mt-1">Try a different search term</p>}
+          {(search || activeFilterCount > 0) && <p className="text-xs text-text-xmuted mt-1">Try adjusting your search or filters</p>}
         </div>
       ) : (
         <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', maxWidth: '1600px' }}>
