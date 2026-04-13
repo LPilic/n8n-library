@@ -38,6 +38,7 @@ import {
   Search,
   MoreHorizontal,
   Users as UsersIcon,
+  Package,
   type LucideProps,
 } from 'lucide-react'
 
@@ -54,7 +55,8 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/library', label: 'Library', icon: Library, section: 'main' },
   { path: '/n8n', label: 'n8n Workflows', icon: Zap, section: 'main' },
   { path: '/monitoring', label: 'Monitoring', icon: Activity, minRole: 'editor', section: 'operations' },
-  { path: '/observability', label: 'Observability', icon: BarChart3, minRole: 'editor', section: 'operations' },
+  { path: '/observability', label: 'Observability', icon: BarChart3, minRole: 'admin', section: 'operations' },
+  { path: '/credential-store', label: 'Credential Store', icon: Package, minRole: 'editor', section: 'operations' },
   { path: '/tickets', label: 'Service Desk', icon: Ticket, section: 'content' },
   { path: '/kb', label: 'Knowledge Base', icon: BookOpen, section: 'content' },
   { path: '/prompts', label: 'Prompts', icon: MessageSquareText, section: 'content' },

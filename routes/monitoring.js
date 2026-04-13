@@ -39,7 +39,7 @@ async function getInstanceBase(req) {
   return { base: inst.internal_url.replace(/\/+$/, ''), key: inst.api_key || '', inst };
 }
 
-router.get('/api/monitoring/metrics', requireRole('admin', 'editor'), async (req, res) => {
+router.get('/api/monitoring/metrics', requireRole('admin'), async (req, res) => {
   try {
     const cfg = await getInstanceBase(req);
     if (!cfg) return res.status(400).json({ error: 'No n8n instance configured' });
@@ -118,7 +118,7 @@ async function startAllMetricsCollectors() {
 // Delayed start to let DB connection initialize
 setTimeout(startAllMetricsCollectors, 3000);
 
-router.get('/api/monitoring/metrics/history', requireRole('admin', 'editor'), async (req, res) => {
+router.get('/api/monitoring/metrics/history', requireRole('admin'), async (req, res) => {
   const instId = req.query.instance_id;
   const inst = await getInstanceConfig(instId);
   const store = getMetricsHistory(inst ? inst.id : 'default');
@@ -444,7 +444,7 @@ function startMonitoringPush() {
 startMonitoringPush();
 
 // Workers status — polls configured worker URLs for health + metrics
-router.get('/api/monitoring/workers', requireRole('admin', 'editor'), async (req, res) => {
+router.get('/api/monitoring/workers', requireRole('admin'), async (req, res) => {
   try {
     const inst = await getInstanceConfig(req.query.instance_id);
     if (!inst) return res.json([]);

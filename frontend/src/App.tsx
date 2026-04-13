@@ -22,7 +22,7 @@ import { UsersPage } from '@/features/users'
 import { SettingsPage } from '@/features/settings'
 import { AiConfigPage } from '@/features/ai-config'
 import { N8nWorkflowsPage } from '@/features/n8n-workflows'
-import { CredentialsPage } from '@/features/credentials'
+import { CredentialsPage, CredentialStoreTab as CredentialStorePage } from '@/features/credentials'
 import { ApprovalsPage, ApprovalsBuilderPage } from '@/features/approvals'
 
 const queryClient = new QueryClient({
@@ -77,6 +77,7 @@ export default function App() {
               <Route path="prompts" element={<PromptsPage />} />
               <Route path="prompts/:slug" element={<PromptDetailPage />} />
               <Route path="credentials" element={<CredentialsPage />} />
+              <Route path="credential-store" element={<CredentialStorePage />} />
               <Route path="approvals" element={<ApprovalsPage />} />
               <Route path="approvals-builder" element={<ApprovalsBuilderPage />} />
               <Route path="settings/*" element={<SettingsPage />} />

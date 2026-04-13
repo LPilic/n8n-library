@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import { useToast } from '@/hooks/useToast'
+import { useAuthStore } from '@/stores/auth'
 import { esc, timeAgo, cn } from '@/lib/utils'
 import { useInstanceStore } from '@/stores/instance'
 import {
@@ -864,9 +865,10 @@ function CredentialsTab() {
 
 // ─── Credential Store Tab ─────────────────────────────────────────────────────
 
-function CredentialStoreTab() {
+export function CredentialStoreTab() {
   const { error: showError, success: showSuccess } = useToast()
   const queryClient = useQueryClient()
+  const isAdmin = useAuthStore((s) => s.user?.role === 'admin')
   const [provisionTarget, setProvisionTarget] = useState<StoreTemplate | null>(null)
 
   const { data: templates = [], isLoading } = useQuery({
@@ -898,10 +900,12 @@ function CredentialStoreTab() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs font-semibold text-text-muted uppercase">Available Templates</h3>
-          <button onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover">
-            <Plus size={12} /> New Template
-          </button>
+          {isAdmin && (
+            <button onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover">
+              <Plus size={12} /> New Template
+            </button>
+          )}
         </div>
         {isLoading ? (
           <div className="text-text-muted text-sm">Loading templates...</div>
@@ -927,15 +931,17 @@ function CredentialStoreTab() {
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-1 shrink-0">
-                    <button
-                      onClick={() => { if (confirm(`Delete template "${tpl.name}"?`)) deleteMut.mutate(tpl.id) }}
-                      className="p-1 text-text-xmuted hover:text-danger rounded-sm"
-                      title="Delete template"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
+                  {isAdmin && (
+                    <div className="flex gap-1 shrink-0">
+                      <button
+                        onClick={() => { if (confirm(`Delete template "${tpl.name}"?`)) deleteMut.mutate(tpl.id) }}
+                        className="p-1 text-text-xmuted hover:text-danger rounded-sm"
+                        title="Delete template"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {tpl.description && (
