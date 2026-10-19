@@ -26,8 +26,16 @@ services:
       # Application
       PORT: 3100
       SESSION_SECRET: change-me-to-a-long-random-string-at-least-32-chars
+      # Required. Generate once with: openssl rand -hex 32
+      CREDENTIAL_ENCRYPTION_KEY: "${CREDENTIAL_ENCRYPTION_KEY:?Set CREDENTIAL_ENCRYPTION_KEY to 64 hex chars}"
       APP_URL: http://localhost:3100
       # NODE_ENV: production
+
+      # Optional outbound signing / private-network overrides
+      # WEBHOOK_SIGNING_SECRET: ${WEBHOOK_SIGNING_SECRET:-}
+      # HITL_CALLBACK_SECRET: ${HITL_CALLBACK_SECRET:-}
+      # WEBHOOK_ALLOW_PRIVATE: "false"
+      # HITL_ALLOW_PRIVATE_CALLBACKS: "false"
 
       # n8n connection (optional — can be configured in the UI)
       # N8N_INTERNAL_URL: http://your-n8n-host:5678

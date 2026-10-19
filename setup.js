@@ -47,8 +47,9 @@ app.post('/setup/test-db', async (req, res) => {
 app.post('/setup/install', async (req, res) => {
   const c = req.body;
   try {
-    // 1. Generate session secret
+    // 1. Generate persistent secrets
     const sessionSecret = crypto.randomBytes(32).toString('hex');
+    const credentialEncryptionKey = crypto.randomBytes(32).toString('hex');
 
     // 2. Build .env content
     let env = '';
@@ -63,6 +64,7 @@ app.post('/setup/install', async (req, res) => {
     env += `\n# Application\n`;
     env += `PORT=${c.app_port || 3100}\n`;
     env += `SESSION_SECRET=${sessionSecret}\n`;
+    env += `CREDENTIAL_ENCRYPTION_KEY=${credentialEncryptionKey}\n`;
     env += `APP_URL=${c.app_url || 'http://localhost:3100'}\n`;
     if (c.node_env) env += `NODE_ENV=${c.node_env}\n`;
     env += `\n# n8n Instance\n`;
@@ -89,6 +91,7 @@ app.post('/setup/install', async (req, res) => {
     process.env.DB_POSTGRESDB_DATABASE = c.db_database;
     process.env.DB_POSTGRESDB_SCHEMA = c.db_schema || 'public';
     process.env.SESSION_SECRET = sessionSecret;
+    process.env.CREDENTIAL_ENCRYPTION_KEY = credentialEncryptionKey;
     process.env.N8N_INTERNAL_URL = c.n8n_url || '';
     process.env.N8N_API_KEY = c.n8n_api_key || '';
 

@@ -69,19 +69,33 @@ if (!SESSION_SECRET || SESSION_SECRET === 'dev-secret-change-me' || SESSION_SECR
 
 // --- Credential Encryption Key ---
 if (!process.env.CREDENTIAL_ENCRYPTION_KEY || process.env.CREDENTIAL_ENCRYPTION_KEY.length < 64) {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('FATAL: CREDENTIAL_ENCRYPTION_KEY is required in production (64 hex chars = 32 bytes).');
+    console.error('Generate one with: openssl rand -hex 32');
+    process.exit(1);
+  }
   const generated = crypto.randomBytes(32).toString('hex');
-  console.warn('WARNING: CREDENTIAL_ENCRYPTION_KEY is missing or too short. Generating random key. Set CREDENTIAL_ENCRYPTION_KEY env var (64 hex chars) for persistent credential store encryption.');
+  console.warn('WARNING: CREDENTIAL_ENCRYPTION_KEY is missing or too short. Generating an ephemeral key for this process. Stored credentials will be unreadable after restart. Set CREDENTIAL_ENCRYPTION_KEY (64 hex chars).');
   process.env.CREDENTIAL_ENCRYPTION_KEY = generated;
 }
 
-// Encrypt any plaintext API keys in database (one-time migration)
+// Migrate legacy plaintext API keys. Never re-encrypt a value that looks like
+// ciphertext: a decrypt failure means the key changed or the data is corrupt,
+// and encrypting it again would make it permanently unreadable.
 (async () => {
   try {
     const { encrypt, decrypt } = require('./lib/crypto');
     const dbPool = require('./db');
     const { rows } = await dbPool.query("SELECT id, api_key FROM n8n_instances WHERE api_key IS NOT NULL AND api_key != ''");
     for (const inst of rows) {
-      try { decrypt(inst.api_key); } catch {
+      try {
+        decrypt(inst.api_key);
+      } catch {
+        const looksLikeCiphertext = /^[A-Za-z0-9+/]{40,}={0,2}$/.test(inst.api_key);
+        if (looksLikeCiphertext) {
+          console.warn(`Instance #${inst.id} API key cannot be decrypted with the current CREDENTIAL_ENCRYPTION_KEY; leaving it unchanged. Re-enter the key in Settings.`);
+          continue;
+        }
         const encrypted = encrypt(inst.api_key);
         await dbPool.query('UPDATE n8n_instances SET api_key = $1 WHERE id = $2', [encrypted, inst.id]);
         console.log(`Encrypted API key for instance #${inst.id}`);
