@@ -445,6 +445,7 @@ router.post('/api/n8n-proxy', requireRole('admin', 'editor'), async (req, res) =
     const fetchOpts = {
       method: fetchMethod,
       headers: { 'X-N8N-API-KEY': apiKey, 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(30000),
     };
     if (proxyBody && fetchMethod !== 'GET') {
       fetchOpts.headers['Content-Type'] = 'application/json';

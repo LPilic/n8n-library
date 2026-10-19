@@ -131,6 +131,7 @@ router.post('/api/security/audit', requireRole('admin'), async (req, res) => {
       method: 'POST',
       headers: { 'X-N8N-API-KEY': cfg.key, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(60000),
     });
     if (!r.ok) {
       const errBody = await r.text();

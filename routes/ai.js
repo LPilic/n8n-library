@@ -18,6 +18,7 @@ router.post('/api/ai/models', requireRole('admin'), async (req, res) => {
       if (!api_key) return res.status(400).json({ error: 'API key required for Gemini' });
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?pageSize=100`, {
         headers: { 'x-goog-api-key': api_key },
+        signal: AbortSignal.timeout(30000),
       });
       if (!r.ok) throw new Error('Gemini API error: ' + r.status);
       const data = await r.json();
@@ -28,7 +29,7 @@ router.post('/api/ai/models', requireRole('admin'), async (req, res) => {
       if (!api_key) return res.status(400).json({ error: 'API key required for OpenAI' });
       if (base_url && !validateExternalUrl(base_url)) return res.status(400).json({ error: 'Invalid base URL' });
       const endpoint = (base_url || 'https://api.openai.com').replace(/\/+$/, '') + '/v1/models';
-      const r = await fetch(endpoint, { headers: { Authorization: `Bearer ${api_key}` } });
+      const r = await fetch(endpoint, { headers: { Authorization: `Bearer ${api_key}` }, signal: AbortSignal.timeout(30000) });
       if (!r.ok) throw new Error('OpenAI API error: ' + r.status);
       const data = await r.json();
       models = (data.data || [])
@@ -39,6 +40,7 @@ router.post('/api/ai/models', requireRole('admin'), async (req, res) => {
       if (!api_key) return res.status(400).json({ error: 'API key required for Groq' });
       const r = await fetch('https://api.groq.com/openai/v1/models', {
         headers: { Authorization: `Bearer ${api_key}` },
+        signal: AbortSignal.timeout(30000),
       });
       if (!r.ok) throw new Error('Groq API error: ' + r.status);
       const data = await r.json();
@@ -54,6 +56,7 @@ router.post('/api/ai/models', requireRole('admin'), async (req, res) => {
         const url = 'https://api.anthropic.com/v1/models?limit=100' + (afterId ? '&after_id=' + encodeURIComponent(afterId) : '');
         const r = await fetch(url, {
           headers: { 'x-api-key': api_key, 'anthropic-version': '2023-06-01' },
+          signal: AbortSignal.timeout(30000),
         });
         if (!r.ok) throw new Error('Anthropic API error: ' + r.status);
         const data = await r.json();
@@ -67,7 +70,7 @@ router.post('/api/ai/models', requireRole('admin'), async (req, res) => {
     } else if (provider === 'ollama') {
       // Ollama is a local service, allow localhost for this provider only
       const endpoint = (base_url || 'http://localhost:11434').replace(/\/+$/, '') + '/api/tags';
-      const r = await fetch(endpoint);
+      const r = await fetch(endpoint, { signal: AbortSignal.timeout(10000) });
       if (!r.ok) throw new Error('Ollama API error: ' + r.status);
       const data = await r.json();
       models = (data.models || []).map(m => ({ id: m.name, name: m.name }));

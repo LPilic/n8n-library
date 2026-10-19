@@ -18,6 +18,7 @@ router.get('/api/variables', requireRole('admin', 'editor'), async (req, res) =>
     if (!cfg) return res.status(400).json({ error: 'No n8n instance configured' });
     const r = await fetch(`${cfg.base}/api/v1/variables?limit=100`, {
       headers: { 'X-N8N-API-KEY': cfg.key },
+      signal: AbortSignal.timeout(30000),
     });
     if (!r.ok) return res.status(r.status).json({ error: 'Failed to fetch variables' });
     const data = await r.json();
@@ -39,6 +40,7 @@ router.post('/api/variables', requireRole('admin'), async (req, res) => {
       method: 'POST',
       headers: { 'X-N8N-API-KEY': cfg.key, 'Content-Type': 'application/json' },
       body: JSON.stringify({ key: key.trim(), value: value || '' }),
+      signal: AbortSignal.timeout(30000),
     });
     if (!r.ok) {
       const errBody = await r.text();
@@ -63,6 +65,7 @@ router.put('/api/variables/:id', requireRole('admin'), async (req, res) => {
       method: 'PUT',
       headers: { 'X-N8N-API-KEY': cfg.key, 'Content-Type': 'application/json' },
       body: JSON.stringify({ key: key.trim(), value: value || '' }),
+      signal: AbortSignal.timeout(30000),
     });
     if (!r.ok) {
       const errBody = await r.text();
@@ -83,6 +86,7 @@ router.delete('/api/variables/:id', requireRole('admin'), async (req, res) => {
     const r = await fetch(`${cfg.base}/api/v1/variables/${encodeURIComponent(req.params.id)}`, {
       method: 'DELETE',
       headers: { 'X-N8N-API-KEY': cfg.key },
+      signal: AbortSignal.timeout(30000),
     });
     if (!r.ok) {
       const errBody = await r.text();

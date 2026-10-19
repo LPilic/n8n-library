@@ -222,6 +222,7 @@ router.post('/api/credential-store/:id/provision', requireAuth, credentialLimite
     try {
       const schemaRes = await fetch(`${base}/api/v1/credentials/schema/${encodeURIComponent(tpl.credential_type)}`, {
         headers: { 'X-N8N-API-KEY': inst.api_key },
+        signal: AbortSignal.timeout(30000),
       });
       if (schemaRes.ok) {
         const schema = await schemaRes.json();
@@ -281,6 +282,7 @@ router.post('/api/credential-store/:id/provision', requireAuth, credentialLimite
       method: 'POST',
       headers: { 'X-N8N-API-KEY': inst.api_key, 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: credName, type: tpl.credential_type, data: mergedData }),
+      signal: AbortSignal.timeout(30000),
     });
     if (!r.ok) {
       const errBody = await r.text();

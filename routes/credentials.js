@@ -27,7 +27,7 @@ router.get('/api/credentials', requireRole('admin'), async (req, res) => {
       const url = cursor
         ? `${cfg.base}/api/v1/credentials?limit=100&cursor=${cursor}`
         : `${cfg.base}/api/v1/credentials?limit=100`;
-      const r = await fetch(url, { headers: { 'X-N8N-API-KEY': cfg.key } });
+      const r = await fetch(url, { headers: { 'X-N8N-API-KEY': cfg.key }, signal: AbortSignal.timeout(30000) });
       if (!r.ok) return res.status(r.status).json({ error: 'Failed to fetch credentials' });
       const data = await r.json();
       allCreds.push(...(data.data || []));
@@ -61,6 +61,7 @@ router.get('/api/credentials/projects', requireRole('admin'), async (req, res) =
     if (!cfg) return res.status(400).json({ error: 'No n8n instance configured' });
     const r = await fetch(`${cfg.base}/api/v1/projects?limit=100`, {
       headers: { 'X-N8N-API-KEY': cfg.key },
+      signal: AbortSignal.timeout(30000),
     });
     if (!r.ok) return res.status(r.status).json({ error: 'Failed to fetch projects' });
     const data = await r.json();
@@ -77,6 +78,7 @@ router.get('/api/credentials/schema/:typeName', requireRole('admin'), async (req
     if (!cfg) return res.status(400).json({ error: 'No n8n instance configured' });
     const r = await fetch(`${cfg.base}/api/v1/credentials/schema/${encodeURIComponent(req.params.typeName)}`, {
       headers: { 'X-N8N-API-KEY': cfg.key },
+      signal: AbortSignal.timeout(30000),
     });
     if (!r.ok) return res.status(r.status).json({ error: 'Schema not found' });
     const data = await r.json();
@@ -97,6 +99,7 @@ router.post('/api/credentials', requireRole('admin'), credentialLimiter, async (
       method: 'POST',
       headers: { 'X-N8N-API-KEY': cfg.key, 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, type, data }),
+      signal: AbortSignal.timeout(30000),
     });
     if (!r.ok) {
       const errBody = await r.text();
@@ -130,6 +133,7 @@ router.patch('/api/credentials/:id', requireRole('admin'), credentialLimiter, as
       method: 'PATCH',
       headers: { 'X-N8N-API-KEY': cfg.key, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(30000),
     });
     if (!r.ok) {
       const errBody = await r.text();
@@ -158,6 +162,7 @@ router.delete('/api/credentials/:id', requireRole('admin'), credentialLimiter, a
     const r = await fetch(`${cfg.base}/api/v1/credentials/${encodeURIComponent(req.params.id)}`, {
       method: 'DELETE',
       headers: { 'X-N8N-API-KEY': cfg.key },
+      signal: AbortSignal.timeout(30000),
     });
     if (!r.ok) {
       const errBody = await r.text();
@@ -187,6 +192,7 @@ router.put('/api/credentials/:id/transfer', requireRole('admin'), credentialLimi
       method: 'PUT',
       headers: { 'X-N8N-API-KEY': cfg.key, 'Content-Type': 'application/json' },
       body: JSON.stringify({ destinationProjectId }),
+      signal: AbortSignal.timeout(30000),
     });
     if (!r.ok) {
       const errBody = await r.text();

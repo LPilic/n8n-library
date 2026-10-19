@@ -171,6 +171,7 @@ router.post('/api/monitoring/workflows/:id/activate', requireRole('admin', 'edit
       method: 'POST',
       headers: { 'X-N8N-API-KEY': cfg.key, 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
+      signal: AbortSignal.timeout(30000),
     });
     if (!r.ok) {
       const errBody = await r.text();
@@ -235,6 +236,7 @@ router.post('/api/monitoring/executions/:id/retry', requireRole('admin', 'editor
       method: 'POST',
       headers: { 'X-N8N-API-KEY': cfg.key, 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
+      signal: AbortSignal.timeout(30000),
     });
     if (!r.ok) {
       const errBody = await r.text();
@@ -256,6 +258,7 @@ router.post('/api/monitoring/executions/:id/stop', requireRole('admin', 'editor'
     const r = await fetch(`${cfg.base}/api/v1/executions/${encodeURIComponent(req.params.id)}/stop`, {
       method: 'POST',
       headers: { 'X-N8N-API-KEY': cfg.key, 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(30000),
     });
     if (!r.ok) {
       const errBody = await r.text();
@@ -282,6 +285,7 @@ router.post('/api/monitoring/executions/stop', requireRole('admin', 'editor'), a
         const r = await fetch(`${cfg.base}/api/v1/executions/${encodeURIComponent(id)}/stop`, {
           method: 'POST',
           headers: { 'X-N8N-API-KEY': cfg.key, 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(30000),
         });
         results.push({ id, ok: r.ok, status: r.status });
       } catch (e) {

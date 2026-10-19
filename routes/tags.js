@@ -18,6 +18,7 @@ router.get('/api/tags', requireRole('admin', 'editor'), async (req, res) => {
     if (!cfg) return res.status(400).json({ error: 'No n8n instance configured' });
     const r = await fetch(`${cfg.base}/api/v1/tags?limit=100`, {
       headers: { 'X-N8N-API-KEY': cfg.key },
+      signal: AbortSignal.timeout(30000),
     });
     if (!r.ok) return res.status(r.status).json({ error: 'Failed to fetch tags' });
     const data = await r.json();
@@ -39,6 +40,7 @@ router.post('/api/tags', requireRole('admin'), async (req, res) => {
       method: 'POST',
       headers: { 'X-N8N-API-KEY': cfg.key, 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: name.trim() }),
+      signal: AbortSignal.timeout(30000),
     });
     if (!r.ok) {
       const errBody = await r.text();
@@ -63,6 +65,7 @@ router.put('/api/tags/:id', requireRole('admin'), async (req, res) => {
       method: 'PUT',
       headers: { 'X-N8N-API-KEY': cfg.key, 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: name.trim() }),
+      signal: AbortSignal.timeout(30000),
     });
     if (!r.ok) {
       const errBody = await r.text();
@@ -84,6 +87,7 @@ router.delete('/api/tags/:id', requireRole('admin'), async (req, res) => {
     const r = await fetch(`${cfg.base}/api/v1/tags/${encodeURIComponent(req.params.id)}`, {
       method: 'DELETE',
       headers: { 'X-N8N-API-KEY': cfg.key },
+      signal: AbortSignal.timeout(30000),
     });
     if (!r.ok) {
       const errBody = await r.text();
@@ -103,6 +107,7 @@ router.get('/api/tags/workflow/:workflowId', requireRole('admin', 'editor'), asy
     if (!cfg) return res.status(400).json({ error: 'No n8n instance configured' });
     const r = await fetch(`${cfg.base}/api/v1/workflows/${encodeURIComponent(req.params.workflowId)}/tags`, {
       headers: { 'X-N8N-API-KEY': cfg.key },
+      signal: AbortSignal.timeout(30000),
     });
     if (!r.ok) return res.status(r.status).json({ error: 'Failed to fetch workflow tags' });
     const data = await r.json();
@@ -123,6 +128,7 @@ router.put('/api/tags/workflow/:workflowId', requireRole('admin', 'editor'), asy
       method: 'PUT',
       headers: { 'X-N8N-API-KEY': cfg.key, 'Content-Type': 'application/json' },
       body: JSON.stringify(tagIds.map(id => ({ id }))),
+      signal: AbortSignal.timeout(30000),
     });
     if (!r.ok) {
       const errBody = await r.text();
