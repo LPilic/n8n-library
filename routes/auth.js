@@ -11,6 +11,23 @@ const QRCode = require('qrcode');
 
 const router = express.Router();
 
+// Return a response descriptor when the account requires a TOTP code.
+// Returns null when 2FA is not enabled or the supplied code is valid.
+function checkTotp(user, req) {
+  if (!user.totp_enabled || !user.totp_secret) return null;
+  const token = req.body?.totp_token;
+  if (!token) return { status: 200, body: { requires_2fa: true, message: 'TOTP token required' } };
+  if (!authenticator.check(token, user.totp_secret)) {
+    return { status: 401, body: { error: 'Invalid 2FA code' } };
+  }
+  return null;
+}
+
+// Implicit account creation/claiming is opt-in for trusted deployments.
+function autoProvisionEnabled() {
+  return process.env.N8N_LOGIN_AUTO_PROVISION === 'true';
+}
+
 // Login
 router.post('/api/auth/login', authLimiter, async (req, res) => {
   try {
@@ -23,14 +40,8 @@ router.post('/api/auth/login', authLimiter, async (req, res) => {
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
     // Check if 2FA is enabled
-    if (user.totp_enabled && user.totp_secret) {
-      const { totp_token } = req.body;
-      if (!totp_token) {
-        return res.status(200).json({ requires_2fa: true, message: 'TOTP token required' });
-      }
-      const isValid = authenticator.check(totp_token, user.totp_secret);
-      if (!isValid) return res.status(401).json({ error: 'Invalid 2FA code' });
-    }
+    const totpFailure = checkTotp(user, req);
+    if (totpFailure) return res.status(totpFailure.status).json(totpFailure.body);
 
     // Regenerate session to prevent session fixation
     const userData = { id: user.id, username: user.username, email: user.email, role: user.role };
@@ -241,7 +252,13 @@ router.post('/api/auth/n8n-login', authLimiter, async (req, res) => {
     );
 
     if (rows.length === 0) {
-      // Auto-create library account for this n8n user
+      if (!autoProvisionEnabled()) {
+        return res.status(403).json({
+          error: 'No library account exists for this n8n user. Ask an administrator to create or sync the account.',
+        });
+      }
+
+      // Opt-in: auto-create a viewer account for this n8n user.
       const username = n8nUser.firstName
         ? `${n8nUser.firstName} ${n8nUser.lastName || ''}`.trim()
         : email.split('@')[0];
@@ -268,12 +285,19 @@ router.post('/api/auth/n8n-login', authLimiter, async (req, res) => {
 
     const user = rows[0];
 
-    // Check if user has a real password set
+    // Synced accounts use a placeholder hash. Never let a caller claim one
+    // unless auto-provisioning has been explicitly enabled.
     if (!user.password_hash || user.password_hash === 'n8n-external') {
+      if (!autoProvisionEnabled()) {
+        return res.status(403).json({
+          error: 'This account has not been provisioned yet. Set a password via the password reset flow or ask an administrator.',
+        });
+      }
+      const totpFailure = checkTotp(user, req);
+      if (totpFailure) return res.status(totpFailure.status).json(totpFailure.body);
       if (!password) {
         return res.status(200).json({ needs_password_setup: true, message: 'Please set a password for your library account' });
       }
-      // Set the password
       const pwErr = validatePassword(password);
       if (pwErr) return res.status(400).json({ error: pwErr });
       const hash = await bcrypt.hash(password, 10);
@@ -289,6 +313,10 @@ router.post('/api/auth/n8n-login', authLimiter, async (req, res) => {
     if (!password) return res.status(400).json({ error: 'Password required' });
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid password' });
+
+    // n8n login must honour the same 2FA requirement as the normal login.
+    const totpFailure = checkTotp(user, req);
+    if (totpFailure) return res.status(totpFailure.status).json(totpFailure.body);
 
     const userData = { id: user.id, username: user.username, email: user.email, role: user.role };
     await new Promise((resolve, reject) => {
