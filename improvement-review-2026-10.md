@@ -1,7 +1,7 @@
 # n8n Library — Security & Reliability Review (October 2026)
 
-Status: **Phase 1 complete** on branch `improvement/phase-1-security`.
-Phases 2–4 are tracked but not yet implemented.
+Status: **Phases 1–3 complete** on branch `improvement/phase-1-security`.
+Phase 4 is tracked but not yet implemented.
 
 This document records the findings from a full read of the server, routes, schema,
 frontend, and deployment files, plus the results of:
@@ -160,17 +160,34 @@ docker compose build n8n-library
 docker compose up -d n8n-library
 ```
 
-## Phase 3 — Quality gate
+## Phase 3 — Quality gate (complete)
 
-- Add `node:test` + `supertest` coverage with a real PostgreSQL CI service.
-- Role-matrix tests for viewer/editor/admin/API-key requests.
-- Credential crypto restart/corruption tests.
-- HITL state-machine and SSRF tests.
-- Run `node migrate.js` twice in CI to prove idempotency.
-- Upgrade vulnerable dependencies; remove unused `http-proxy-middleware`.
-- Split `migrate.js` into versioned, transactional migrations.
-- Update `openapi.json`, README, architecture docs, and resolve the license
-  mismatch (README says private, package says AGPL-3.0-or-later).
+- [x] Add `node:test` + `supertest` coverage with a real PostgreSQL CI service
+      (`95715f5`, `b4a7f71`).
+- [x] Role-matrix tests for viewer/editor/admin/API-key requests (`95715f5`).
+- [x] Credential crypto restart/corruption tests (`95715f5`).
+- [x] HITL state-machine, assignee, SSRF, and signed-callback tests (`95715f5`).
+- [x] Run `node migrate.js` twice in CI to prove idempotency (`b4a7f71`).
+- [x] Upgrade vulnerable dependencies and remove unused
+      `http-proxy-middleware` (`eb55739`). Runtime audit is now clean; the only
+      remaining advisories are dev-only Vite/esbuild findings deferred to
+      Phase 4.
+- [x] Split `migrate.js` into versioned, transactional migrations (`82a4d68`).
+- [x] Update `openapi.json` (166 paths), README, architecture docs, and resolve
+      the license mismatch as AGPL-3.0-or-later (`fbea0a0`, `6551569`).
+- [x] Add CI syntax checks, OpenAPI drift check, tests, TypeScript/Vite build,
+      ESLint, and runtime dependency audits (`b4a7f71`, `fbea0a0`).
+
+Phase 3 validation (2026-10-19):
+
+- `npm test` passes 17/17 tests against `n8n_library_test`.
+- `node migrate.js` applied migration `001_initial_schema` once and reported
+  "already applied" on the second run.
+- `npm run build` passes in `frontend/`.
+- `npx eslint .` exits 0 with 10 non-blocking hook warnings.
+- `npm audit --omit=dev --audit-level=high` reports 0 vulnerabilities for both
+  backend and frontend runtime dependencies.
+- `npm run openapi` reports 166 paths with no missing operations.
 
 ## Phase 4 — Frontend and scale
 
