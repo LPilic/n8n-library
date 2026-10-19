@@ -1,6 +1,7 @@
 # n8n Library — Security & Reliability Review (October 2026)
 
-Status: **Phase 1 in progress** on branch `improvement/phase-1-security`.
+Status: **Phase 1 complete** on branch `improvement/phase-1-security`.
+Phases 2–4 are tracked but not yet implemented.
 
 This document records the findings from a full read of the server, routes, schema,
 frontend, and deployment files, plus the results of:
@@ -65,25 +66,28 @@ The most important risks are:
 
 ## Phase 1 — Security hotfixes
 
-- [x] Add this review to source control.
-- [ ] HITL: require `admin`/`editor`, enforce `assign_to`, validate `action`.
-- [ ] HITL/webhooks: validate callback/webhook URLs, including DNS resolution;
+- [x] Add this review to source control. (`362e278`)
+- [x] HITL: require `admin`/`editor`, enforce `assign_to`, validate `action`.
+      (`c7605e9`)
+- [x] HITL/webhooks: validate callback/webhook URLs, including DNS resolution;
       sign outbound requests with HMAC when a signing secret is configured.
-- [ ] Auth: enforce TOTP in `n8n-login`; stop implicit claiming of synced
-      placeholder accounts (opt-in auto-provision only).
-- [ ] Crypto: require and persist `CREDENTIAL_ENCRYPTION_KEY`; never re-encrypt
-      undecryptable values on startup.
-- [ ] Setup: bind to loopback, require a one-time token, validate schema names,
-      generate the encryption key, and stop returning stack traces.
-- [ ] MCP: admin-only server list/reconnect; role-gate external MCP tool calls
+      (`224d512`)
+- [x] Auth: enforce TOTP in `n8n-login`; stop implicit claiming of synced
+      placeholder accounts (opt-in auto-provision only). (`424367e`)
+- [x] Crypto: require and persist `CREDENTIAL_ENCRYPTION_KEY`; never re-encrypt
+      undecryptable values on startup. (`9adf517`)
+- [x] Setup: bind to loopback, require a one-time token, validate schema names,
+      generate the encryption key, and stop returning stack traces. (`a3093d3`)
+- [x] MCP: admin-only server list/reconnect; role-gate external MCP tool calls
       and AI tool use; per-session actor for the `/mcp` endpoint; write tools
-      require editor or admin.
-- [ ] API-key compatibility: replace `req.session.user` with `req.user` in KB
-      and AI routes.
-- [ ] Alert engine: pass the real instance ID to `n8nApiFetch`.
-- [ ] Password reset: invalidate sessions with a JSON path, not a substring
-      `LIKE`.
-- [ ] Add unit tests for URL validation, HMAC signing, and crypto round-trips.
+      require editor or admin. (`58bb7ee`)
+- [x] API-key compatibility: replace `req.session.user` with `req.user` in KB
+      and AI routes. (`676107e`)
+- [x] Alert engine: pass the real instance ID to `n8nApiFetch`. (`946e29d`)
+- [x] Password reset: invalidate sessions with a JSON path, not a substring
+      `LIKE`. (`b299362`)
+- [x] Add unit tests for URL validation, HMAC signing, and crypto round-trips.
+      (`4a96115`)
 
 ### Phase 1 verification
 
@@ -93,6 +97,16 @@ npm test
 cd frontend && npx tsc -b --pretty false
 cd frontend && npx eslint .
 ```
+
+Phase 1 validation (2026-10-19):
+
+- `node --check` passes for all server, lib, and route modules.
+- `npm test` passes 6/6 helper and crypto tests.
+- `npx tsc -b` passes in `frontend/`.
+- `npx eslint .` still reports the three pre-existing Phase 3 errors in
+  `approvals.tsx`, `credentials.tsx`, and `security.tsx`.
+- The setup server was manually verified to return 401 without the one-time
+  token and 200 with it.
 
 Manual checks:
 
