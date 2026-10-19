@@ -13,19 +13,41 @@ const app = express();
 app.use(express.json());
 
 const PORT = process.env.SETUP_PORT || 3100;
+const SETUP_HOST = process.env.SETUP_HOST || '127.0.0.1';
 const ENV_PATH = path.join(__dirname, '.env');
+const SETUP_TOKEN = crypto.randomBytes(24).toString('hex');
+
+function isValidSchema(schema) {
+  return !schema || /^[A-Za-z_][A-Za-z0-9_]*$/.test(schema);
+}
+
+// The setup wizard is a privileged, unauthenticated-by-design surface. Keep it
+// on loopback and require the one-time token printed at startup.
+function requireSetupToken(req, res, next) {
+  const supplied = req.get('x-setup-token') || req.query.token;
+  if (supplied !== SETUP_TOKEN) {
+    return res.status(401).send('Invalid or missing setup token. Open the URL printed by the setup server.');
+  }
+  next();
+}
 
 // Serve setup page
-app.get('/', (_req, res) => res.redirect('/setup'));
+app.get('/', (req, res) => {
+  const suffix = req.query.token ? '?token=' + encodeURIComponent(req.query.token) : '';
+  res.redirect('/setup' + suffix);
+});
 
-app.get('/setup', (_req, res) => {
-  res.send(SETUP_HTML);
+app.get('/setup', requireSetupToken, (_req, res) => {
+  res.send(SETUP_HTML.replace('__SETUP_TOKEN__', SETUP_TOKEN));
 });
 
 // Test database connection
-app.post('/setup/test-db', async (req, res) => {
+app.post('/setup/test-db', requireSetupToken, async (req, res) => {
   const { Pool } = require('pg');
   const { host, port, user, password, database, schema } = req.body;
+  if (!isValidSchema(schema)) {
+    return res.json({ ok: false, error: 'Invalid schema name. Use letters, digits, and underscores only.' });
+  }
   const pool = new Pool({ host, port: parseInt(port, 10) || 5432, user, password, database, connectionTimeoutMillis: 5000 });
   try {
     const client = await pool.connect();
@@ -44,9 +66,17 @@ app.post('/setup/test-db', async (req, res) => {
 });
 
 // Run full install
-app.post('/setup/install', async (req, res) => {
+app.post('/setup/install', requireSetupToken, async (req, res) => {
   const c = req.body;
   try {
+    if (!isValidSchema(c.db_schema)) {
+      return res.status(400).json({ ok: false, error: 'Invalid schema name. Use letters, digits, and underscores only.' });
+    }
+    const unsafe = Object.entries(c).find(([, v]) => typeof v === 'string' && /[\r\n]/.test(v));
+    if (unsafe) {
+      return res.status(400).json({ ok: false, error: `Invalid newline in ${unsafe[0]}` });
+    }
+
     // 1. Generate persistent secrets
     const sessionSecret = crypto.randomBytes(32).toString('hex');
     const credentialEncryptionKey = crypto.randomBytes(32).toString('hex');
@@ -135,13 +165,15 @@ app.post('/setup/install', async (req, res) => {
       nextSteps: `Stop this setup server and start the app:\n  node server.js\n\nThen open ${c.app_url || 'http://localhost:3100'} in your browser.`,
     });
   } catch (err) {
-    res.json({ ok: false, error: err.message, stack: err.stack });
+    console.error('Setup install error:', err.message);
+    res.json({ ok: false, error: 'Installation failed. Check the setup server logs for details.' });
   }
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, SETUP_HOST, () => {
   console.log(`\n  n8n-library Setup Wizard`);
-  console.log(`  Open http://localhost:${PORT}/setup in your browser\n`);
+  console.log(`  Open http://${SETUP_HOST}:${PORT}/setup?token=${SETUP_TOKEN} in your browser\n`);
+  console.log('  This URL contains a one-time setup token. Keep it private.\n');
 });
 
 // --- Inline HTML for the setup wizard ---
@@ -291,6 +323,7 @@ const SETUP_HTML = `<!DOCTYPE html>
 </div>
 
 <script>
+var SETUP_TOKEN = '__SETUP_TOKEN__';
 function val(id) { return document.getElementById(id).value.trim(); }
 function showStatus(elId, type, msg) {
   var el = document.getElementById(elId);
@@ -304,7 +337,7 @@ async function testDb() {
   try {
     var res = await fetch('/setup/test-db', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Setup-Token': SETUP_TOKEN },
       body: JSON.stringify({
         host: val('db_host'), port: val('db_port'), user: val('db_user'),
         password: val('db_password'), database: val('db_database'), schema: val('db_schema'),
@@ -334,7 +367,7 @@ async function runInstall() {
   try {
     var res = await fetch('/setup/install', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Setup-Token': SETUP_TOKEN },
       body: JSON.stringify({
         db_host: val('db_host'), db_port: val('db_port'), db_user: val('db_user'),
         db_password: val('db_password'), db_database: val('db_database'), db_schema: val('db_schema'),
