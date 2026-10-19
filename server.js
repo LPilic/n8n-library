@@ -310,26 +310,31 @@ const { createMcpServer } = require('./lib/mcp-server');
       const isInit = body?.method === 'initialize' || (Array.isArray(body) && body.some(m => m.method === 'initialize'));
 
       if (isInit) {
-        // Each MCP session gets its own server instance so tool permissions are
-        // tied to the authenticated actor rather than shared process-wide.
-        const sessionServer = await createMcpServer(req.user);
-        const transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: () => crypto.randomUUID(),
-          onsessioninitialized: (sid) => {
-            transports[sid] = transport;
-            mcpServers.set(sid, sessionServer);
-          },
-        });
-        transport.onclose = () => {
-          const sid = Object.keys(transports).find(k => transports[k] === transport);
-          if (sid) {
-            delete transports[sid];
-            mcpServers.delete(sid);
-          }
-          sessionServer.close().catch(() => {});
-        };
-        await sessionServer.server.connect(transport);
-        return transport.handleRequest(req, res, body);
+        try {
+          // Each MCP session gets its own server instance so tool permissions
+          // are tied to the authenticated actor rather than shared process-wide.
+          const sessionServer = await createMcpServer(req.user);
+          const transport = new StreamableHTTPServerTransport({
+            sessionIdGenerator: () => crypto.randomUUID(),
+            onsessioninitialized: (sid) => {
+              transports[sid] = transport;
+              mcpServers.set(sid, sessionServer);
+            },
+          });
+          transport.onclose = () => {
+            const sid = Object.keys(transports).find(k => transports[k] === transport);
+            if (sid) {
+              delete transports[sid];
+              mcpServers.delete(sid);
+            }
+            sessionServer.close().catch(() => {});
+          };
+          await sessionServer.server.connect(transport);
+          return transport.handleRequest(req, res, body);
+        } catch (e) {
+          console.error('MCP session initialization error:', e.message);
+          return res.status(500).json({ error: 'Failed to initialize MCP session' });
+        }
       }
 
       // Existing session
