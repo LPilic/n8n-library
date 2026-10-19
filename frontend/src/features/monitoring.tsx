@@ -53,6 +53,7 @@ interface MonStats {
   avgDurationMs: number
   activeWorkflows: number
   totalWorkflows: number
+  workflowsReady?: boolean
   successRate: number
 }
 
@@ -288,7 +289,11 @@ export function MonitoringPage() {
             onClick={() => setStatusFilter(statusFilter === 'waiting' ? '' : 'waiting')} active={statusFilter === 'waiting'} />
           <StatCard label="Success Rate" value={`${stats.successRate}%`}
             color={stats.successRate >= 80 ? 'success' : stats.successRate >= 50 ? 'warning' : 'danger'} />
-          <StatCard label="Active / Total" value={`${stats.activeWorkflows} / ${stats.totalWorkflows}`} color="primary" />
+          <StatCard
+            label="Active / Total"
+            value={stats.workflowsReady === false ? '—' : `${stats.activeWorkflows} / ${stats.totalWorkflows}`}
+            color="primary"
+          />
           <StatCard label="Avg Duration" value={formatDuration(stats.avgDurationMs)} color="muted" />
           <StatCard label="Total Executions" value={String(stats.total)} color="muted" />
         </div>

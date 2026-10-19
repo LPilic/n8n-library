@@ -183,12 +183,12 @@ function renderMonitoringStats(s, container) {
     '<div class="ticket-kpi-card kpi-overview">' +
       '<div class="kpi-header">Overview</div>' +
       '<div class="kpi-big">' +
-        '<div class="kpi-big-value" style="color:var(--color-primary)">' + (s.activeWorkflows || 0) + '</div>' +
+        '<div class="kpi-big-value" style="color:var(--color-primary)">' + (s.workflowsReady === false ? '—' : (s.activeWorkflows || 0)) + '</div>' +
         '<div class="kpi-big-label">Active Workflows</div>' +
       '</div>' +
       '<div class="kpi-item">' +
         '<span class="kpi-label">Total Workflows</span>' +
-        '<span class="kpi-value">' + (s.totalWorkflows || 0) + '</span>' +
+        '<span class="kpi-value">' + (s.workflowsReady === false ? '—' : (s.totalWorkflows || 0)) + '</span>' +
       '</div>' +
       '<div class="kpi-item">' +
         '<span class="kpi-label">Avg Duration</span>' +

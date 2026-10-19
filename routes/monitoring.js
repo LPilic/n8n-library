@@ -110,7 +110,7 @@ async function startAllMetricsCollectors() {
       const store = getMetricsHistory(inst.id);
       if (!store.interval) {
         collectMetricsSnapshot(inst.id);
-        store.interval = setInterval(() => collectMetricsSnapshot(inst.id), 20000);
+        store.interval = setInterval(() => collectMetricsSnapshot(inst.id), 60000);
       }
     }
   } catch {}
@@ -590,7 +590,7 @@ router.post('/api/instances', requireRole('admin'), async (req, res) => {
     const store = getMetricsHistory(rows[0].id);
     if (!store.interval) {
       collectMetricsSnapshot(rows[0].id);
-      store.interval = setInterval(() => collectMetricsSnapshot(rows[0].id), 20000);
+      store.interval = setInterval(() => collectMetricsSnapshot(rows[0].id), 60000);
     }
     res.json(rows[0]);
   } catch (err) {
