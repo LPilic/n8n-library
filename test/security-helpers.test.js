@@ -77,6 +77,24 @@ test('credential crypto round-trips and rejects tampering', () => {
   assert.throws(() => decrypt(bytes.toString('base64')));
 });
 
+test('decryption fails after the encryption key changes', () => {
+  const original = process.env.CREDENTIAL_ENCRYPTION_KEY;
+  const ciphertext = encrypt('sensitive value');
+
+  process.env.CREDENTIAL_ENCRYPTION_KEY = 'cd'.repeat(32);
+  assert.throws(() => decrypt(ciphertext));
+
+  process.env.CREDENTIAL_ENCRYPTION_KEY = original;
+  assert.equal(decrypt(ciphertext), 'sensitive value');
+});
+
+test('a missing encryption key fails closed', () => {
+  const original = process.env.CREDENTIAL_ENCRYPTION_KEY;
+  delete process.env.CREDENTIAL_ENCRYPTION_KEY;
+  assert.throws(() => encrypt('value'), /CREDENTIAL_ENCRYPTION_KEY/);
+  process.env.CREDENTIAL_ENCRYPTION_KEY = original;
+});
+
 test('webhook URL validation honours the private-network override', async () => {
   delete process.env.WEBHOOK_ALLOW_PRIVATE;
   assert.equal(await validateWebhookUrl('http://127.0.0.1:5678/webhook'), false);

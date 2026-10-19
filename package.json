@@ -12,7 +12,7 @@
     "build:frontend": "cd frontend && npm run build",
     "migrate": "node migrate.js",
     "mcp": "node mcp-stdio.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test --test-concurrency=1 test/*.test.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
