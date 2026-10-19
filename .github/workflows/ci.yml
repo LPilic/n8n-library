@@ -61,6 +61,11 @@ jobs:
             node --check "$f"
           done
 
+      - name: Check OpenAPI is current
+        run: |
+          npm run openapi
+          git diff --exit-code openapi.json
+
       - name: Run migrations twice (idempotency)
         run: |
           node migrate.js
