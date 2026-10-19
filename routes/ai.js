@@ -325,7 +325,7 @@ router.post('/api/ai/chat', requireAuth, aiLimiter, async (req, res) => {
       return { role: m.role === 'assistant' ? 'assistant' : 'user', content };
     });
     const mcpFilter = Array.isArray(enabledMcpServers) ? enabledMcpServers : null;
-    const result = await aiChatWithTools(sanitized, 10, mcpFilter);
+    const result = await aiChatWithTools(sanitized, 10, mcpFilter, req.user.role);
     res.json(result);
   } catch (e) {
     console.error('AI chat error:', e.message);

@@ -271,9 +271,9 @@ const { createMcpServer } = require('./lib/mcp-server');
 
 (async () => {
   try {
-    const mcpServer = await createMcpServer();
     const { StreamableHTTPServerTransport } = await import('@modelcontextprotocol/sdk/server/streamableHttp.js');
     const transports = {};
+    const mcpServers = new Map(); // session ID -> per-session server with actor context
 
     // MCP endpoint — requires API key auth + must be enabled
     app.all('/mcp', async (req, res) => {
@@ -294,6 +294,11 @@ const { createMcpServer } = require('./lib/mcp-server');
         if (req.method === 'GET') return transport.handleRequest(req, res);
         // DELETE — close session
         await transport.handleRequest(req, res);
+        const sessionServer = mcpServers.get(sessionId);
+        if (sessionServer) {
+          sessionServer.close().catch(() => {});
+          mcpServers.delete(sessionId);
+        }
         delete transports[sessionId];
         return;
       }
@@ -305,15 +310,25 @@ const { createMcpServer } = require('./lib/mcp-server');
       const isInit = body?.method === 'initialize' || (Array.isArray(body) && body.some(m => m.method === 'initialize'));
 
       if (isInit) {
+        // Each MCP session gets its own server instance so tool permissions are
+        // tied to the authenticated actor rather than shared process-wide.
+        const sessionServer = await createMcpServer(req.user);
         const transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => crypto.randomUUID(),
-          onsessioninitialized: (sid) => { transports[sid] = transport; },
+          onsessioninitialized: (sid) => {
+            transports[sid] = transport;
+            mcpServers.set(sid, sessionServer);
+          },
         });
         transport.onclose = () => {
           const sid = Object.keys(transports).find(k => transports[k] === transport);
-          if (sid) delete transports[sid];
+          if (sid) {
+            delete transports[sid];
+            mcpServers.delete(sid);
+          }
+          sessionServer.close().catch(() => {});
         };
-        await mcpServer.server.connect(transport);
+        await sessionServer.server.connect(transport);
         return transport.handleRequest(req, res, body);
       }
 

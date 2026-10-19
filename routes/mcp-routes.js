@@ -3,11 +3,12 @@ const pool = require('../db');
 const { requireAuth, requireRole } = require('../lib/middleware');
 const { aiLimiter } = require('../lib/middleware');
 const { mcpClients, connectMcpServer, disconnectMcpServer } = require('../lib/mcp');
+const { auditLog } = require('../lib/audit');
 
 const router = express.Router();
 
 // MCP CRUD endpoints
-router.get('/api/mcp/servers', requireAuth, async (_req, res) => {
+router.get('/api/mcp/servers', requireRole('admin'), async (_req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM mcp_servers ORDER BY created_at');
     const servers = rows.map(s => {
@@ -96,12 +97,14 @@ router.get('/api/mcp/tools', requireAuth, async (_req, res) => {
   res.json({ tools });
 });
 
-router.post('/api/mcp/tools/call', requireAuth, aiLimiter, async (req, res) => {
+router.post('/api/mcp/tools/call', requireRole('admin', 'editor'), aiLimiter, async (req, res) => {
   try {
     const { serverId, toolName, args } = req.body;
+    if (!serverId || !toolName) return res.status(400).json({ error: 'serverId and toolName are required' });
     const entry = mcpClients.get(serverId);
     if (!entry || entry.status !== 'connected') return res.status(400).json({ error: 'MCP server not connected' });
     const result = await entry.client.callTool({ name: toolName, arguments: args || {} });
+    auditLog(req.user, 'called', 'mcp_tool', toolName, `server ${serverId}`);
     res.json({ result });
   } catch (e) {
     console.error('MCP tool call error:', e.message);
