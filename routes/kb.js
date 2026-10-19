@@ -88,7 +88,7 @@ router.get('/api/kb/articles', requireAuth, async (req, res) => {
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 25));
     const offset = (page - 1) * limit;
     const { category, tag, status, q, sort, instance_id } = req.query;
-    const isWriter = req.session.user && (req.session.user.role === 'admin' || req.session.user.role === 'editor');
+    const isWriter = req.user && (req.user.role === 'admin' || req.user.role === 'editor');
 
     let where = [];
     let params = [];
@@ -157,7 +157,7 @@ router.get('/api/kb/articles/:idOrSlug', requireAuth, async (req, res) => {
   try {
     const param = req.params.idOrSlug;
     const isId = /^\d+$/.test(param);
-    const isWriter = req.session.user && (req.session.user.role === 'admin' || req.session.user.role === 'editor');
+    const isWriter = req.user && (req.user.role === 'admin' || req.user.role === 'editor');
 
     const { rows } = await pool.query(`
       SELECT a.*, c.name AS category_name, u.username AS author_name,
@@ -184,8 +184,8 @@ router.get('/api/kb/articles/:idOrSlug', requireAuth, async (req, res) => {
       article.view_count++;
     }
 
-    if (req.session.user) {
-      const fb = await pool.query('SELECT helpful FROM kb_article_feedback WHERE article_id=$1 AND user_id=$2', [article.id, req.session.user.id]);
+    if (req.user) {
+      const fb = await pool.query('SELECT helpful FROM kb_article_feedback WHERE article_id=$1 AND user_id=$2', [article.id, req.user.id]);
       article.user_feedback = fb.rows.length ? fb.rows[0].helpful : null;
     }
 
@@ -209,7 +209,7 @@ router.post('/api/kb/articles', requireRole('admin', 'editor'), writeLimiter, as
     const { rows } = await pool.query(
       `INSERT INTO kb_articles (title, slug, body, excerpt, category_id, author_id, status, is_pinned, is_featured, published_at, instance_id)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-      [title.trim(), slug, body || '', excerpt || '', category_id || null, req.session.user.id,
+      [title.trim(), slug, body || '', excerpt || '', category_id || null, req.user.id,
        articleStatus, is_pinned || false, is_featured || false, publishedAt, instance_id || null]
     );
     const article = rows[0];
@@ -228,7 +228,7 @@ router.post('/api/kb/articles', requireRole('admin', 'editor'), writeLimiter, as
 
     await pool.query(
       'INSERT INTO kb_article_versions (article_id, title, body, edited_by, version_note) VALUES ($1,$2,$3,$4,$5)',
-      [article.id, article.title, article.body, req.session.user.id, 'Initial version']
+      [article.id, article.title, article.body, req.user.id, 'Initial version']
     );
 
     auditLog(req.user, 'created', 'article', article.id, article.title);
@@ -249,7 +249,7 @@ router.put('/api/kb/articles/:id', requireRole('admin', 'editor'), writeLimiter,
 
     await pool.query(
       'INSERT INTO kb_article_versions (article_id, title, body, edited_by, version_note) VALUES ($1,$2,$3,$4,$5)',
-      [req.params.id, current.rows[0].title, current.rows[0].body, req.session.user.id, version_note || '']
+      [req.params.id, current.rows[0].title, current.rows[0].body, req.user.id, version_note || '']
     );
 
     const articleStatus = ['draft', 'published', 'archived'].includes(status) ? status : undefined;
@@ -312,7 +312,7 @@ router.post('/api/kb/articles/:id/feedback', requireAuth, async (req, res) => {
     await pool.query(
       `INSERT INTO kb_article_feedback (article_id, user_id, helpful) VALUES ($1,$2,$3)
        ON CONFLICT (article_id, user_id) DO UPDATE SET helpful=EXCLUDED.helpful, created_at=NOW()`,
-      [req.params.id, req.session.user.id, helpful]
+      [req.params.id, req.user.id, helpful]
     );
     const counts = await pool.query(
       `SELECT COALESCE(SUM(CASE WHEN helpful THEN 1 ELSE 0 END),0) AS yes,
@@ -374,7 +374,7 @@ router.post('/api/kb/articles/:id/restore/:versionId', requireRole('admin', 'edi
     const current = await pool.query('SELECT title, body FROM kb_articles WHERE id=$1', [req.params.id]);
     await pool.query(
       'INSERT INTO kb_article_versions (article_id, title, body, edited_by, version_note) VALUES ($1,$2,$3,$4,$5)',
-      [req.params.id, current.rows[0].title, current.rows[0].body, req.session.user.id, 'Before restore']
+      [req.params.id, current.rows[0].title, current.rows[0].body, req.user.id, 'Before restore']
     );
 
     const { rows } = await pool.query(
@@ -406,7 +406,7 @@ router.post('/api/kb/articles/:id/attachments', requireRole('admin', 'editor'), 
     const { rows } = await pool.query(
       `INSERT INTO kb_article_attachments (article_id, filename, original_name, mime_type, size_bytes, uploaded_by)
        VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [req.params.id, storedName, filename, mimeType, buf.length, req.session.user.id]
+      [req.params.id, storedName, filename, mimeType, buf.length, req.user.id]
     );
     res.status(201).json({ ...rows[0], url: `/uploads/kb/${storedName}` });
   } catch (err) {

@@ -343,7 +343,7 @@ router.get('/api/ai/conversations', requireAuth, async (req, res) => {
               jsonb_array_length(messages) AS message_count
        FROM ai_conversations WHERE user_id = $1
        ORDER BY updated_at DESC LIMIT 50`,
-      [req.session.user.id]
+      [req.user.id]
     );
     res.json({ conversations: rows });
   } catch (e) {
@@ -358,7 +358,7 @@ router.post('/api/ai/conversations', requireAuth, async (req, res) => {
     const { rows } = await pool.query(
       `INSERT INTO ai_conversations (user_id, title, enabled_mcp_servers)
        VALUES ($1, $2, $3) RETURNING *`,
-      [req.session.user.id, title || 'New Chat', mcpVal]
+      [req.user.id, title || 'New Chat', mcpVal]
     );
     res.json(rows[0]);
   } catch (e) {
@@ -371,7 +371,7 @@ router.get('/api/ai/conversations/:id', requireAuth, async (req, res) => {
   try {
     const { rows } = await pool.query(
       'SELECT * FROM ai_conversations WHERE id = $1 AND user_id = $2',
-      [req.params.id, req.session.user.id]
+      [req.params.id, req.user.id]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
     res.json(rows[0]);
@@ -389,7 +389,7 @@ router.put('/api/ai/conversations/:id', requireAuth, async (req, res) => {
     if (title !== undefined) { sets.push(`title = $${idx}`); vals.push(title); idx++; }
     if (messages !== undefined) { sets.push(`messages = $${idx}::jsonb`); vals.push(JSON.stringify(messages)); idx++; }
     if (enabledMcpServers !== undefined) { sets.push(`enabled_mcp_servers = $${idx}::jsonb`); vals.push(enabledMcpServers ? JSON.stringify(enabledMcpServers) : null); idx++; }
-    vals.push(req.params.id, req.session.user.id);
+    vals.push(req.params.id, req.user.id);
     const { rows } = await pool.query(
       `UPDATE ai_conversations SET ${sets.join(', ')} WHERE id = $${idx} AND user_id = $${idx + 1} RETURNING *`,
       vals
@@ -406,7 +406,7 @@ router.delete('/api/ai/conversations/:id', requireAuth, async (req, res) => {
   try {
     const { rowCount } = await pool.query(
       'DELETE FROM ai_conversations WHERE id = $1 AND user_id = $2',
-      [req.params.id, req.session.user.id]
+      [req.params.id, req.user.id]
     );
     if (rowCount === 0) return res.status(404).json({ error: 'Not found' });
     res.json({ ok: true });
