@@ -121,21 +121,44 @@ Manual checks:
 
 ---
 
-## Phase 2 — Reliability and performance
+## Phase 2 — Reliability and performance (complete)
 
-- Rework monitoring caches:
-  - Remove `fetchAllWorkflows()` from the SSE push and stats endpoint.
+- [x] Rework monitoring caches (`d100f13`):
+  - Remove direct `fetchAllWorkflows()` calls from the SSE push and stats
+    endpoint; the summary cache may warm once in the background.
   - Add a single-flight, stale-while-revalidate workflow summary cache
-    (`id`, `name`, `active`, `tags`) with a 5–15 minute TTL.
+    (`id`, `name`, `active`, `tags`) with a 15-minute TTL and a 5-minute retry.
   - Raise the workflow-name-map TTL from 30 seconds to 5 minutes.
-  - Poll only instances that have SSE listeners; slow the push to 30–60s.
+  - Poll only instances that have SSE listeners; slow the push to 30 seconds.
   - Fix `inst.base_url` → `inst.internal_url` in the SSE health check.
-- Add `AbortSignal.timeout()` to all outbound `fetch()` calls.
-- Restore SMTP settings from the database at startup.
-- Fix daily-summary workflow names by using the name map.
-- Add compression and cache headers for `/api/node-icons`.
-- Add graceful shutdown and a centralized JSON error handler/404.
-- Add retention jobs for reset tokens, audit log, notifications, and metrics.
+- [x] Add `AbortSignal.timeout()` to all outbound `fetch()` calls (`82345c2`).
+- [x] Restore SMTP settings from the database at startup (`dbec794`).
+- [x] Fix daily-summary workflow names by using the name map (`d100f13`).
+- [x] Add compression and cache headers for `/api/node-icons` (`edbff89`).
+- [x] Add graceful shutdown, request IDs, and a centralized JSON error
+      handler/404 (`edbff89`).
+- [x] Add retention jobs for reset tokens, audit log, credential audit, and
+      notifications (`3f767c8`).
+- [x] Slow metrics polling from 20s to 60s and show `—` instead of a misleading
+      zero while workflow counts are warming (`e555e6b`).
+
+Phase 2 validation (2026-10-19):
+
+- `node --check` passes for all server, lib, and route modules.
+- `npm test` passes 6/6 tests.
+- `npx tsc -b` passes in `frontend/`.
+- A local smoke server on port 3198 returned `/health` 200, `/readyz` 200,
+  `/api/nope` 404 JSON, and `/api/node-icons` with gzip + 24h cache headers.
+- SIGTERM produced a clean graceful-shutdown log line.
+
+Deployment note: the running `n8n-library` container uses a built image. Phase
+1/2 changes require rebuilding and restarting it:
+
+```bash
+cd /Users/pilicl01/n8n-plus
+docker compose build n8n-library
+docker compose up -d n8n-library
+```
 
 ## Phase 3 — Quality gate
 
