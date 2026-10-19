@@ -1,7 +1,7 @@
 const express = require('express');
 const pool = require('../db');
 const { requireRole } = require('../lib/middleware');
-const { n8nApiFetch, fetchAllWorkflows, getWorkflowNameMap, enrichExecutions, invalidateWfCache, getMonStatsCache, setMonStatsCache, getInstanceConfig, getAllInstances } = require('../lib/n8n-api');
+const { n8nApiFetch, fetchAllWorkflows, getWorkflowNameMap, getWorkflowSummary, seedWorkflowSummary, enrichExecutions, invalidateWfCache, getMonStatsCache, setMonStatsCache, getInstanceConfig, getAllInstances } = require('../lib/n8n-api');
 const { encrypt: encryptValue } = require('../lib/crypto');
 const { sendDailySummaryEmail } = require('../lib/ai-providers');
 
@@ -152,6 +152,8 @@ router.get('/api/monitoring/workflows', requireRole('admin', 'editor'), async (r
     }
     const wfs = await fetchAllWorkflows(req.query.instance_id);
     wfListCacheMap[key] = { data: wfs, ts: Date.now() };
+    // Reuse this expensive response to warm the lightweight monitoring cache.
+    seedWorkflowSummary(req.query.instance_id, wfs);
     res.json({ data: wfs });
   } catch (err) {
     res.status(502).json({ error: 'Failed to reach n8n' });
@@ -317,11 +319,16 @@ router.get('/api/monitoring/stats', requireRole('admin', 'editor'), async (req, 
       }
     }
 
-    let activeWorkflows = 0, totalWorkflows = 0;
+    let activeWorkflows = 0, totalWorkflows = 0, workflowsReady = false;
     try {
-      const wfs = await fetchAllWorkflows(req.query.instance_id);
-      totalWorkflows = wfs.length;
-      activeWorkflows = wfs.filter(w => w.active).length;
+      // Uses a lightweight summary cache. Never block this endpoint on a full
+      // workflow fetch; the Workflows page or a background refresh warms it.
+      const summary = await getWorkflowSummary(req.query.instance_id);
+      if (summary) {
+        workflowsReady = true;
+        totalWorkflows = summary.length;
+        activeWorkflows = summary.filter(w => w.active).length;
+      }
     } catch (e) {}
 
     let health = 'unknown';
@@ -340,6 +347,7 @@ router.get('/api/monitoring/stats', requireRole('admin', 'editor'), async (req, 
       avgDurationMs: durationCount > 0 ? Math.round(totalDuration / durationCount) : 0,
       activeWorkflows,
       totalWorkflows,
+      workflowsReady,
       successRate: executions.length > 0 ? Math.round((counts.success / executions.length) * 100) : 0,
     };
 
@@ -391,10 +399,26 @@ function startMonitoringPush() {
   monPushInterval = setInterval(async () => {
     if (monSseClients.size === 0) return; // No listeners, skip work
     try {
-      const instances = await getAllInstances();
+      // Only poll instances that at least one connected client is watching.
+      // Clients without a specific instance are interested in the default.
+      const wantedIds = new Set();
+      let wantsDefault = false;
+      for (const client of monSseClients.values()) {
+        if (client.instanceId) wantedIds.add(String(client.instanceId));
+        else wantsDefault = true;
+      }
+
+      const allInstances = await getAllInstances();
+      const instances = allInstances.filter(inst =>
+        wantedIds.has(String(inst.id)) || (wantsDefault && inst.is_default)
+      );
+      if (wantsDefault && instances.length === 0 && allInstances.length > 0) {
+        instances.push(allInstances[0]);
+      }
+
       for (const inst of instances) {
         try {
-          // Fetch stats
+          // Fetch recent executions and enrich names from the summary cache.
           const data = await n8nApiFetch('/api/v1/executions?limit=250', inst.id);
           const executions = data.data || [];
           const counts = { success: 0, error: 0, running: 0, waiting: 0, canceled: 0, new: 0 };
@@ -411,16 +435,17 @@ function startMonitoringPush() {
           const recent = executions.slice(0, 50);
           enrichExecutions(recent, wfMap);
 
-          let activeWorkflows = 0, totalWorkflows = 0;
-          try {
-            const wfs = await fetchAllWorkflows(inst.id);
-            totalWorkflows = wfs.length;
-            activeWorkflows = wfs.filter(w => w.active).length;
-          } catch {}
+          let activeWorkflows = 0, totalWorkflows = 0, workflowsReady = false;
+          const summary = await getWorkflowSummary(inst.id);
+          if (summary) {
+            workflowsReady = true;
+            totalWorkflows = summary.length;
+            activeWorkflows = summary.filter(w => w.active).length;
+          }
 
           let health = 'unknown';
           try {
-            const r = await fetch(`${inst.base_url}/healthz`, { signal: AbortSignal.timeout(3000) });
+            const r = await fetch(`${inst.internal_url}/healthz`, { signal: AbortSignal.timeout(3000) });
             health = r.ok ? 'healthy' : 'unhealthy';
           } catch { health = 'unreachable'; }
 
@@ -431,6 +456,7 @@ function startMonitoringPush() {
             avgDurationMs: durationCount > 0 ? Math.round(totalDuration / durationCount) : 0,
             activeWorkflows,
             totalWorkflows,
+            workflowsReady,
             successRate: executions.length > 0 ? Math.round((counts.success / executions.length) * 100) : 0,
           };
 
@@ -439,7 +465,7 @@ function startMonitoringPush() {
         } catch {}
       }
     } catch {}
-  }, 15000); // Push every 15 seconds
+  }, 30000); // Push every 30 seconds
 }
 startMonitoringPush();
 
