@@ -3,12 +3,37 @@ const pool = require('../db');
 const { requireAuth, requireRole } = require('../lib/middleware');
 const { auditLog } = require('../lib/audit');
 const { createNotification } = require('./notifications');
+const { validateExternalUrlResolved, signPayload } = require('../lib/helpers');
 
 const crypto = require('crypto');
 const router = express.Router();
 
 // In-memory store for webhook captures (token -> { payload, captured_at })
 const _captureStore = new Map();
+
+// HITL callbacks normally target the configured n8n instance, which may live on
+// a private Docker network. Allow that exact origin (and localhost aliases that
+// are rewritten below); otherwise require a publicly resolvable destination.
+async function isAllowedCallbackUrl(urlStr) {
+  try {
+    const u = new URL(urlStr);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+
+    const internal = process.env.N8N_INTERNAL_URL;
+    if (internal) {
+      try {
+        const i = new URL(internal);
+        if (u.origin === i.origin) return true;
+        if (u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname === '::1') return true;
+      } catch {}
+    }
+
+    if (process.env.HITL_ALLOW_PRIVATE_CALLBACKS === 'true') return true;
+    return await validateExternalUrlResolved(urlStr);
+  } catch {
+    return false;
+  }
+}
 
 // --- HITL Templates (form builder schemas) ---
 
@@ -106,6 +131,9 @@ router.post('/api/hitl/requests', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: 'Authentication required (API key or session)' });
     const { template, callback_url, title, description, data, priority, timeout_minutes, assign_to } = req.body;
     if (!template || !callback_url) return res.status(400).json({ error: 'template (slug) and callback_url required' });
+    if (!(await isAllowedCallbackUrl(callback_url))) {
+      return res.status(400).json({ error: 'callback_url must be the configured n8n origin or a public http(s) endpoint' });
+    }
 
     // Look up template by slug
     const tplRes = await pool.query('SELECT id, name, is_active FROM hitl_templates WHERE slug = $1', [template]);
@@ -268,39 +296,54 @@ router.post('/api/hitl/requests/:id/respond', requireRole('admin', 'editor'), as
       timestamp: new Date().toISOString(),
     };
 
-    try {
-      // Rewrite localhost callback URLs to use internal n8n URL (Docker networking)
-      let callbackUrl = hitlReq.callback_url;
-      const internalUrl = process.env.N8N_INTERNAL_URL;
-      if (internalUrl) {
-        try {
-          const parsed = new URL(callbackUrl);
-          if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
-            const internal = new URL(internalUrl);
-            parsed.protocol = internal.protocol;
-            parsed.host = internal.host;
-            callbackUrl = parsed.toString();
-          }
-        } catch {}
-      }
-      console.log('HITL callback: original_url=%s rewritten_url=%s', hitlReq.callback_url, callbackUrl);
-      const cbRes = await fetch(callbackUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'User-Agent': 'n8n-library-hitl/1.0' },
-        body: JSON.stringify(callbackPayload),
-        signal: AbortSignal.timeout(15000),
-      });
-      console.log('HITL callback: status=%d', cbRes.status);
-      await pool.query('UPDATE hitl_requests SET callback_status = $1 WHERE id = $2', [cbRes.status, hitlReq.id]);
-    } catch (cbErr) {
-      console.error('HITL callback error:', cbErr.message);
+    let callbackSent = false;
+    if (!(await isAllowedCallbackUrl(hitlReq.callback_url))) {
+      console.error('HITL callback blocked: destination is not allowed:', hitlReq.callback_url);
       await pool.query('UPDATE hitl_requests SET callback_status = 0 WHERE id = $1', [hitlReq.id]);
+    } else {
+      try {
+        // Rewrite localhost callback URLs to use internal n8n URL (Docker networking)
+        let callbackUrl = hitlReq.callback_url;
+        const internalUrl = process.env.N8N_INTERNAL_URL;
+        if (internalUrl) {
+          try {
+            const parsed = new URL(callbackUrl);
+            if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname === '::1') {
+              const internal = new URL(internalUrl);
+              parsed.protocol = internal.protocol;
+              parsed.host = internal.host;
+              callbackUrl = parsed.toString();
+            }
+          } catch {}
+        }
+        const callbackBody = JSON.stringify(callbackPayload);
+        const callbackHeaders = {
+          'Content-Type': 'application/json',
+          'User-Agent': 'n8n-library-hitl/1.0',
+        };
+        if (process.env.HITL_CALLBACK_SECRET) {
+          callbackHeaders['X-N8N-Library-Signature'] = signPayload(process.env.HITL_CALLBACK_SECRET, callbackBody);
+        }
+        console.log('HITL callback: original_url=%s rewritten_url=%s', hitlReq.callback_url, callbackUrl);
+        const cbRes = await fetch(callbackUrl, {
+          method: 'POST',
+          headers: callbackHeaders,
+          body: callbackBody,
+          signal: AbortSignal.timeout(15000),
+        });
+        callbackSent = true;
+        console.log('HITL callback: status=%d', cbRes.status);
+        await pool.query('UPDATE hitl_requests SET callback_status = $1 WHERE id = $2', [cbRes.status, hitlReq.id]);
+      } catch (cbErr) {
+        console.error('HITL callback error:', cbErr.message);
+        await pool.query('UPDATE hitl_requests SET callback_status = 0 WHERE id = $1', [hitlReq.id]);
+      }
     }
 
     auditLog(req.user, action, 'hitl_request', hitlReq.id, `${hitlReq.title} — ${action}`);
     broadcastHitlUpdate({ type: 'response', request_id: hitlReq.id, action, responded_by: req.user.username });
 
-    res.json({ message: `Request ${newStatus}`, callback_sent: true });
+    res.json({ message: `Request ${newStatus}`, callback_sent: callbackSent });
   } catch (err) {
     console.error('HITL respond error:', err.message);
     res.status(500).json({ error: 'Failed to submit response' });
@@ -359,6 +402,9 @@ router.post('/api/hitl/webhook/:slug', async (req, res) => {
 
     const { callback_url, title, description, data, priority, timeout_minutes, assign_to } = req.body;
     if (!callback_url) return res.status(400).json({ error: 'callback_url is required' });
+    if (!(await isAllowedCallbackUrl(callback_url))) {
+      return res.status(400).json({ error: 'callback_url must be the configured n8n origin or a public http(s) endpoint' });
+    }
 
     const expiresAt = timeout_minutes
       ? new Date(Date.now() + timeout_minutes * 60 * 1000)

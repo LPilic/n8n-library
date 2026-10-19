@@ -2,7 +2,8 @@ const express = require('express');
 const pool = require('../db');
 const { requireRole } = require('../lib/middleware');
 const { auditLog } = require('../lib/audit');
-const { WEBHOOK_EVENTS } = require('../lib/webhooks');
+const { WEBHOOK_EVENTS, validateWebhookUrl } = require('../lib/webhooks');
+const { signPayload } = require('../lib/helpers');
 
 const router = express.Router();
 
@@ -20,6 +21,9 @@ router.post('/api/webhooks', requireRole('admin'), async (req, res) => {
     const { name, url, events, headers, enabled } = req.body;
     if (!name || !url) return res.status(400).json({ error: 'Name and URL required' });
     if (!events || events.length === 0) return res.status(400).json({ error: 'At least one event required' });
+    if (!(await validateWebhookUrl(url))) {
+      return res.status(400).json({ error: 'Webhook URL must be a public http(s) endpoint' });
+    }
     const { rows } = await pool.query(
       `INSERT INTO webhooks (name, url, events, headers, enabled) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
       [name, url, JSON.stringify(events), JSON.stringify(headers || {}), enabled !== false]
@@ -34,6 +38,9 @@ router.post('/api/webhooks', requireRole('admin'), async (req, res) => {
 router.put('/api/webhooks/:id', requireRole('admin'), async (req, res) => {
   try {
     const { name, url, events, headers, enabled } = req.body;
+    if (url !== undefined && !(await validateWebhookUrl(url))) {
+      return res.status(400).json({ error: 'Webhook URL must be a public http(s) endpoint' });
+    }
     const updates = []; const params = []; let idx = 1;
     if (name !== undefined) { updates.push(`name = $${idx++}`); params.push(name); }
     if (url !== undefined) { updates.push(`url = $${idx++}`); params.push(url); }
@@ -67,8 +74,14 @@ router.post('/api/webhooks/:id/test', requireRole('admin'), async (req, res) => 
     const { rows } = await pool.query('SELECT * FROM webhooks WHERE id = $1', [req.params.id]);
     if (rows.length === 0) return res.status(404).json({ error: 'Webhook not found' });
     const wh = rows[0];
+    if (!(await validateWebhookUrl(wh.url))) {
+      return res.status(400).json({ error: 'Webhook URL must be a public http(s) endpoint' });
+    }
     const headers = { 'Content-Type': 'application/json', 'User-Agent': 'n8n-library-webhook/1.0', ...(wh.headers || {}) };
     const body = JSON.stringify({ event: 'test', timestamp: new Date().toISOString(), data: { message: 'Test webhook from n8n Library' } });
+    if (process.env.WEBHOOK_SIGNING_SECRET) {
+      headers['X-N8N-Library-Signature'] = signPayload(process.env.WEBHOOK_SIGNING_SECRET, body);
+    }
     const r = await fetch(wh.url, { method: 'POST', headers, body, signal: AbortSignal.timeout(10000) });
     await pool.query('UPDATE webhooks SET last_triggered_at = NOW(), last_status = $1 WHERE id = $2', [r.status, wh.id]);
     res.json({ status: r.status, ok: r.ok });
