@@ -223,10 +223,13 @@ router.get('/api/hitl/requests/:id', requireAuth, async (req, res) => {
 
 // --- HITL Response (reviewer submits decision) ---
 
-router.post('/api/hitl/requests/:id/respond', requireAuth, async (req, res) => {
+router.post('/api/hitl/requests/:id/respond', requireRole('admin', 'editor'), async (req, res) => {
   try {
     const { action, form_data, comment } = req.body;
-    if (!action) return res.status(400).json({ error: 'Action required' });
+    const allowedActions = ['approve', 'reject', 'request_changes'];
+    if (!allowedActions.includes(action)) {
+      return res.status(400).json({ error: 'Action must be approve, reject, or request_changes' });
+    }
 
     const reqRes = await pool.query('SELECT * FROM hitl_requests WHERE id = $1', [req.params.id]);
     if (reqRes.rows.length === 0) return res.status(404).json({ error: 'Request not found' });
@@ -236,6 +239,11 @@ router.post('/api/hitl/requests/:id/respond', requireAuth, async (req, res) => {
       return res.status(400).json({ error: `Request already ${hitlReq.status}` });
     }
 
+    // If the request is assigned, only that reviewer (or an admin) may respond.
+    if (hitlReq.assign_to && req.user.role !== 'admin' && Number(hitlReq.assign_to) !== Number(req.user.id)) {
+      return res.status(403).json({ error: 'This request is assigned to another reviewer' });
+    }
+
     // Check if expired
     if (hitlReq.expires_at && new Date(hitlReq.expires_at) < new Date()) {
       await pool.query("UPDATE hitl_requests SET status = 'expired' WHERE id = $1", [hitlReq.id]);
@@ -243,7 +251,7 @@ router.post('/api/hitl/requests/:id/respond', requireAuth, async (req, res) => {
     }
 
     // Update request status
-    const newStatus = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : action;
+    const newStatus = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'request_changes';
     await pool.query(
       `UPDATE hitl_requests SET status = $1, responded_by = $2, responded_at = NOW(), response_data = $3, response_comment = $4 WHERE id = $5`,
       [newStatus, req.user.id, JSON.stringify(form_data || {}), comment || '', hitlReq.id]
