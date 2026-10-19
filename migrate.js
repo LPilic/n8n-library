@@ -6,9 +6,11 @@
 const pool = require('./db');
 const bcrypt = require('bcryptjs');
 
-async function migrate() {
+const MIGRATION_VERSION = '001_initial_schema';
+
+async function migration001(client) {
   // --- Auth tables ---
-  await pool.query(`
+  await client.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       username TEXT NOT NULL,
@@ -38,7 +40,7 @@ async function migrate() {
   `);
 
   // --- Content tables ---
-  await pool.query(`
+  await client.query(`
     CREATE TABLE IF NOT EXISTS categories (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,
@@ -83,12 +85,12 @@ async function migrate() {
   `);
 
   // Add description column if missing (upgrade path)
-  await pool.query(`
+  await client.query(`
     ALTER TABLE categories ADD COLUMN IF NOT EXISTS description TEXT DEFAULT '';
   `);
 
   // Upgrade path: make email unique if it wasn't before, add password_reset_tokens
-  await pool.query(`
+  await client.query(`
     DO $$ BEGIN
       -- Drop old username unique constraint if it exists
       IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'users_username_key') THEN
@@ -117,7 +119,7 @@ async function migrate() {
   `);
 
   // Settings key-value store
-  await pool.query(`
+  await client.query(`
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL DEFAULT ''
@@ -125,9 +127,9 @@ async function migrate() {
   `);
 
   // Seed default categories if empty
-  const { rowCount } = await pool.query('SELECT 1 FROM categories LIMIT 1');
+  const { rowCount } = await client.query('SELECT 1 FROM categories LIMIT 1');
   if (rowCount === 0) {
-    await pool.query(`
+    await client.query(`
       INSERT INTO categories (name) VALUES
         ('Sales'), ('Marketing'), ('DevOps'),
         ('Data & Storage'), ('Communication'), ('AI'), ('Utility')
@@ -136,10 +138,10 @@ async function migrate() {
   }
 
   // Seed default admin user if no users exist
-  const { rowCount: userCount } = await pool.query('SELECT 1 FROM users LIMIT 1');
+  const { rowCount: userCount } = await client.query('SELECT 1 FROM users LIMIT 1');
   if (userCount === 0) {
     const hash = await bcrypt.hash('admin', 10);
-    await pool.query(
+    await client.query(
       `INSERT INTO users (username, email, password_hash, role) VALUES ('admin', 'admin@localhost', $1, 'admin')`,
       [hash]
     );
@@ -147,7 +149,7 @@ async function migrate() {
   }
 
   // --- Service Desk tables ---
-  await pool.query(`
+  await client.query(`
     CREATE TABLE IF NOT EXISTS ticket_categories (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,
@@ -197,9 +199,9 @@ async function migrate() {
   `);
 
   // Seed ticket categories
-  const { rowCount: tcCount } = await pool.query('SELECT 1 FROM ticket_categories LIMIT 1');
+  const { rowCount: tcCount } = await client.query('SELECT 1 FROM ticket_categories LIMIT 1');
   if (tcCount === 0) {
-    await pool.query(`
+    await client.query(`
       INSERT INTO ticket_categories (name, description) VALUES
         ('General', 'General support request'),
         ('Bug', 'Something is broken or not working correctly'),
@@ -211,7 +213,7 @@ async function migrate() {
   }
 
   // --- Knowledge Base tables ---
-  await pool.query(`
+  await client.query(`
     CREATE TABLE IF NOT EXISTS kb_categories (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,
@@ -297,7 +299,7 @@ async function migrate() {
   `);
 
   // Full-text search support for kb_articles
-  await pool.query(`
+  await client.query(`
     ALTER TABLE kb_articles ADD COLUMN IF NOT EXISTS search_vector tsvector;
     CREATE INDEX IF NOT EXISTS idx_kb_articles_search ON kb_articles USING gin(search_vector);
 
@@ -316,9 +318,9 @@ async function migrate() {
   `);
 
   // Seed default KB categories
-  const { rowCount: kbCatCount } = await pool.query('SELECT 1 FROM kb_categories LIMIT 1');
+  const { rowCount: kbCatCount } = await client.query('SELECT 1 FROM kb_categories LIMIT 1');
   if (kbCatCount === 0) {
-    await pool.query(`
+    await client.query(`
       INSERT INTO kb_categories (name, slug, description, sort_order) VALUES
         ('Getting Started', 'getting-started', 'First steps and onboarding guides', 1),
         ('How-To Guides', 'how-to-guides', 'Step-by-step instructions', 2),
@@ -330,7 +332,7 @@ async function migrate() {
   }
 
   // --- Ticket-Execution linking ---
-  await pool.query(`
+  await client.query(`
     CREATE TABLE IF NOT EXISTS ticket_executions (
       ticket_id INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
       execution_id TEXT NOT NULL,
@@ -345,7 +347,7 @@ async function migrate() {
   `);
 
   // --- n8n Instances ---
-  await pool.query(`
+  await client.query(`
     CREATE TABLE IF NOT EXISTS n8n_instances (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
@@ -358,15 +360,15 @@ async function migrate() {
     );
   `);
   // Add workers column (upgrade path)
-  await pool.query(`ALTER TABLE n8n_instances ADD COLUMN IF NOT EXISTS workers JSONB DEFAULT '[]'`);
+  await client.query(`ALTER TABLE n8n_instances ADD COLUMN IF NOT EXISTS workers JSONB DEFAULT '[]'`);
 
   // Seed default instance from env vars if table is empty
-  const { rowCount: instanceCount } = await pool.query('SELECT 1 FROM n8n_instances LIMIT 1');
+  const { rowCount: instanceCount } = await client.query('SELECT 1 FROM n8n_instances LIMIT 1');
   if (instanceCount === 0) {
     const envUrl = process.env.N8N_INTERNAL_URL || '';
     const envKey = process.env.N8N_API_KEY || '';
     if (envUrl) {
-      await pool.query(
+      await client.query(
         `INSERT INTO n8n_instances (name, environment, internal_url, api_key, is_default, color) VALUES ($1, $2, $3, $4, TRUE, $5)`,
         ['Production', 'production', envUrl, envKey, '#22c55e']
       );
@@ -375,7 +377,7 @@ async function migrate() {
   }
 
   // --- API Keys ---
-  await pool.query(`
+  await client.query(`
     CREATE TABLE IF NOT EXISTS api_keys (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -392,7 +394,7 @@ async function migrate() {
   `);
 
   // --- MCP Servers ---
-  await pool.query(`
+  await client.query(`
     CREATE TABLE IF NOT EXISTS mcp_servers (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
@@ -408,7 +410,7 @@ async function migrate() {
   `);
 
   // --- AI Conversations ---
-  await pool.query(`
+  await client.query(`
     CREATE TABLE IF NOT EXISTS ai_conversations (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -422,7 +424,7 @@ async function migrate() {
   `);
 
   // --- Notifications ---
-  await pool.query(`
+  await client.query(`
     CREATE TABLE IF NOT EXISTS notifications (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -437,7 +439,7 @@ async function migrate() {
   `);
 
   // --- Audit Log ---
-  await pool.query(`
+  await client.query(`
     CREATE TABLE IF NOT EXISTS audit_log (
       id SERIAL PRIMARY KEY,
       user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
@@ -453,7 +455,7 @@ async function migrate() {
   `);
 
   // --- Full-text search for templates and tickets ---
-  await pool.query(`
+  await client.query(`
     ALTER TABLE templates ADD COLUMN IF NOT EXISTS search_vector tsvector;
     CREATE INDEX IF NOT EXISTS idx_templates_search ON templates USING gin(search_vector);
 
@@ -486,7 +488,7 @@ async function migrate() {
   `);
 
   // Backfill search vectors for existing rows
-  await pool.query(`
+  await client.query(`
     UPDATE templates SET search_vector = setweight(to_tsvector('english', coalesce(name,'')), 'A')
       || setweight(to_tsvector('english', coalesce(description,'')), 'B')
     WHERE search_vector IS NULL;
@@ -496,7 +498,7 @@ async function migrate() {
   `);
 
   // --- Template Version History ---
-  await pool.query(`
+  await client.query(`
     CREATE TABLE IF NOT EXISTS template_versions (
       id SERIAL PRIMARY KEY,
       template_id INTEGER NOT NULL REFERENCES templates(id) ON DELETE CASCADE,
@@ -511,7 +513,7 @@ async function migrate() {
   `);
 
   // --- Webhook Integrations ---
-  await pool.query(`
+  await client.query(`
     CREATE TABLE IF NOT EXISTS webhooks (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
@@ -526,13 +528,13 @@ async function migrate() {
   `);
 
   // --- Two-Factor Authentication ---
-  await pool.query(`
+  await client.query(`
     ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret TEXT DEFAULT NULL;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN DEFAULT FALSE;
   `);
 
   // --- Scheduled Alerts ---
-  await pool.query(`
+  await client.query(`
     CREATE TABLE IF NOT EXISTS alerts (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
@@ -547,7 +549,7 @@ async function migrate() {
   `);
 
   // --- Human-in-the-Loop (HITL) ---
-  await pool.query(`
+  await client.query(`
     CREATE TABLE IF NOT EXISTS hitl_templates (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
@@ -583,12 +585,12 @@ async function migrate() {
   `);
 
   // --- HITL template active toggle ---
-  await pool.query(`
+  await client.query(`
     ALTER TABLE hitl_templates ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
   `);
 
   // --- Instance references on tickets and KB articles ---
-  await pool.query(`
+  await client.query(`
     ALTER TABLE tickets ADD COLUMN IF NOT EXISTS instance_id INTEGER REFERENCES n8n_instances(id) ON DELETE SET NULL;
     ALTER TABLE kb_articles ADD COLUMN IF NOT EXISTS instance_id INTEGER REFERENCES n8n_instances(id) ON DELETE SET NULL;
     CREATE INDEX IF NOT EXISTS idx_tickets_instance ON tickets (instance_id);
@@ -596,7 +598,7 @@ async function migrate() {
   `);
 
   // --- Prompt Versioning ---
-  await pool.query(`
+  await client.query(`
     CREATE TABLE IF NOT EXISTS prompts (
       id SERIAL PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
@@ -633,7 +635,7 @@ async function migrate() {
   `);
 
   // Full-text search for prompts
-  await pool.query(`
+  await client.query(`
     ALTER TABLE prompts ADD COLUMN IF NOT EXISTS search_vector tsvector;
     CREATE INDEX IF NOT EXISTS idx_prompts_search ON prompts USING gin(search_vector);
 
@@ -652,7 +654,7 @@ async function migrate() {
   `);
 
   // Backfill search vectors for existing prompts
-  await pool.query(`
+  await client.query(`
     UPDATE prompts SET search_vector = setweight(to_tsvector('english', coalesce(name,'')), 'A')
       || setweight(to_tsvector('english', coalesce(description,'')), 'B')
       || setweight(to_tsvector('english', coalesce(content,'')), 'C')
@@ -660,7 +662,7 @@ async function migrate() {
   `);
 
   // --- Credential Store (encrypted shared secrets for provisioning) ---
-  await pool.query(`
+  await client.query(`
     CREATE TABLE IF NOT EXISTS credential_store (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
@@ -677,7 +679,7 @@ async function migrate() {
     CREATE INDEX IF NOT EXISTS idx_credential_store_type ON credential_store (credential_type);
   `);
 
-  await pool.query(`
+  await client.query(`
     CREATE TABLE IF NOT EXISTS credential_audit (
       id SERIAL PRIMARY KEY,
       credential_store_id INTEGER REFERENCES credential_store(id) ON DELETE SET NULL,
@@ -697,16 +699,56 @@ async function migrate() {
   // Note: API key encryption is handled by server.js at startup (same encryption key context)
 
   // --- n8n user linkage ---
-  await pool.query(`
+  await client.query(`
     ALTER TABLE users ADD COLUMN IF NOT EXISTS n8n_user_id TEXT DEFAULT NULL;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS n8n_instance_id INTEGER DEFAULT NULL;
   `);
-
-  console.log('Migration complete.');
-  await pool.end();
 }
 
-migrate().catch(err => {
-  console.error('Migration failed:', err.message);
-  process.exit(1);
-});
+async function runMigrations() {
+  const client = await pool.connect();
+  try {
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS schema_migrations (
+        version TEXT PRIMARY KEY,
+        applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    const { rows } = await client.query(
+      'SELECT 1 FROM schema_migrations WHERE version = $1',
+      [MIGRATION_VERSION]
+    );
+    if (rows.length > 0) {
+      console.log(`Migration ${MIGRATION_VERSION} already applied.`);
+      return;
+    }
+
+    await client.query('BEGIN');
+    try {
+      await migration001(client);
+      await client.query(
+        'INSERT INTO schema_migrations (version) VALUES ($1)',
+        [MIGRATION_VERSION]
+      );
+      await client.query('COMMIT');
+      console.log(`Applied migration ${MIGRATION_VERSION}.`);
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw err;
+    }
+  } finally {
+    client.release();
+  }
+}
+
+module.exports = { runMigrations, MIGRATION_VERSION };
+
+if (require.main === module) {
+  runMigrations()
+    .then(() => pool.end())
+    .catch(err => {
+      console.error('Migration failed:', err.message);
+      process.exit(1);
+    });
+}
