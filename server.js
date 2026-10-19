@@ -386,6 +386,9 @@ reconnectAllMcp();
 const { startAlertEngine } = require('./lib/alert-engine');
 startAlertEngine();
 
+const { startRetentionJob } = require('./lib/retention');
+startRetentionJob();
+
 // --- Client-side routing catch-all ---
 // Serve index.html for panel routes so direct navigation and refresh work
 const CLIENT_ROUTES = ['dashboard','library','n8n','categories','tickets','kb','monitoring','observability','ai','settings','users','audit','approvals','approvals-builder','prompts','variables','tags','security','credentials'];

@@ -480,6 +480,13 @@ router.post('/api/hitl/capture', requireRole('admin', 'editor'), (req, res) => {
 // Receive webhook payload (no auth — this is what n8n hits)
 // Hardened: single-use, size-limited, rate-limited per IP
 const _captureAttempts = new Map(); // ip -> { count, resetAt }
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, attempts] of _captureAttempts) {
+    if (now > attempts.resetAt) _captureAttempts.delete(ip);
+  }
+}, 5 * 60 * 1000).unref();
+
 router.post('/api/hitl/capture/:token', express.json({ limit: '1mb' }), (req, res) => {
   // Rate limit: max 20 attempts per minute per IP
   const ip = req.ip;
