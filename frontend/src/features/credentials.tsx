@@ -1085,7 +1085,12 @@ function CreateStoreTemplateModal({ onClose, onSaved }: { onClose: () => void; o
   }
 
   function toggleVisibility(key: string) {
-    setVisibleFields((prev) => { const next = new Set(prev); next.has(key) ? next.delete(key) : next.add(key); return next })
+    setVisibleFields((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
   }
 
   async function handleSave() {

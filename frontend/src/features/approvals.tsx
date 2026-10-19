@@ -396,7 +396,7 @@ export function ApprovalsPage() {
   })
 
   // SSE for real-time new request notifications
-  const handleSse = useCallback((event: string, _data: unknown) => {
+  const handleSse = useCallback((event: string) => {
     if (event === 'hitl') {
       queryClient.invalidateQueries({ queryKey: ['hitl-requests'] })
       queryClient.invalidateQueries({ queryKey: ['hitl-pending-count'] })
