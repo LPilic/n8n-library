@@ -288,7 +288,8 @@ Long-term, one frontend should be selected to avoid feature drift.
 - **Instance selector** — Sidebar dropdown for switching n8n instances
 - **Auto-refresh** — Configurable polling intervals for monitoring/observability
 - **Theme** — CSS variables with `[data-theme="dark"]` overrides
-- **No framework** — Vanilla JS with DOM string building for rendering
+- **Legacy frontend** — Vanilla JS with DOM string building for rendering.
+  The React frontend uses components, TanStack Query, and Zustand.
 
 ### Vendored Dependencies
 
