@@ -17,6 +17,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
     "bcryptjs": "^3.0.3",
+    "compression": "^1.8.2",
     "connect-pg-simple": "^10.0.0",
     "dotenv": "^17.3.1",
     "express": "^4.21.0",

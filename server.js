@@ -1,4 +1,5 @@
 const express = require('express');
+const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -35,6 +36,22 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 app.use(express.json({ limit: '10mb' }));
+
+// Compress dynamic responses (node icons are ~2MB of JSON). Leave SSE alone:
+// compression buffers data and would break real-time delivery.
+app.use(compression({
+  filter: (req, res) => {
+    if (res.getHeader('Content-Type') === 'text/event-stream') return false;
+    return compression.filter(req, res);
+  },
+}));
+
+// Request IDs make it possible to correlate logs with a failed request.
+app.use((req, res, next) => {
+  req.id = crypto.randomUUID();
+  res.setHeader('X-Request-ID', req.id);
+  next();
+});
 
 const PORT = process.env.PORT || 3100;
 
@@ -223,6 +240,15 @@ app.get('/health', async (_req, res) => {
   }
 });
 
+app.get('/readyz', async (_req, res) => {
+  try {
+    await pool.query('SELECT 1');
+    res.json({ status: 'ready', uptime: process.uptime() });
+  } catch {
+    res.status(503).json({ status: 'not_ready', message: 'database unavailable' });
+  }
+});
+
 // --- Mount route modules ---
 
 const templatesRouter = require('./routes/templates');
@@ -378,6 +404,47 @@ app.get('*', (req, res, next) => {
   next();
 });
 
-app.listen(PORT, () => {
+// --- JSON 404s and centralized error handling ---
+
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'Not found', requestId: req.id });
+});
+
+app.use((err, req, res, next) => {
+  console.error(`Unhandled request error [${req.id}] ${req.method} ${req.originalUrl}:`, err);
+  if (res.headersSent) return next(err);
+  res.status(err.status || 500).json({
+    error: err.status && err.status < 500 ? err.message : 'Internal server error',
+    requestId: req.id,
+  });
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection:', reason);
+});
+
+// --- Graceful shutdown ---
+
+const server = app.listen(PORT, () => {
   console.log(`n8n template library running on http://localhost:${PORT}`);
 });
+
+let shuttingDown = false;
+function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`${signal} received — shutting down`);
+  server.close(() => {
+    pool.end().catch(() => {}).finally(() => process.exit(0));
+  });
+  // SSE clients can keep the HTTP server open indefinitely; close them after a
+  // short grace period so the container can stop cleanly.
+  const forceTimer = setTimeout(() => {
+    if (typeof server.closeAllConnections === 'function') server.closeAllConnections();
+  }, 5000);
+  forceTimer.unref();
+  const exitTimer = setTimeout(() => process.exit(1), 15000);
+  exitTimer.unref();
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

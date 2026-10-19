@@ -18,8 +18,14 @@ function setNodeData(icons, creds) {
 
 // --- Node icon/creds lookup ---
 
-router.get('/api/node-icons', (_req, res) => { res.json(NODE_ICONS); });
-router.get('/api/node-creds', (_req, res) => { res.json(NODE_CREDS); });
+router.get('/api/node-icons', (_req, res) => {
+  res.set('Cache-Control', 'public, max-age=86400');
+  res.json(NODE_ICONS);
+});
+router.get('/api/node-creds', (_req, res) => {
+  res.set('Cache-Control', 'public, max-age=86400');
+  res.json(NODE_CREDS);
+});
 
 // --- Categories (n8n-facing) ---
 
