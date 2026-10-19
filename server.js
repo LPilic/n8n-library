@@ -41,7 +41,8 @@ app.use(express.json({ limit: '10mb' }));
 // compression buffers data and would break real-time delivery.
 app.use(compression({
   filter: (req, res) => {
-    if (res.getHeader('Content-Type') === 'text/event-stream') return false;
+    const contentType = res.getHeader('Content-Type');
+    if (typeof contentType === 'string' && contentType.startsWith('text/event-stream')) return false;
     return compression.filter(req, res);
   },
 }));
