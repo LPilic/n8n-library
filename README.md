@@ -119,6 +119,8 @@ All configuration is via environment variables (or `.env` file):
 | `N8N_LOGIN_AUTO_PROVISION` | `false` | Allow n8n-login to auto-create/claim accounts. Enable only in trusted deployments. |
 | `WEBHOOK_SIGNING_SECRET` | _(empty)_ | Optional HMAC-SHA256 secret for `X-N8N-Library-Signature` on webhooks |
 | `HITL_CALLBACK_SECRET` | _(empty)_ | Optional HMAC-SHA256 secret for HITL callbacks |
+| `WEBHOOK_ALLOW_PRIVATE` | `false` | Allow webhooks to target private/internal addresses |
+| `HITL_ALLOW_PRIVATE_CALLBACKS` | `false` | Allow HITL callbacks to target private/internal addresses (the configured n8n origin is always allowed) |
 | `NODE_ENV` | _(empty)_ | Set to `production` for secure cookies and HSTS |
 | `N8N_INTERNAL_URL` | _(empty)_ | Default n8n instance URL (can also be set in UI) |
 | `N8N_API_KEY` | _(empty)_ | Default n8n API key (can also be set in UI) |
