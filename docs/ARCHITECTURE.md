@@ -43,41 +43,58 @@ n8n-library/
 ├── lib/                   # Shared server-side modules
 │   ├── ai-providers.js    # LLM integration (Claude, OpenAI, Gemini, Groq, Ollama)
 │   ├── api-key-auth.js    # API key authentication middleware
-│   ├── email.js           # SMTP transport, email templates
-│   ├── helpers.js         # Utilities (escaping, slugs, validation, SSRF protection)
+│   ├── alert-engine.js    # Scheduled alert evaluation
+│   ├── audit.js           # Audit-log writer
+│   ├── crypto.js          # AES-256-GCM for credentials and API keys
+│   ├── email.js           # SMTP transport, templates, DB restore
+│   ├── helpers.js         # Escaping, slugs, SSRF/DNS validation, HMAC signing
 │   ├── mcp.js             # MCP client manager (stdio/HTTP transports)
-│   ├── middleware.js       # Auth guards, role checks, rate limiters
-│   ├── n8n-api.js         # n8n REST API client with instance routing and caching
+│   ├── mcp-server.js      # MCP server exposed by the library
+│   ├── middleware.js      # Auth guards, role checks, rate limiters
+│   ├── n8n-api.js         # n8n REST client, instances, summary/name caches
+│   ├── retention.js       # Scheduled data-retention cleanup
+│   ├── webhooks.js        # Signed outbound webhooks
 │   └── tools.js           # AI tool definitions (built-in + MCP tools)
 │
 ├── routes/                # Express route modules
-│   ├── auth.js            # Login, logout, password reset, user CRUD
+│   ├── auth.js            # Login, 2FA, password reset, user CRUD
 │   ├── templates.js       # n8n-compatible template API + internal CRUD
-│   ├── monitoring.js      # Instance health, metrics, executions, workers, instance CRUD
+│   ├── monitoring.js      # Health, metrics, executions, workers, instance CRUD
 │   ├── tickets.js         # Service desk: tickets, comments, activity log
 │   ├── kb.js              # Knowledge base: articles, categories, tags, versions
-│   ├── settings.js        # SMTP, email templates, AI config, branding
-│   ├── ai.js              # AI chat, workflow description, error analysis, reports
-│   ├── mcp-routes.js      # MCP server management endpoints
-│   └── api-keys.js        # API key CRUD and management
+│   ├── prompts.js         # Versioned prompt library + public endpoints
+│   ├── hitl.js            # Approvals, form templates, webhooks, callbacks
+│   ├── credential-store.js # Encrypted credential templates and provisioning
+│   ├── credentials.js     # n8n credential management
+│   ├── alerts.js          # Alert-rule CRUD
+│   ├── variables.js       # n8n variables
+│   ├── tags.js            # n8n tags and workflow-tag assignment
+│   ├── audit.js           # Audit-log API
+│   ├── notifications.js   # In-app notifications and SSE
+│   ├── search.js          # Global search
+│   ├── webhooks.js        # Outbound webhook management
+│   ├── security.js        # n8n security audit proxy
+│   ├── settings.js        # SMTP, email templates, AI, branding, import/export
+│   ├── ai.js              # AI chat, workflow help, conversations
+│   ├── mcp-routes.js      # MCP server management and tool calls
+│   └── api-keys.js        # API key CRUD
 │
-├── public/                # Frontend (SPA)
+├── public/                # Legacy vanilla-JS SPA
 │   ├── index.html         # Application shell (all panels defined inline)
-│   ├── css/styles.css     # Main stylesheet with CSS variables, light/dark themes
-│   ├── js/
-│   │   ├── app.js         # Core: auth, navigation, theme, modals, custom selects
-│   │   ├── library.js     # Template browsing, search, import
-│   │   ├── monitoring.js  # Execution dashboard, workflow cards, charts
-│   │   ├── observability.js # Prometheus metrics visualization, worker status
-│   │   ├── tickets.js     # Ticket management UI
-│   │   ├── kb.js          # Knowledge base UI
-│   │   ├── ai.js          # AI chat interface with tool rendering
-│   │   └── settings.js    # Admin settings panels, instance management
+│   ├── css/               # Theme and panel styles
+│   ├── js/                # app.js, library.js, monitoring.js, etc.
 │   └── vendor/            # Vendored CDN dependencies (offline-capable)
-│       ├── js/            # Chart.js, Quill, DOMPurify, highlight.js, n8n web components
-│       ├── css/           # FontAwesome, Quill theme, highlight theme
-│       └── fonts/         # FontAwesome webfonts
 │
+├── frontend/              # React/Vite frontend (FRONTEND=react)
+│   ├── src/features/      # Page-level features
+│   ├── src/components/    # Shared UI components
+│   ├── src/stores/        # Zustand stores (auth, instance, theme, branding)
+│   ├── src/api/           # Fetch client and shared types
+│   └── dist/              # Production build
+│
+├── test/                  # node:test + supertest coverage
+├── scripts/               # Maintenance scripts (OpenAPI generator)
+├── .github/workflows/     # CI (Postgres, tests, build, lint, audit)
 ├── data/                  # Seed data for templates and collections
 ├── node-icons.json        # n8n node icon definitions (534 nodes)
 └── node-creds.json        # n8n node credential type definitions (751 types)
@@ -240,9 +257,18 @@ mcp_servers              # MCP server configurations
 
 ## Frontend Architecture
 
-Single-page application with panel-based navigation. No build step — vanilla JS modules loaded via script tags.
+Two frontends currently coexist:
 
-### Panel System
+- **Legacy SPA** in `public/` — vanilla JS modules loaded via script tags, no
+  build step. This is the default.
+- **React SPA** in `frontend/` — Vite + React 18 + TypeScript + TanStack Query +
+  Zustand + Tailwind. It is served when `FRONTEND=react` is set and
+  `frontend/dist` exists.
+
+The Docker image builds both. Set `FRONTEND=react` to use the React build.
+Long-term, one frontend should be selected to avoid feature drift.
+
+### Panel System (legacy)
 
 ```html
 <div class="panel" id="panel-library">    <!-- Template browsing -->
@@ -277,6 +303,72 @@ All CDN libraries vendored locally in `public/vendor/` for offline/proxy environ
 | FontAwesome | Icon set |
 | n8n-demo.bundled.js | n8n workflow preview web components |
 
+## Approvals (HITL)
+
+`routes/hitl.js` provides form templates, request intake from n8n, reviewer
+responses, and callbacks:
+
+- Templates store a JSON form schema built by the visual builder.
+- n8n submits requests with an API key and a `callback_url`.
+- Reviewers must be `admin` or `editor`; if `assign_to` is set, only that
+  reviewer (or an admin) can respond.
+- Responses transition `pending` → `approved` / `rejected` /
+  `request_changes` (or `expired`).
+- Callback URLs are validated, including DNS resolution, and can be signed with
+  `HITL_CALLBACK_SECRET` (`X-N8N-Library-Signature`).
+- `N8N_INTERNAL_URL` origins are always allowed; other private destinations
+  require `HITL_ALLOW_PRIVATE_CALLBACKS=true`.
+
+## Prompt Library
+
+`routes/prompts.js` stores versioned prompts with categories, tags, status, and
+public read endpoints. Updates create a version; reverts create a new version
+from an older one. `POST /api/prompts/:id/improve` uses the configured LLM.
+
+## Credential Store
+
+`routes/credential-store.js` stores shared credential fields encrypted with
+AES-256-GCM. Admins define which fields users must supply. Provisioning merges
+shared secrets with user fields, fetches the n8n credential schema, fills
+schema defaults, strips disallowed keys, and creates the credential in n8n.
+Secrets are never returned by the API.
+
+## Monitoring caches
+
+`lib/n8n-api.js` maintains:
+
+- Single-flight full workflow fetches (never duplicated concurrently).
+- A lightweight workflow summary (`id`, `name`, `active`, `tags`) with a
+  15-minute TTL and stale-while-revalidate behavior.
+- A workflow-name map with a 5-minute TTL.
+- Non-blocking name lookups so execution and dashboard requests never wait
+  minutes for a full workflow list. The Workflows page seeds the cache.
+
+The SSE push polls only instances that have connected listeners and runs every
+30 seconds. Metrics collectors run every 60 seconds.
+
+## Alerts and retention
+
+`lib/alert-engine.js` runs every 5 minutes and supports failure rate/count, open
+tickets, SLA breach, and unreachable-instance conditions. `lib/retention.js`
+removes expired reset tokens, old audit entries, old credential-audit entries,
+and read notifications once per day.
+
+## Testing and CI
+
+Backend tests use `node:test` + `supertest` against a dedicated PostgreSQL
+database (`n8n_library_test`). Coverage includes:
+
+- Role matrix for HITL, MCP, and KB writes.
+- HITL state transitions, assignee enforcement, SSRF rejection, and signed
+  callbacks.
+- API-key role capping and expiry.
+- Migration versioning and idempotency.
+- SSRF helpers, HMAC signing, and credential crypto.
+
+CI runs on PostgreSQL 16: install, syntax check, migrate twice, tests,
+TypeScript/Vite build, ESLint, and runtime dependency audit.
+
 ## Deployment
 
 ### With nginx (recommended)
@@ -292,6 +384,10 @@ This allows n8n's built-in template browser to fetch from the library transparen
 ### Docker
 
 n8n Library only requires PostgreSQL. It connects to your existing n8n instance(s) via their REST API — no shared network or co-location needed. Configure n8n connections in the Settings UI or via `N8N_INTERNAL_URL` env var.
+
+Set `CREDENTIAL_ENCRYPTION_KEY` to a persistent 64-hex-character value
+(`openssl rand -hex 32`). Losing it makes stored credentials unrecoverable.
+Set `FRONTEND=react` to serve the React build instead of `public/`.
 
 If deploying alongside n8n with Docker Compose, add `n8n-library` as a service on the same network so it can reach n8n's internal URL. A sample `docker-compose.yml` is included for reference.
 
@@ -314,9 +410,18 @@ Or use the setup wizard: `npm run setup`
 - Sessions stored server-side in PostgreSQL
 - CSRF protection via `X-Requested-With` header validation (bypassed for API key auth)
 - Helmet security headers in production
-- Rate limiting on auth and AI endpoints
-- SSRF protection on external URL validation (`lib/helpers.js`)
+- Rate limiting on auth, AI, write, and credential endpoints
+- 2FA/TOTP for password and n8n logins
+- SSRF protection on external URL validation, including DNS resolution (`lib/helpers.js`)
+- HMAC-signed outbound webhooks and HITL callbacks
 - HTML sanitization with DOMPurify on frontend (`<style>` tags stripped to prevent CSS injection)
 - SQL injection prevention via parameterized queries throughout
+- AES-256-GCM encryption for stored n8n API keys and credential-store secrets
+- `CREDENTIAL_ENCRYPTION_KEY` required in production; startup never re-encrypts
+  values that fail to decrypt
+- Setup wizard binds to loopback and requires a one-time token
+- MCP server list and tool invocation are role-gated; `/mcp` sessions carry the
+  authenticated actor
 - No secrets in client-side code
 - API key role enforcement: key permissions capped at user's own role
+- Daily retention cleanup for reset tokens, audit logs, and notifications

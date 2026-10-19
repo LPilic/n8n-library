@@ -9,12 +9,17 @@ A self-hosted companion app for [n8n](https://n8n.io) that adds a workflow templ
 - **Observability** — Prometheus metrics visualization, CPU/memory/heap/event loop charts, queue metrics, worker health monitoring
 - **Service Desk** — Ticket system with categories, priorities, assignments, comments, and direct linking to n8n executions
 - **Knowledge Base** — Articles with categories, tags, versioning, full-text search, and helpfulness feedback
+- **Approvals (HITL)** — Build approval forms, receive requests from n8n, and return approve/reject/change decisions via signed callbacks
+- **Prompt Library** — Versioned prompts with categories, tags, public read endpoints, and AI-assisted improvements
+- **Credential Store** — Encrypted shared-secret templates that let users provision n8n credentials without seeing the shared secrets
 - **AI Assistant** — Chat interface powered by LLMs (Claude, OpenAI, Gemini, Groq, Ollama) with tool use for searching tickets and KB articles
-- **MCP Integration** — Connect Model Context Protocol servers to extend AI capabilities (e.g., n8n-mcp for workflow management via chat)
+- **MCP Integration** — Connect Model Context Protocol servers to extend AI capabilities (e.g., n8n-mcp for workflow management via chat), with role-gated tool access
 - **Multi-Instance Support** — Monitor and switch between multiple n8n instances (production, staging, dev) from a single dashboard
 - **Worker Monitoring** — Track n8n queue-mode workers with health checks and per-worker metrics
+- **Alerts & Variables** — Scheduled alert rules, n8n variables, workflow tags, and a global audit log
 - **Email Notifications** — Customizable email templates for password resets, ticket updates, and daily summary reports
 - **API Keys** — Per-user API key generation for programmatic access with role-based permissions and optional expiry
+- **Security** — 2FA/TOTP, DNS-resolving SSRF protection, signed outbound webhooks/HITL callbacks, and a security audit view
 - **API Documentation** — Interactive Swagger/OpenAPI docs at `/api/docs`
 - **Role-Based Access** — Admin, editor, and viewer roles with granular permissions
 - **Dark Mode** — System-preference-aware theme toggle
@@ -121,6 +126,10 @@ All configuration is via environment variables (or `.env` file):
 | `HITL_CALLBACK_SECRET` | _(empty)_ | Optional HMAC-SHA256 secret for HITL callbacks |
 | `WEBHOOK_ALLOW_PRIVATE` | `false` | Allow webhooks to target private/internal addresses |
 | `HITL_ALLOW_PRIVATE_CALLBACKS` | `false` | Allow HITL callbacks to target private/internal addresses (the configured n8n origin is always allowed) |
+| `AUDIT_RETENTION_DAYS` | `180` | Audit-log retention |
+| `CREDENTIAL_AUDIT_RETENTION_DAYS` | `365` | Credential-audit retention |
+| `NOTIFICATION_RETENTION_DAYS` | `30` | Read-notification retention |
+| `RESET_TOKEN_RETENTION_DAYS` | `7` | Used/expired password-reset token retention |
 | `NODE_ENV` | _(empty)_ | Set to `production` for secure cookies and HSTS |
 | `N8N_INTERNAL_URL` | _(empty)_ | Default n8n instance URL (can also be set in UI) |
 | `N8N_API_KEY` | _(empty)_ | Default n8n API key (can also be set in UI) |
@@ -198,7 +207,9 @@ Change these immediately in Settings > Users.
 | `npm run setup` | `node setup.js` | Launch web-based setup wizard |
 | `npm run dev` | `node --watch server.js` | Start with file watching (dev mode) |
 | `npm run migrate` | `node migrate.js` | Run database migrations |
+| `npm test` | `node --test --test-concurrency=1 test/*.test.js` | Run backend tests (requires PostgreSQL) |
+| `npm run openapi` | `node scripts/generate-openapi.js` | Regenerate missing OpenAPI paths |
 
 ## License
 
-Private — not for redistribution.
+AGPL-3.0-or-later. See [LICENSE](LICENSE).

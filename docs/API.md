@@ -210,3 +210,174 @@ API key requests bypass CSRF checks and have CORS enabled. A key's effective rol
 ```
 
 > The `key` field is only returned in the create response. Store it securely.
+
+## Two-Factor Authentication (TOTP)
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/auth/2fa/status` | Any | Whether 2FA is enabled for the current user |
+| POST | `/api/auth/2fa/setup` | Any | Generate a TOTP secret and QR code |
+| POST | `/api/auth/2fa/verify` | Any | Verify `{token}` and enable 2FA |
+| POST | `/api/auth/2fa/disable` | Any | Disable 2FA `{password}` |
+
+`POST /api/auth/login` and `POST /api/auth/n8n-login` return
+`{requires_2fa: true}` when a valid password still needs a TOTP code.
+
+## Approvals (HITL)
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/hitl/templates` | Editor+ | List approval templates |
+| GET | `/api/hitl/templates/:id` | Editor+ | Template detail |
+| POST | `/api/hitl/templates` | Admin | Create template `{name, slug, schema}` |
+| PUT | `/api/hitl/templates/:id` | Admin | Update template |
+| DELETE | `/api/hitl/templates/:id` | Admin | Delete template |
+| PATCH | `/api/hitl/templates/:id/toggle` | Admin | Enable/disable template |
+| GET | `/api/hitl/requests` | Any | List requests (`?status=pending|approved|rejected|expired|all`) |
+| GET | `/api/hitl/requests/:id` | Any | Request detail, including template schema |
+| POST | `/api/hitl/requests` | API key/user | Create request `{template, callback_url, title, data, priority, timeout_minutes, assign_to}` |
+| POST | `/api/hitl/requests/:id/respond` | Editor+ | Approve/reject/request changes; admins bypass assignee checks |
+| GET | `/api/hitl/pending-count` | Any | Pending request count for badges |
+| GET | `/api/hitl/stream` | Any | SSE stream of approval updates |
+| POST | `/api/hitl/webhook/:slug` | API key | Production webhook for n8n |
+| POST | `/api/hitl/webhook/test/:slug` | API key | Validate a webhook without creating a request |
+| POST | `/api/hitl/capture` | Editor+ | Start a form-builder capture session |
+| POST | `/api/hitl/capture/:token` | None | Receive a captured webhook payload (single use) |
+| GET | `/api/hitl/capture/:token` | Any | Poll for a captured payload |
+| DELETE | `/api/hitl/capture/:token` | Any | Cancel a capture session |
+
+Callbacks are signed with `X-N8N-Library-Signature: sha256=<hmac>` when
+`HITL_CALLBACK_SECRET` is set.
+
+## Prompts
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/prompts/categories` | Any | Prompt categories |
+| GET | `/api/prompts` | Any | List prompts (`?search=&category=&status=&page=`) |
+| GET | `/api/prompts/:idOrSlug` | Any | Prompt detail |
+| POST | `/api/prompts` | Editor+ | Create prompt |
+| PUT | `/api/prompts/:id` | Editor+ | Update prompt (creates a version) |
+| DELETE | `/api/prompts/:id` | Admin | Delete prompt |
+| PATCH | `/api/prompts/:id/status` | Editor+ | Change status |
+| GET | `/api/prompts/:id/versions` | Any | Version history |
+| GET | `/api/prompts/:id/versions/:version` | Any | Version content |
+| GET | `/api/prompts/:id/diff` | Any | Diff between versions |
+| POST | `/api/prompts/:id/revert/:version` | Editor+ | Revert to a version |
+| POST | `/api/prompts/:id/improve` | Editor+ | AI prompt improvement |
+| GET | `/api/public/prompts` | API key | Published prompts |
+| GET | `/api/public/prompts/:slug` | API key | Published prompt by slug |
+| GET | `/api/public/prompts/:slug/versions` | API key | Published prompt versions |
+| GET | `/api/public/prompts/:slug/v/:version` | API key | Published prompt version |
+
+## Credentials
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/credentials` | Admin | List n8n credentials (metadata only) |
+| GET | `/api/credentials/types` | Admin | Bundled credential-type catalog |
+| GET | `/api/credentials/projects` | Admin | n8n projects for transfer |
+| GET | `/api/credentials/schema/:typeName` | Admin | Credential JSON schema |
+| POST | `/api/credentials` | Admin | Create credential `{name, type, data}` |
+| PATCH | `/api/credentials/:id` | Admin | Update credential |
+| DELETE | `/api/credentials/:id` | Admin | Delete credential |
+| PUT | `/api/credentials/:id/transfer` | Admin | Transfer to a project |
+| GET | `/api/credentials/audit` | Editor+ | Credential audit history |
+| GET | `/api/credentials/my-provisions` | Any | Current user's provisioning history |
+
+### Credential Store
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/credential-store` | Any | Templates visible to the user's role |
+| GET | `/api/credential-store/:id` | Any | Template detail and audit history |
+| GET | `/api/credential-store/:id/fields` | Admin | Stored shared field names (never values) |
+| POST | `/api/credential-store` | Admin | Create encrypted template |
+| PATCH | `/api/credential-store/:id` | Admin | Update template |
+| DELETE | `/api/credential-store/:id` | Admin | Delete template |
+| POST | `/api/credential-store/:id/provision` | Allowed role | Create the credential in n8n using shared + user fields |
+
+## Alerts
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/alerts` | Admin | List alert rules and condition labels |
+| POST | `/api/alerts` | Admin | Create alert rule |
+| PUT | `/api/alerts/:id` | Admin | Update alert rule |
+| DELETE | `/api/alerts/:id` | Admin | Delete alert rule |
+| POST | `/api/alerts/:id/test` | Admin | Evaluate alerts immediately |
+
+## Variables and Tags
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/variables` | Editor+ | List n8n variables |
+| POST | `/api/variables` | Admin | Create variable |
+| PUT | `/api/variables/:id` | Admin | Update variable |
+| DELETE | `/api/variables/:id` | Admin | Delete variable |
+| GET | `/api/tags` | Editor+ | List n8n tags |
+| POST | `/api/tags` | Admin | Create tag |
+| PUT | `/api/tags/:id` | Admin | Rename tag |
+| DELETE | `/api/tags/:id` | Admin | Delete tag |
+| GET | `/api/tags/workflow/:workflowId` | Editor+ | Get a workflow's tags |
+| PUT | `/api/tags/workflow/:workflowId` | Editor+ | Replace a workflow's tags `{tagIds}` |
+
+## Audit, Notifications, and Search
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/audit-log` | Admin | Paginated audit log |
+| GET | `/api/notifications` | Any | Paginated notifications and unread count |
+| GET | `/api/notifications/stream` | Any | SSE notification stream |
+| PUT | `/api/notifications/:id/read` | Any | Mark one notification read |
+| PUT | `/api/notifications/read-all` | Any | Mark all notifications read |
+| GET | `/api/search?q=` | Any | Search templates, tickets, and KB articles |
+
+## Webhooks and Security
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/webhooks` | Admin | List outbound webhooks and event types |
+| POST | `/api/webhooks` | Admin | Create webhook |
+| PUT | `/api/webhooks/:id` | Admin | Update webhook |
+| DELETE | `/api/webhooks/:id` | Admin | Delete webhook |
+| POST | `/api/webhooks/:id/test` | Admin | Send a signed test payload |
+| POST | `/api/security/audit` | Admin | Run the n8n security audit |
+
+Outbound webhooks are signed with `X-N8N-Library-Signature` when
+`WEBHOOK_SIGNING_SECRET` is set. Private/internal destinations are blocked
+unless `WEBHOOK_ALLOW_PRIVATE=true`.
+
+## Settings Import/Export
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/settings/export` | Admin | Export settings, categories, webhooks, and alerts |
+| POST | `/api/settings/import` | Admin | Import a previously exported JSON file |
+
+## System
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/health` | None | Database liveness check |
+| GET | `/readyz` | None | Readiness check and uptime |
+| ALL | `/mcp` | API key | Streamable HTTP MCP transport |
+
+## Public n8n-Facing Endpoints
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/templates/categories` | None | n8n template categories |
+| GET | `/templates/search` | None | n8n template search |
+| GET | `/templates/workflows/:id` | None | n8n template workflow |
+| GET | `/templates/collections` | None | Curated collections |
+| GET | `/templates/collections/:id` | None | Collection detail |
+| GET | `/workflows/templates/:id` | None | Workflow template detail |
+| GET | `/api/categories` | None | Library categories |
+| GET | `/api/node-icons` | None | Node icon catalog (cached 24h, gzip) |
+| GET | `/api/node-creds` | None | Node credential catalog |
+| GET | `/api/settings/branding` | None | Public branding |
+| POST | `/api/public/ticket` | None | Submit a ticket from n8n |
+| GET | `/api/public/ticket-categories` | None | Public ticket categories |
+| POST | `/api/public/ticket-image` | None | Upload a ticket image |
+| GET | `/api/public/n8n-me?userId=` | None | Resolve an n8n user |
