@@ -1,4 +1,4 @@
-import { useState, useEffect, type ComponentType } from 'react'
+import { useState, useEffect, lazy, Suspense, type ComponentType } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
@@ -8,7 +8,6 @@ import { useThemeStore } from '@/stores/theme'
 import { useBrandingStore } from '@/stores/branding'
 import { cn } from '@/lib/utils'
 import { CommandPalette } from './CommandPalette'
-import { AiChatPanel } from '@/features/ai-chat'
 import { NotificationDropdown } from './NotificationDropdown'
 import { InstanceSelector } from './InstanceSelector'
 import {
@@ -86,6 +85,8 @@ const MOBILE_NAV = [
   { path: '/monitoring', label: 'Monitor', icon: Activity },
   { path: '/kb', label: 'KB', icon: BookOpen },
 ]
+
+const AiChatPanel = lazy(() => import('@/features/ai-chat').then((m) => ({ default: m.AiChatPanel })))
 
 const ROLE_LEVEL: Record<string, number> = { viewer: 0, editor: 1, admin: 2 }
 
@@ -353,7 +354,11 @@ export function AppLayout() {
 
       {/* Command palette overlay */}
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
-      <AiChatPanel open={aiChatOpen} onToggle={() => setAiChatOpen((o) => !o)} />
+      {aiChatOpen && (
+        <Suspense fallback={null}>
+          <AiChatPanel open={aiChatOpen} onToggle={() => setAiChatOpen((o) => !o)} />
+        </Suspense>
+      )}
     </div>
   )
 }
