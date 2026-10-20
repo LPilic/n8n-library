@@ -115,6 +115,8 @@ export function useHighlight(deps: unknown[] = []) {
       // Apply syntax highlighting
       hljs.highlightElement(codeEl)
     })
+  // The caller controls when highlighting should re-run.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps)
 
   return ref

@@ -4,7 +4,7 @@ import { api, ApiError } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/hooks/useToast'
 import { esc, cn } from '@/lib/utils'
-import { appConfirm } from '@/components/ConfirmDialog'
+import { appConfirm } from '@/stores/confirm'
 import { Search, History, Sparkles } from 'lucide-react'
 import { NodeFlow } from '@/components/NodeFlow'
 import { PreviewModal, N8nDemoPreview } from '@/components/PreviewModal'
@@ -309,8 +309,8 @@ export function LibraryPage() {
     onError: (err) => showError(err instanceof ApiError ? err.message : 'Delete failed'),
   })
 
-  const templates = templatesData?.workflows ?? []
-  const categories = categoriesData ?? []
+  const templates = useMemo(() => templatesData?.workflows ?? [], [templatesData])
+  const categories = useMemo(() => categoriesData ?? [], [categoriesData])
 
   const filtered = useMemo(() => {
     if (!selectedCategory) return templates

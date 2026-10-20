@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { api, ApiError } from '@/api/client'
 import { useSse } from '@/hooks/useSse'
 import { useToast } from '@/hooks/useToast'
-import { appConfirm } from '@/components/ConfirmDialog'
+import { appConfirm } from '@/stores/confirm'
 import { NodeFlow } from '@/components/NodeFlow'
 import { PreviewModal } from '@/components/PreviewModal'
 import { esc, formatDuration, timeAgo, cn } from '@/lib/utils'
@@ -120,7 +120,10 @@ export function MonitoringPage() {
     enabled: instanceLoaded,
     refetchInterval: autoRefresh || 30_000,
   })
-  const stats = sseStats ? { ...fetchedStats, ...sseStats } : fetchedStats
+  const stats = useMemo(
+    () => (sseStats ? { ...fetchedStats, ...sseStats } : fetchedStats),
+    [fetchedStats, sseStats],
+  )
 
   // Executions query
   const { data: execData, isLoading: execLoading } = useQuery({
@@ -144,8 +147,8 @@ export function MonitoringPage() {
     refetchInterval: autoRefresh || undefined,
   })
 
-  const executions = execData?.data ?? []
-  const workflows = wfData?.data ?? []
+  const executions = useMemo(() => execData?.data ?? [], [execData])
+  const workflows = useMemo(() => wfData?.data ?? [], [wfData])
 
   // Filtered workflows for the tab
   const filteredWorkflows = useMemo(() => {

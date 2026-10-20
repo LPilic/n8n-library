@@ -683,8 +683,8 @@ function CredentialsTab() {
     queryFn: () => api.get<AuditEntry[]>('/api/credentials/audit'),
   })
 
-  const credentials = credsResp?.data ?? []
-  const projects = projectsResp?.data ?? []
+  const credentials = useMemo(() => credsResp?.data ?? [], [credsResp])
+  const projects = useMemo(() => projectsResp?.data ?? [], [projectsResp])
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => api.delete(`/api/credentials/${id}`),

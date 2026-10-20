@@ -5,19 +5,21 @@ function N8nDemoPreview({ workflow, minHeight = '80vh' }: { workflow: { nodes: u
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!containerRef.current) return
-    containerRef.current.innerHTML = ''
+    const container = containerRef.current
+    if (!container) return
+    container.innerHTML = ''
+
     const demo = document.createElement('n8n-demo')
     demo.setAttribute('workflow', JSON.stringify(workflow))
     demo.setAttribute('frame', 'true')
     demo.style.cssText = `display:block;width:100%;height:100%;--n8n-workflow-min-height:${minHeight};--n8n-iframe-border-radius:0;--n8n-frame-background-color:#f5f5f5;`
-    containerRef.current.appendChild(demo)
+    container.appendChild(demo)
 
     const style = document.createElement('style')
     style.textContent = 'n8n-demo iframe { width:100%!important; height:100%!important; min-height:0!important; border:none!important; }'
-    containerRef.current.appendChild(style)
+    container.appendChild(style)
 
-    return () => { if (containerRef.current) containerRef.current.innerHTML = '' }
+    return () => { container.innerHTML = '' }
   }, [workflow, minHeight])
 
   return <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }} />
