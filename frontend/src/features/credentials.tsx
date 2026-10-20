@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
+import { appConfirm } from '@/stores/confirm'
 import { useToast } from '@/hooks/useToast'
 import { useAuthStore } from '@/stores/auth'
 import { esc, timeAgo, cn } from '@/lib/utils'
@@ -49,13 +50,26 @@ interface AuditEntry {
   created_at: string
 }
 
+interface UserFieldDefinition {
+  key: string
+  label: string
+  type: 'string' | 'number' | 'integer' | 'boolean'
+  required: boolean
+  sensitive: boolean
+  description?: string
+}
+
 interface StoreTemplate {
   id: string
   name: string
-  type: string
+  type?: string
+  credential_type?: string
   description?: string
   allowed_roles?: string[]
   creator?: string
+  creator_name?: string
+  user_fields?: string[]
+  user_field_definitions?: UserFieldDefinition[]
   schema?: Record<string, SchemaProperty>
   instanceId?: number
   instance_id?: number
@@ -67,10 +81,11 @@ interface StoreTemplate {
 function formatCredType(type: string): string {
   if (!type) return 'Unknown'
   return type
-    .replace(/Api$/, ' API')
     .replace(/OAuth2$/, ' OAuth2')
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/^ /, '')
+    .replace(/Api$/, ' API')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .replace(/^./, (c) => c.toUpperCase())
     .trim()
 }
 
@@ -576,9 +591,25 @@ function ProvisionModal({
 }) {
   const { error: showError, success: showSuccess } = useToast()
   const [name, setName] = useState(`My ${template.name}`)
-  const [userData, setUserData] = useState<Record<string, string>>({})
+  const [userData, setUserData] = useState<Record<string, string | boolean>>({})
 
-  const schemaFields = Object.entries(template.schema ?? {})
+  const definitions = useMemo<UserFieldDefinition[]>(() => {
+    if (template.user_field_definitions?.length) return template.user_field_definitions
+    return (template.user_fields || []).map((key) => ({
+      key,
+      label: camelToLabel(key),
+      type: 'string',
+      required: true,
+      sensitive: isSensitiveField(key),
+      description: '',
+    }))
+  }, [template.user_fields, template.user_field_definitions])
+
+  const missingRequired = definitions.filter((def) => {
+    if (!def.required) return false
+    const value = userData[def.key]
+    return value === undefined || value === ''
+  })
 
   const provisionMut = useMutation({
     mutationFn: () =>
@@ -593,7 +624,7 @@ function ProvisionModal({
         <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
           <div>
             <h2 className="text-sm font-semibold text-text-dark">Provision: {esc(template.name)}</h2>
-            <TypeBadge type={template.type} />
+            <TypeBadge type={template.type || template.credential_type || ''} />
           </div>
           <button onClick={onClose} className="text-text-xmuted hover:text-text-dark text-lg leading-none">&times;</button>
         </div>
@@ -607,38 +638,63 @@ function ProvisionModal({
               className="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus"
             />
           </div>
-          {schemaFields.map(([fieldName, prop]) => {
-            const label = prop.displayName || camelToLabel(fieldName)
-            const sensitive = isSensitiveField(fieldName)
-            const val = userData[fieldName] ?? ''
-            return (
-              <div key={fieldName}>
-                <label className="block text-xs font-medium text-text-muted mb-1">{esc(label)}</label>
-                {sensitive ? (
-                  <SensitiveInput
-                    name={fieldName}
-                    value={val}
-                    onChange={(v) => setUserData((d) => ({ ...d, [fieldName]: v }))}
-                  />
-                ) : (
-                  <input
-                    type="text"
-                    value={val}
-                    onChange={(e) => setUserData((d) => ({ ...d, [fieldName]: e.target.value }))}
-                    placeholder={label}
-                    className="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark focus:outline-none focus:border-input-focus"
-                  />
-                )}
-              </div>
-            )
-          })}
+          {definitions.length === 0 ? (
+            <p className="rounded-sm border border-border-light bg-bg px-3 py-2 text-[12px] text-text-muted">
+              All required fields for this credential are provided by the administrator.
+            </p>
+          ) : (
+            definitions.map((def) => {
+              const value = userData[def.key]
+              return (
+                <div key={def.key}>
+                  <label className="mb-1 block text-xs font-medium text-text-muted">
+                    {esc(def.label)}
+                    {def.required && <span className="ml-0.5 text-danger">*</span>}
+                  </label>
+                  {def.type === 'boolean' ? (
+                    <label className="flex cursor-pointer items-center gap-2 text-sm text-text-dark">
+                      <input
+                        type="checkbox"
+                        checked={value === true}
+                        onChange={(e) => setUserData((d) => ({ ...d, [def.key]: e.target.checked }))}
+                        className="accent-primary"
+                      />
+                      {esc(def.label)}
+                    </label>
+                  ) : def.sensitive ? (
+                    <SensitiveInput
+                      name={def.key}
+                      value={typeof value === 'string' ? value : ''}
+                      onChange={(v) => setUserData((d) => ({ ...d, [def.key]: v }))}
+                    />
+                  ) : (
+                    <input
+                      type={def.type === 'number' || def.type === 'integer' ? 'number' : 'text'}
+                      value={typeof value === 'string' ? value : ''}
+                      onChange={(e) => setUserData((d) => ({ ...d, [def.key]: e.target.value }))}
+                      placeholder={def.description || def.label}
+                      className="n8n-input"
+                    />
+                  )}
+                  {def.description && (
+                    <p className="mt-1 text-[10px] text-text-xmuted">{esc(def.description)}</p>
+                  )}
+                </div>
+              )
+            })
+          )}
+          {missingRequired.length > 0 && (
+            <p className="text-[11px] text-danger">
+              Required: {missingRequired.map((def) => def.label).join(', ')}
+            </p>
+          )}
         </div>
         <div className="flex justify-end gap-2 px-4 py-3 border-t border-border shrink-0">
           <button onClick={onClose} className="n8n-btn n8n-btn-secondary n8n-btn-sm">
             Cancel
           </button>
           <button
-            disabled={!name.trim() || provisionMut.isPending}
+            disabled={!name.trim() || missingRequired.length > 0 || provisionMut.isPending}
             onClick={() => provisionMut.mutate()}
             className="n8n-btn n8n-btn-primary n8n-btn-sm"
           >
@@ -924,7 +980,7 @@ export function CredentialStoreTab() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-text-dark truncate">{esc(tpl.name)}</p>
                     <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
-                      <TypeBadge type={tpl.type} />
+                      <TypeBadge type={tpl.type || tpl.credential_type || ''} />
                       {tpl.instance_name && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">{tpl.instance_name}</span>
                       )}
@@ -933,7 +989,13 @@ export function CredentialStoreTab() {
                   {isAdmin && (
                     <div className="flex gap-1 shrink-0">
                       <button
-                        onClick={() => { if (confirm(`Delete template "${tpl.name}"?`)) deleteMut.mutate(tpl.id) }}
+                        onClick={async () => {
+                          const ok = await appConfirm(`Delete template "${tpl.name}"? This cannot be undone.`, {
+                            danger: true,
+                            okLabel: 'Delete',
+                          })
+                          if (ok) deleteMut.mutate(tpl.id)
+                        }}
                         className="p-1 text-text-xmuted hover:text-danger rounded-sm"
                         title="Delete template"
                       >
@@ -966,9 +1028,9 @@ export function CredentialStoreTab() {
                   </button>
                 </div>
 
-                {tpl.creator && (
+                {(tpl.creator || tpl.creator_name) && (
                   <p className="text-[10px] text-text-xmuted flex items-center gap-1">
-                    <User size={10} /> {esc(tpl.creator)}
+                    <User size={10} /> {esc(tpl.creator || tpl.creator_name || '')}
                   </p>
                 )}
               </div>
@@ -1069,7 +1131,14 @@ function CreateStoreTemplateModal({ onClose, onSaved }: { onClose: () => void; o
     if (!schema?.properties) return []
     return Object.entries(schema.properties)
       .filter(([k, p]) => p.type !== 'notice' && k !== 'oauthTokenData' && k !== 'notice')
-      .map(([k, p]) => ({ key: k, type: p.type, desc: p.description, required: (schema.required || []).includes(k) }))
+      .map(([k, p]) => ({
+        key: k,
+        label: p.displayName || camelToLabel(k),
+        type: p.type,
+        desc: p.description || '',
+        required: (schema.required || []).includes(k),
+        sensitive: isSensitiveField(k),
+      }))
   }, [schema])
 
   const filteredTypes = typeSearch
@@ -1081,7 +1150,14 @@ function CreateStoreTemplateModal({ onClose, onSaved }: { onClose: () => void; o
   }
 
   function toggleUserField(key: string) {
-    setUserFields((prev) => prev.includes(key) ? prev.filter((f) => f !== key) : [...prev, key])
+    const enabling = !userFields.includes(key)
+    if (enabling) {
+      // A field is either admin-provided or user-provided, never both.
+      setFieldValues((prev) => ({ ...prev, [key]: '' }))
+      setUserFields((prev) => [...prev, key])
+    } else {
+      setUserFields((prev) => prev.filter((f) => f !== key))
+    }
   }
 
   function toggleVisibility(key: string) {
@@ -1095,17 +1171,39 @@ function CreateStoreTemplateModal({ onClose, onSaved }: { onClose: () => void; o
 
   async function handleSave() {
     if (!name.trim() || !selectedType) return showError('Name and type are required')
+    if (instances.length > 0 && !instanceId) return showError('Select a target instance')
 
     let sharedData: Record<string, unknown> = {}
     if (schemaFields.length > 0) {
+      const missingRequired = schemaFields.filter(
+        (f) => f.required && !userFields.includes(f.key) && !fieldValues[f.key],
+      )
+      if (missingRequired.length > 0) {
+        return showError(`Missing required shared field(s): ${missingRequired.map((f) => f.label).join(', ')}`)
+      }
       for (const f of schemaFields) {
-        if (fieldValues[f.key]) sharedData[f.key] = fieldValues[f.key]
+        if (!userFields.includes(f.key) && fieldValues[f.key]) {
+          sharedData[f.key] = fieldValues[f.key]
+        }
       }
     } else if (jsonFallback.trim()) {
       try { sharedData = JSON.parse(jsonFallback) } catch { return showError('Invalid JSON in shared data') }
     }
 
-    if (Object.keys(sharedData).length === 0) return showError('At least one shared data field is required')
+    if (Object.keys(sharedData).length === 0 && userFields.length === 0) {
+      return showError('At least one shared data field, or one user field, is required')
+    }
+
+    const definitions = schemaFields
+      .filter((f) => userFields.includes(f.key))
+      .map((f) => ({
+        key: f.key,
+        label: f.label,
+        type: ['string', 'number', 'integer', 'boolean'].includes(f.type) ? f.type : 'string',
+        required: true,
+        sensitive: f.sensitive,
+        description: f.desc,
+      }))
 
     setSaving(true)
     try {
@@ -1115,6 +1213,7 @@ function CreateStoreTemplateModal({ onClose, onSaved }: { onClose: () => void; o
         credential_type: selectedType,
         shared_data: sharedData,
         user_fields: userFields,
+        user_field_definitions: definitions,
         allowed_roles: allowedRoles,
         instance_id: instanceId,
       })
