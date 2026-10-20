@@ -265,8 +265,9 @@ Two frontends currently coexist:
   Zustand + Tailwind. It is served when `FRONTEND=react` is set and
   `frontend/dist` exists.
 
-The Docker image builds both. Set `FRONTEND=react` to use the React build.
-Long-term, one frontend should be selected to avoid feature drift.
+The Docker image builds both and sets `FRONTEND=react` by default. Set
+`FRONTEND=legacy` to serve `public/` instead. Long-term, one frontend should be
+selected to avoid feature drift.
 
 ### Panel System (legacy)
 
@@ -388,7 +389,7 @@ n8n Library only requires PostgreSQL. It connects to your existing n8n instance(
 
 Set `CREDENTIAL_ENCRYPTION_KEY` to a persistent 64-hex-character value
 (`openssl rand -hex 32`). Losing it makes stored credentials unrecoverable.
-Set `FRONTEND=react` to serve the React build instead of `public/`.
+The image sets `FRONTEND=react`; set `FRONTEND=legacy` to serve `public/`.
 
 If deploying alongside n8n with Docker Compose, add `n8n-library` as a service on the same network so it can reach n8n's internal URL. A sample `docker-compose.yml` is included for reference.
 
