@@ -83,7 +83,7 @@ export function DashboardPage() {
           <KpiCard
             icon={<CheckCircle size={20} />}
             label={`${data.executions.successRate}%`}
-            sublabel={`Success Rate (last ${data.executions.total})`}
+            sublabel="Success Rate"
             color={data.executions.successRate >= 80 ? 'success' : data.executions.successRate >= 50 ? 'warning' : 'danger'}
             onClick={() => navigate('/monitoring')}
           />
