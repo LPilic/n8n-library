@@ -6,7 +6,7 @@
 const pool = require('./db');
 const bcrypt = require('bcryptjs');
 
-const MIGRATION_VERSION = '001_initial_schema';
+const MIGRATION_VERSION = '002_credential_store_hardening';
 
 async function migration001(client) {
   // --- Auth tables ---
@@ -705,6 +705,55 @@ async function migration001(client) {
   `);
 }
 
+async function migration002(client) {
+  // User-provided field metadata (labels, types, required flags) is stored with
+  // the template so non-admin users can render the provisioning form.
+  await client.query(`
+    ALTER TABLE credential_store
+      ADD COLUMN IF NOT EXISTS user_field_definitions JSONB NOT NULL DEFAULT '[]'::jsonb;
+  `);
+
+  // Deleting a user must not be blocked by templates or audit entries they
+  // created. Preserve the rows and clear the author reference.
+  await client.query(`
+    ALTER TABLE credential_store
+      DROP CONSTRAINT IF EXISTS credential_store_created_by_fkey;
+    ALTER TABLE credential_store
+      ADD CONSTRAINT credential_store_created_by_fkey
+      FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL;
+
+    ALTER TABLE credential_audit
+      DROP CONSTRAINT IF EXISTS credential_audit_user_id_fkey;
+    ALTER TABLE credential_audit
+      ADD CONSTRAINT credential_audit_user_id_fkey
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL;
+  `);
+
+  // Drop dangling instance references before adding the FK.
+  await client.query(`
+    UPDATE credential_audit ca
+    SET instance_id = NULL
+    WHERE ca.instance_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM n8n_instances i WHERE i.id = ca.instance_id);
+
+    ALTER TABLE credential_audit
+      DROP CONSTRAINT IF EXISTS credential_audit_instance_id_fkey;
+    ALTER TABLE credential_audit
+      ADD CONSTRAINT credential_audit_instance_id_fkey
+      FOREIGN KEY (instance_id) REFERENCES n8n_instances(id) ON DELETE SET NULL;
+  `);
+
+  await client.query(`
+    CREATE INDEX IF NOT EXISTS idx_credential_store_instance
+      ON credential_store (instance_id);
+  `);
+}
+
+const MIGRATIONS = [
+  { version: '001_initial_schema', run: migration001 },
+  { version: '002_credential_store_hardening', run: migration002 },
+];
+
 async function runMigrations() {
   const client = await pool.connect();
   try {
@@ -715,27 +764,29 @@ async function runMigrations() {
       )
     `);
 
-    const { rows } = await client.query(
-      'SELECT 1 FROM schema_migrations WHERE version = $1',
-      [MIGRATION_VERSION]
-    );
-    if (rows.length > 0) {
-      console.log(`Migration ${MIGRATION_VERSION} already applied.`);
-      return;
-    }
-
-    await client.query('BEGIN');
-    try {
-      await migration001(client);
-      await client.query(
-        'INSERT INTO schema_migrations (version) VALUES ($1)',
-        [MIGRATION_VERSION]
+    for (const migration of MIGRATIONS) {
+      const { rows } = await client.query(
+        'SELECT 1 FROM schema_migrations WHERE version = $1',
+        [migration.version]
       );
-      await client.query('COMMIT');
-      console.log(`Applied migration ${MIGRATION_VERSION}.`);
-    } catch (err) {
-      await client.query('ROLLBACK').catch(() => {});
-      throw err;
+      if (rows.length > 0) {
+        console.log(`Migration ${migration.version} already applied.`);
+        continue;
+      }
+
+      await client.query('BEGIN');
+      try {
+        await migration.run(client);
+        await client.query(
+          'INSERT INTO schema_migrations (version) VALUES ($1)',
+          [migration.version]
+        );
+        await client.query('COMMIT');
+        console.log(`Applied migration ${migration.version}.`);
+      } catch (err) {
+        await client.query('ROLLBACK').catch(() => {});
+        throw err;
+      }
     }
   } finally {
     client.release();
