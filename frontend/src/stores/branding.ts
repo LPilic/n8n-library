@@ -44,7 +44,7 @@ function applyBrandingCss(data: BrandingSettings) {
       r.setProperty('--color-input-border', `color-mix(in srgb, ${data.brand_card} 60%, ${textColor} 15%)`)
     }
     if (data.brand_text) {
-      r.setProperty('--color-text', data.brand_text)
+      r.setProperty('--color-text-base', data.brand_text)
       r.setProperty('--color-text-muted', `color-mix(in srgb, ${data.brand_text} 65%, transparent)`)
       r.setProperty('--color-text-xmuted', `color-mix(in srgb, ${data.brand_text} 40%, transparent)`)
     }
@@ -54,7 +54,7 @@ function applyBrandingCss(data: BrandingSettings) {
     const props = [
       '--color-bg', '--color-bg-alt', '--color-bg-light', '--color-sidebar',
       '--color-card', '--color-card-hover', '--color-input-bg',
-      '--color-text', '--color-text-dark', '--color-text-muted', '--color-text-xmuted',
+      '--color-text-base', '--color-text-dark', '--color-text-muted', '--color-text-xmuted',
       '--color-border', '--color-border-light', '--color-input-border',
     ]
     props.forEach((p) => r.removeProperty(p))
@@ -75,3 +75,10 @@ export const useBrandingStore = create<BrandingState>((set) => ({
     }
   },
 }))
+
+// Branding writes inline CSS variables for light mode. Re-apply them when the
+// theme changes so those overrides don't leak into dark mode.
+window.addEventListener('themechange', () => {
+  const { branding } = useBrandingStore.getState()
+  if (branding) applyBrandingCss(branding)
+})

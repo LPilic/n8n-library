@@ -15,6 +15,7 @@ function applyTheme(mode: ThemeMode) {
         : 'light'
       : mode
   document.documentElement.setAttribute('data-theme', resolved)
+  window.dispatchEvent(new CustomEvent('themechange', { detail: resolved }))
 }
 
 export const useThemeStore = create<ThemeState>((set) => {
