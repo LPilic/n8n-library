@@ -182,7 +182,7 @@ export function TicketsPage() {
             </div>
 
             {/* By Status */}
-            <div className="bg-card border border-border rounded-lg overflow-hidden">
+            <div className="n8n-card overflow-hidden">
               <div className="px-3 py-2 border-b border-border-light">
                 <h3 className="text-[10px] font-bold text-text-xmuted uppercase tracking-[0.08em]">By Status</h3>
               </div>
@@ -206,7 +206,7 @@ export function TicketsPage() {
             </div>
 
             {/* By Priority */}
-            <div className="bg-card border border-border rounded-lg overflow-hidden">
+            <div className="n8n-card overflow-hidden">
               <div className="px-3 py-2 border-b border-border-light">
                 <h3 className="text-[10px] font-bold text-text-xmuted uppercase tracking-[0.08em]">By Priority</h3>
               </div>
@@ -277,7 +277,7 @@ export function TicketsPage() {
           </span>
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1 text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover"
+            className="n8n-btn n8n-btn-primary n8n-btn-sm"
           >
             <Plus size={12} /> New Ticket
           </button>
@@ -487,14 +487,14 @@ function CreateTicketModal({ onClose, onCreated }: { onClose: () => void; onCrea
         <div className="flex justify-end gap-2 px-4 py-3 border-t border-border">
           <button
             onClick={onClose}
-            className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover"
+            className="n8n-btn n8n-btn-secondary n8n-btn-sm"
           >
             Cancel
           </button>
           <button
             disabled={!title.trim() || createMut.isPending}
             onClick={() => createMut.mutate()}
-            className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+            className="n8n-btn n8n-btn-primary n8n-btn-sm"
           >
             {createMut.isPending ? 'Creating...' : 'Create Ticket'}
           </button>
@@ -569,7 +569,7 @@ export function TicketDetailPage() {
         {/* Main content */}
         <div className="flex-1 min-w-0 space-y-4">
           {/* Header card */}
-          <div className="bg-card border border-border rounded-md p-4">
+          <div className="n8n-card p-4">
             <div className="flex items-start gap-2 mb-3">
               <StatusIcon status={ticket.status} />
               <h2 className="text-base font-semibold text-text-dark leading-snug">{esc(ticket.title)}</h2>
@@ -589,7 +589,7 @@ export function TicketDetailPage() {
           </div>
 
           {/* Comments */}
-          <div className="bg-card border border-border rounded-md overflow-hidden">
+          <div className="n8n-card overflow-hidden">
             <div className="px-4 py-2 border-b border-border-light bg-bg">
               <h3 className="text-xs font-semibold text-text-muted uppercase">
                 Comments ({(ticket.comments ?? []).length})
@@ -641,7 +641,7 @@ export function TicketDetailPage() {
                 <button
                   disabled={!comment.trim() || commentMut.isPending}
                   onClick={() => commentMut.mutate()}
-                  className="ml-auto text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50 flex items-center gap-1"
+                  className="ml-auto n8n-btn n8n-btn-primary n8n-btn-sm flex items-center gap-1"
                 >
                   <MessageSquare size={12} />
                   {commentMut.isPending ? 'Posting...' : 'Post Comment'}
@@ -705,7 +705,7 @@ export function TicketDetailPage() {
 
           {/* Linked Executions */}
           {(ticket.executions ?? []).length > 0 && (
-            <div className="bg-card border border-border rounded-md overflow-hidden">
+            <div className="n8n-card overflow-hidden">
               <div className="px-3 py-2 border-b border-border-light bg-bg">
                 <h3 className="text-[10px] font-semibold text-text-muted uppercase">Linked Executions</h3>
               </div>
@@ -728,7 +728,7 @@ export function TicketDetailPage() {
 
           {/* Execution Context */}
           {ticket.execution_data && (
-            <div className="bg-card border border-border rounded-md overflow-hidden">
+            <div className="n8n-card overflow-hidden">
               <div className="px-3 py-2 border-b border-border-light bg-bg">
                 <h3 className="text-[10px] font-semibold text-text-muted uppercase">Execution Context</h3>
               </div>
@@ -782,7 +782,7 @@ export function TicketDetailPage() {
 
           {/* Activity */}
           {(ticket.activity ?? []).length > 0 && (
-            <div className="bg-card border border-border rounded-md overflow-hidden">
+            <div className="n8n-card overflow-hidden">
               <div className="px-3 py-2 border-b border-border-light bg-bg">
                 <h3 className="text-[10px] font-semibold text-text-muted uppercase">Activity</h3>
               </div>
@@ -805,7 +805,7 @@ export function TicketDetailPage() {
 
 function TicketMetaCard({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="bg-card border border-border rounded-md overflow-hidden">
+    <div className="n8n-card overflow-hidden">
       <div className="px-3 py-1.5 border-b border-border-light bg-bg">
         <span className="text-[10px] font-semibold text-text-muted uppercase">{label}</span>
       </div>

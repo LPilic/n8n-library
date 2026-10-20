@@ -96,9 +96,9 @@ export function AuditPage() {
       ) : entries.length === 0 ? (
         <div className="text-center py-12 text-text-muted text-sm">No log entries found</div>
       ) : (
-        <div className="bg-card border border-border rounded-md overflow-hidden">
+        <div className="n8n-card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+            <table className="n8n-table">
               <thead>
                 <tr className="border-b border-border-light bg-bg">
                   <th className="text-left px-3 py-2 font-semibold text-text-muted uppercase whitespace-nowrap">Time</th>

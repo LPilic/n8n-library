@@ -233,14 +233,14 @@ function McpServerModal({
         <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border shrink-0">
           <button
             onClick={onClose}
-            className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover"
+            className="n8n-btn n8n-btn-secondary n8n-btn-sm"
           >
             Cancel
           </button>
           <button
             disabled={!form.name.trim() || saveMut.isPending}
             onClick={() => saveMut.mutate()}
-            className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50 flex items-center gap-1"
+            className="n8n-btn n8n-btn-primary n8n-btn-sm flex items-center gap-1"
           >
             {saveMut.isPending && <Loader2 size={11} className="animate-spin" />}
             {saveMut.isPending ? 'Saving...' : initial ? 'Save Changes' : 'Add Server'}
@@ -304,7 +304,7 @@ function LlmProviderSection() {
   const labelCls = 'block text-xs font-medium text-text-muted mb-1'
 
   return (
-    <div className="bg-card border border-border rounded-lg p-6 mb-6">
+    <div className="n8n-card mb-6 p-6">
       <div className="flex items-center gap-3 mb-5">
         <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary-light text-primary shrink-0">
           <Sparkles size={16} />
@@ -398,7 +398,7 @@ function LlmProviderSection() {
               <button
                 onClick={() => fetchModelsMut.mutate()}
                 disabled={fetchModelsMut.isPending}
-                className="flex items-center gap-1 text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover disabled:opacity-50 shrink-0"
+                className="flex items-center gap-1 n8n-btn n8n-btn-secondary n8n-btn-sm disabled:opacity-50 shrink-0"
               >
                 {fetchModelsMut.isPending
                   ? <Loader2 size={12} className="animate-spin" />
@@ -429,7 +429,7 @@ function LlmProviderSection() {
             <button
               disabled={saveMut.isPending}
               onClick={() => saveMut.mutate()}
-              className="flex items-center gap-1.5 text-sm px-4 py-2 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+              className="n8n-btn n8n-btn-primary"
             >
               {saveMut.isPending && <Loader2 size={13} className="animate-spin" />}
               {saveMut.isPending ? 'Saving...' : 'Save'}
@@ -488,7 +488,7 @@ function SystemPromptsSection() {
   })
 
   return (
-    <div className="bg-card border border-border rounded-lg p-6 mb-6">
+    <div className="n8n-card mb-6 p-6">
       <div className="flex items-center gap-3 mb-5">
         <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary-light text-primary shrink-0">
           <MessageSquareText size={16} />
@@ -533,7 +533,7 @@ function SystemPromptsSection() {
             <button
               disabled={saveMut.isPending}
               onClick={() => saveMut.mutate()}
-              className="flex items-center gap-1.5 text-sm px-4 py-2 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+              className="n8n-btn n8n-btn-primary"
             >
               {saveMut.isPending && <Loader2 size={13} className="animate-spin" />}
               {saveMut.isPending ? 'Saving...' : 'Save Prompts'}
@@ -599,7 +599,7 @@ function McpServersSection() {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['mcp-servers'] })
 
   return (
-    <div className="bg-card border border-border rounded-lg p-6 mb-6">
+    <div className="n8n-card mb-6 p-6">
       <div className="flex items-center justify-between gap-3 mb-5">
         <div className="flex items-center gap-3">
           <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary-light text-primary shrink-0">
@@ -612,7 +612,7 @@ function McpServersSection() {
         </div>
         <button
           onClick={() => setModalServer('new')}
-          className="flex items-center gap-1 text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover shrink-0"
+          className="n8n-btn n8n-btn-primary n8n-btn-sm shrink-0"
         >
           <Plus size={12} /> Add MCP Server
         </button>

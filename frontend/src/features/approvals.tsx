@@ -613,7 +613,7 @@ function RequestDetailPanel({
 
   return (
     <div className="w-96 shrink-0">
-      <div className="bg-card border border-border rounded-md overflow-hidden sticky top-0">
+      <div className="n8n-card overflow-hidden sticky top-0">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="flex items-center gap-2">
             <StatusIcon status={req.status} />
@@ -774,7 +774,7 @@ export function ApprovalsBuilderPage() {
         <div className="text-center py-12 text-text-muted text-sm">No templates yet</div>
       ) : (
         <div className="border border-border rounded-md overflow-hidden">
-          <table className="w-full text-left">
+          <table className="n8n-table">
             <thead>
               <tr className="bg-bg border-b border-border">
                 <th className="text-[11px] font-semibold uppercase tracking-wide text-text-xmuted px-3 py-2 w-12">Active</th>
@@ -1062,7 +1062,7 @@ export function TemplateModal({
                   />
                   <button
                     onClick={addComponent}
-                    className="flex items-center gap-1 text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover"
+                    className="flex items-center gap-1 n8n-btn n8n-btn-secondary n8n-btn-sm"
                   >
                     <Plus size={12} /> Add
                   </button>
@@ -1119,14 +1119,14 @@ export function TemplateModal({
         <div className="flex justify-end gap-2 px-4 py-3 border-t border-border shrink-0">
           <button
             onClick={onClose}
-            className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover"
+            className="n8n-btn n8n-btn-secondary n8n-btn-sm"
           >
             Cancel
           </button>
           <button
             disabled={!name.trim() || !slug.trim() || saveMut.isPending}
             onClick={handleSave}
-            className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+            className="n8n-btn n8n-btn-primary n8n-btn-sm"
           >
             {saveMut.isPending ? 'Saving...' : initial ? 'Save Changes' : 'Create Template'}
           </button>

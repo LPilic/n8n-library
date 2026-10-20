@@ -113,7 +113,7 @@ export function CommandPalette({ open, onClose }: Props) {
     <div className="fixed inset-0 z-[100] flex items-start justify-center" style={{ paddingTop: 'min(20vh, 160px)' }} onClick={onClose}>
       <div className="fixed inset-0 bg-black/40 modal-overlay" />
       <div
-        className="relative bg-card border border-border rounded-lg w-[560px] max-w-[94vw] max-h-[440px] overflow-hidden dropdown-enter"
+        className="n8n-popover relative w-[560px] max-w-[94vw] max-h-[440px] overflow-hidden dropdown-enter"
         style={{ boxShadow: '0 16px 48px rgba(0,0,0,0.2)' }}
         onClick={(e) => e.stopPropagation()}
       >

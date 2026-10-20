@@ -124,7 +124,7 @@ function ImportModal({
           <div className="flex items-center gap-2">
             <button onClick={onClose} className="text-[12px] font-semibold px-3 py-1.5 bg-bg-light border border-border text-text-base rounded-md hover:bg-bg">Cancel</button>
             <button onClick={() => importMut.mutate()} disabled={!name.trim() || importMut.isPending}
-              className="text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover disabled:opacity-50 flex items-center gap-1.5">
+              className="n8n-btn n8n-btn-primary n8n-btn-sm flex items-center gap-1.5">
               {importMut.isPending ? 'Saving...' : 'Import'}
             </button>
           </div>
@@ -147,7 +147,7 @@ function ImportModal({
                 )}
               </div>
               <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring" />
+                className="n8n-input" />
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">

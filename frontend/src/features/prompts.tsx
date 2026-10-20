@@ -233,7 +233,7 @@ export function PromptsPage() {
         </span>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1 text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover"
+          className="n8n-btn n8n-btn-primary n8n-btn-sm"
         >
           <Plus size={12} /> New Prompt
         </button>
@@ -450,14 +450,14 @@ function CreatePromptModal({ onClose, onCreated }: { onClose: () => void; onCrea
         <div className="flex justify-end gap-2 px-4 py-3 border-t border-border">
           <button
             onClick={onClose}
-            className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover"
+            className="n8n-btn n8n-btn-secondary n8n-btn-sm"
           >
             Cancel
           </button>
           <button
             disabled={!name.trim() || createMut.isPending}
             onClick={() => createMut.mutate()}
-            className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+            className="n8n-btn n8n-btn-primary n8n-btn-sm"
           >
             {createMut.isPending ? 'Creating...' : 'Create Prompt'}
           </button>
@@ -608,14 +608,14 @@ function EditPromptModal({
         <div className="flex justify-end gap-2 px-4 py-3 border-t border-border shrink-0">
           <button
             onClick={onClose}
-            className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover"
+            className="n8n-btn n8n-btn-secondary n8n-btn-sm"
           >
             Cancel
           </button>
           <button
             disabled={!name.trim() || saveMut.isPending}
             onClick={() => saveMut.mutate()}
-            className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+            className="n8n-btn n8n-btn-primary n8n-btn-sm"
           >
             {saveMut.isPending ? 'Saving...' : 'Save Changes'}
           </button>
@@ -724,7 +724,7 @@ function AIImproveModal({
         <div className="flex justify-end gap-2 px-4 py-3 border-t border-border shrink-0">
           <button
             onClick={onClose}
-            className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover"
+            className="n8n-btn n8n-btn-secondary n8n-btn-sm"
           >
             Cancel
           </button>
@@ -740,7 +740,7 @@ function AIImproveModal({
           <button
             disabled={!instruction.trim() || improveMut.isPending}
             onClick={() => improveMut.mutate()}
-            className="flex items-center gap-1 text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+            className="flex items-center gap-1 n8n-btn n8n-btn-primary n8n-btn-sm"
           >
             <Sparkles size={11} />
             {improveMut.isPending ? 'Improving...' : improved !== null ? 'Re-improve' : 'Improve'}
@@ -878,7 +878,7 @@ export function PromptDetailPage() {
         {/* Main */}
         <div className="flex-1 min-w-0 space-y-4">
           {/* Header */}
-          <div className="bg-card border border-border rounded-md p-4">
+          <div className="n8n-card p-4">
             <div className="flex items-start justify-between gap-3 mb-3">
               <div className="flex-1 min-w-0">
                 <h2 className="text-lg font-semibold text-text-dark">{esc(prompt.name)}</h2>
@@ -951,7 +951,7 @@ export function PromptDetailPage() {
           </div>
 
           {/* Content */}
-          <div className="bg-card border border-border rounded-md overflow-hidden">
+          <div className="n8n-card overflow-hidden">
             <div className="flex items-center justify-between px-4 py-2 border-b border-border-light bg-bg">
               <h3 className="text-xs font-semibold text-text-muted uppercase">Prompt Content</h3>
               <button
@@ -973,7 +973,7 @@ export function PromptDetailPage() {
 
           {/* Diff viewer */}
           {(versions ?? []).length >= 2 && (
-            <div className="bg-card border border-border rounded-md overflow-hidden">
+            <div className="n8n-card overflow-hidden">
               <div className="flex items-center gap-3 px-4 py-2 border-b border-border-light bg-bg flex-wrap">
                 <h3 className="text-xs font-semibold text-text-muted uppercase flex items-center gap-1">
                   <GitCompare size={12} /> Version Diff
@@ -1036,7 +1036,7 @@ export function PromptDetailPage() {
         <aside className="w-full lg:w-56 shrink-0 space-y-3">
           {/* Variables */}
           {varList.length > 0 && (
-            <div className="bg-card border border-border rounded-md overflow-hidden">
+            <div className="n8n-card overflow-hidden">
               <div className="px-3 py-2 border-b border-border-light bg-bg">
                 <h3 className="text-[10px] font-semibold text-text-muted uppercase flex items-center gap-1">
                   <Variable size={10} /> Variables ({varList.length})
@@ -1054,7 +1054,7 @@ export function PromptDetailPage() {
 
           {/* Version history */}
           {(versions ?? []).length > 0 && (
-            <div className="bg-card border border-border rounded-md overflow-hidden">
+            <div className="n8n-card overflow-hidden">
               <div className="px-3 py-2 border-b border-border-light bg-bg">
                 <h3 className="text-[10px] font-semibold text-text-muted uppercase flex items-center gap-1">
                   <History size={10} /> Version History

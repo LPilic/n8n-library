@@ -110,7 +110,7 @@ export function RichTextEditor({ content, onChange, placeholder = 'Write somethi
   )
 
   return (
-    <div className="border border-input-border rounded-md overflow-hidden focus-within:border-primary focus-within:shadow-[0_0_0_2px_rgba(255,109,90,0.15)]">
+    <div className="overflow-hidden rounded-sm border border-input-border focus-within:border-primary focus-within:shadow-[0_0_0_2px_var(--color-primary-alpha)]">
       {/* Toolbar — matches legacy Quill toolbar */}
       <div className="flex items-center gap-0.5 px-2 py-1.5 bg-bg-alt border-b border-border-light flex-wrap">
         <Btn active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()} title="Bold">
@@ -153,7 +153,7 @@ export function RichTextEditor({ content, onChange, placeholder = 'Write somethi
             {!editor.isActive('codeBlock') && <ChevronDown size={10} />}
           </button>
           {showLangMenu && (
-            <div className="absolute top-full left-0 mt-1 bg-card border border-border rounded-md shadow-lg z-50 py-1 min-w-[160px] dropdown-enter">
+            <div className="n8n-popover absolute left-0 top-full z-50 mt-1 min-w-[160px] py-1 dropdown-enter">
               {CODE_LANGUAGES.map((lang) => (
                 <button
                   key={lang.value}

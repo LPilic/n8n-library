@@ -134,7 +134,7 @@ function EditTemplateModal({
                 Cancel
               </button>
               <button onClick={handleSave} disabled={saving || metaLoading || name === null}
-                className="text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover disabled:opacity-50">
+                className="n8n-btn n8n-btn-primary n8n-btn-sm">
                 {saving ? 'Saving...' : 'Save'}
               </button>
             </div>
@@ -157,7 +157,7 @@ function EditTemplateModal({
                   <div>
                     <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Name</label>
                     <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-                      className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring" />
+                      className="n8n-input" />
                   </div>
                   <div>
                     <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Description</label>
@@ -358,7 +358,7 @@ export function LibraryPage() {
         </div>
 
         {/* Categories */}
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="n8n-card overflow-hidden">
           <div className="px-3 py-2 border-b border-border-light">
             <h3 className="text-[10px] font-bold text-text-xmuted uppercase tracking-[0.08em]">Categories</h3>
           </div>

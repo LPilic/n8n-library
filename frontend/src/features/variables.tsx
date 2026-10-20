@@ -44,7 +44,7 @@ export function VariablesPage() {
         <span className="text-xs text-text-muted">{variables.length} variable{variables.length !== 1 ? 's' : ''}</span>
         <button
           onClick={() => setModal('create')}
-          className="flex items-center gap-1 text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover"
+          className="n8n-btn n8n-btn-primary n8n-btn-sm"
         >
           <Plus size={12} /> New Variable
         </button>
@@ -56,8 +56,8 @@ export function VariablesPage() {
       ) : variables.length === 0 ? (
         <div className="text-center py-12 text-text-muted text-sm">No variables defined</div>
       ) : (
-        <div className="bg-card border border-border rounded-md overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="n8n-card overflow-hidden">
+          <table className="n8n-table">
             <thead>
               <tr className="border-b border-border-light bg-bg">
                 <th className="text-left px-4 py-2 text-xs font-semibold text-text-muted uppercase">Key</th>
@@ -177,14 +177,14 @@ function VariableModal({
         <div className="flex justify-end gap-2 px-4 py-3 border-t border-border">
           <button
             onClick={onClose}
-            className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover"
+            className="n8n-btn n8n-btn-secondary n8n-btn-sm"
           >
             Cancel
           </button>
           <button
             disabled={!key.trim() || !value.trim() || saveMut.isPending}
             onClick={() => saveMut.mutate()}
-            className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+            className="n8n-btn n8n-btn-primary n8n-btn-sm"
           >
             {saveMut.isPending ? 'Saving...' : initial ? 'Save Changes' : 'Create Variable'}
           </button>

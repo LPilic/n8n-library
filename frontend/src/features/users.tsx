@@ -108,7 +108,7 @@ export function UsersPage() {
           )}
           <button
             onClick={() => setModal('create')}
-            className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover"
+            className="n8n-btn n8n-btn-primary n8n-btn-sm"
           >
             <Plus size={12} /> Add User
           </button>
@@ -125,7 +125,7 @@ export function UsersPage() {
         </div>
       ) : (
         <div className="border border-border rounded-md overflow-hidden">
-          <table className="w-full text-sm">
+          <table className="n8n-table">
             <thead>
               <tr className="border-b border-border bg-bg">
                 <th className="text-left px-4 py-2 text-[11px] font-semibold text-text-muted uppercase tracking-wider">User</th>
@@ -266,7 +266,7 @@ function UserModal({
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="john"
-              className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring"
+              className="n8n-input"
             />
           </div>
           <div>
@@ -276,7 +276,7 @@ function UserModal({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="john@example.com"
-              className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring"
+              className="n8n-input"
             />
           </div>
           <div>
@@ -289,7 +289,7 @@ function UserModal({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring pr-9"
+                className="n8n-input pr-9"
               />
               <button
                 type="button"
@@ -317,13 +317,13 @@ function UserModal({
         </div>
 
         <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border">
-          <button onClick={onClose} className="text-[12px] font-semibold px-3 py-1.5 border border-border text-text-muted rounded-md hover:bg-bg">
+          <button onClick={onClose} className="n8n-btn n8n-btn-secondary n8n-btn-sm">
             Cancel
           </button>
           <button
             onClick={() => saveMut.mutate()}
             disabled={!username.trim() || !email.trim() || (!initial && !password.trim()) || saveMut.isPending}
-            className="text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover disabled:opacity-50"
+            className="n8n-btn n8n-btn-primary n8n-btn-sm"
           >
             {saveMut.isPending ? 'Saving...' : initial ? 'Save Changes' : 'Create User'}
           </button>

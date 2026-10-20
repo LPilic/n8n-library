@@ -30,7 +30,7 @@ export function IconPicker({ value, onChange }: Props) {
           type="button"
           onClick={() => setOpen(!open)}
           className={cn(
-            'w-10 h-10 flex items-center justify-center border rounded-md transition-colors',
+            'flex h-10 w-10 items-center justify-center rounded-sm border transition-colors',
             value ? 'border-primary bg-primary-light' : 'border-border bg-bg',
           )}
         >
@@ -42,7 +42,7 @@ export function IconPicker({ value, onChange }: Props) {
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder="Icon name (e.g. Rocket, Shield)"
-            className="w-full px-3 py-1.5 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring"
+            className="n8n-input"
           />
         </div>
         {value && (
@@ -54,7 +54,7 @@ export function IconPicker({ value, onChange }: Props) {
 
       {/* Icon picker dropdown */}
       {open && (
-        <div className="mt-2 border border-border rounded-lg bg-card shadow-lg p-3 max-h-[320px] flex flex-col">
+        <div className="n8n-popover mt-2 flex max-h-[320px] flex-col p-3">
           <div className="relative mb-2 shrink-0">
             <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-xmuted" />
             <input
@@ -63,7 +63,8 @@ export function IconPicker({ value, onChange }: Props) {
               onChange={(e) => setSearch(e.target.value)}
               placeholder={`Search ${allIconNames.length} icons...`}
               autoFocus
-              className="w-full pl-7 pr-3 py-1.5 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring"
+              className="n8n-input"
+              style={{ paddingLeft: 30 }}
             />
           </div>
           <div className="flex-1 overflow-y-auto">
@@ -78,7 +79,7 @@ export function IconPicker({ value, onChange }: Props) {
                     title={name}
                     onClick={() => { onChange(name); setOpen(false); setSearch('') }}
                     className={cn(
-                      'w-9 h-9 flex items-center justify-center rounded-md border transition-colors',
+                      'flex h-9 w-9 items-center justify-center rounded-sm border transition-colors',
                       value === name
                         ? 'border-primary bg-primary-light text-primary'
                         : 'border-transparent text-text-muted hover:border-border hover:bg-bg hover:text-text-dark',

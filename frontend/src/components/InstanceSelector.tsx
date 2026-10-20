@@ -26,7 +26,7 @@ export function InstanceSelector() {
           label: `${inst.name}${inst.is_default ? ' (default)' : ''}`,
         }))}
         size="sm"
-        triggerClassName="text-[12px] font-medium px-2 py-1 rounded-md max-w-[160px]"
+        triggerClassName="max-w-[180px] text-[12px] font-medium"
       />
       {active?.color && (
         <span className="w-2 h-2 rounded-full shrink-0" style={{ background: active.color }} />

@@ -99,11 +99,11 @@ export function DashboardPage() {
             <DashCard title="My Tickets" action={() => navigate('/tickets')}>
               {(data.tickets.myTickets as Array<Record<string, string | number>>).map((t) => (
                 <DashItem key={t.id} onClick={() => navigate(`/tickets/${t.id}`)}>
-                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${priorityClass(t.priority as string)}`}>
+                  <span className={priorityClass(t.priority as string)}>
                     {t.priority as string}
                   </span>
                   <span className="flex-1 truncate text-text-dark">{esc(t.title as string)}</span>
-                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${statusClass(t.status as string)}`}>
+                  <span className={statusClass(t.status as string)}>
                     {(t.status as string).replace('_', ' ')}
                   </span>
                 </DashItem>
@@ -185,7 +185,7 @@ export function DashboardPage() {
             <DashCard title="Recent Tickets" action={() => navigate('/tickets')}>
               {(data.tickets.recentTickets as Array<Record<string, string | number>>).map((t) => (
                 <DashItem key={t.id} onClick={() => navigate(`/tickets/${t.id}`)}>
-                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${priorityClass(t.priority as string)}`}>
+                  <span className={priorityClass(t.priority as string)}>
                     {t.priority as string}
                   </span>
                   <span className="flex-1 truncate text-text-dark">{esc(t.title as string)}</span>
@@ -219,18 +219,26 @@ function KpiCard({
     primary: 'bg-primary-light text-primary',
     success: 'bg-success-light text-success',
     danger: 'bg-danger-light text-danger',
-    warning: 'bg-[#fef3c7] text-[#d97706]',
-    info: 'bg-[#e0f2fe] text-[#0284c7]',
+    warning: 'bg-warning-light text-warning',
+    info: 'bg-info-light text-info',
   }
   return (
     <div
       onClick={onClick}
-      className="flex items-center gap-3 p-3 bg-card border border-border rounded-md cursor-pointer hover:bg-card-hover transition-colors"
+      className="n8n-card n8n-card-hover cursor-pointer p-4"
     >
-      <div className={`p-2 rounded-md ${colorMap[color] || ''}`}>{icon}</div>
-      <div>
-        <div className="text-lg font-semibold text-text-dark">{label}</div>
-        <div className="text-xs text-text-muted">{sublabel}</div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="truncate text-[11px] font-semibold uppercase tracking-[0.04em] text-text-muted">
+            {sublabel}
+          </div>
+          <div className="mt-1 text-[20px] font-semibold leading-tight text-text-dark">
+            {label}
+          </div>
+        </div>
+        <div className={`shrink-0 rounded-sm p-1.5 ${colorMap[color] || 'bg-bg text-text-muted'}`}>
+          {icon}
+        </div>
       </div>
     </div>
   )
@@ -248,11 +256,14 @@ function DashCard({
   danger?: boolean
 }) {
   return (
-    <div className={`bg-card border rounded-md ${danger ? 'border-danger/30' : 'border-border'}`}>
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-        <h3 className="text-sm font-semibold text-text-dark">{title}</h3>
+    <div className={`n8n-card ${danger ? 'border-danger/40' : ''}`}>
+      <div className="n8n-card-header py-2.5">
+        <h3 className="n8n-card-title">{title}</h3>
         {action && (
-          <button onClick={action} className="text-xs text-primary hover:text-primary-hover">
+          <button
+            onClick={action}
+            className="text-xs font-medium text-primary transition-colors hover:text-primary-hover"
+          >
             View All
           </button>
         )}
@@ -266,7 +277,7 @@ function DashItem({ children, onClick }: { children: React.ReactNode; onClick?: 
   return (
     <div
       onClick={onClick}
-      className="flex items-center gap-2 px-4 py-2 text-sm cursor-pointer hover:bg-card-hover"
+      className="flex cursor-pointer items-center gap-2 px-4 py-2.5 text-[13px] transition-colors hover:bg-card-hover"
     >
       {children}
     </div>
@@ -305,21 +316,21 @@ function StatusBars({ statuses }: { statuses: Record<string, number> }) {
 
 function priorityClass(p: string): string {
   const m: Record<string, string> = {
-    critical: 'bg-danger-light text-danger',
-    high: 'bg-[#fff3e0] text-[#e65100]',
-    medium: 'bg-[#fef3c7] text-[#92400e]',
-    low: 'bg-border-light text-text-muted',
+    critical: 'n8n-badge n8n-badge-danger',
+    high: 'n8n-badge n8n-badge-warning',
+    medium: 'n8n-badge n8n-badge-warning',
+    low: 'n8n-badge',
   }
-  return m[p] || 'bg-border-light text-text-muted'
+  return m[p] || 'n8n-badge'
 }
 
 function statusClass(s: string): string {
   const m: Record<string, string> = {
-    open: 'bg-primary-light text-primary',
-    in_progress: 'bg-[#fef3c7] text-[#92400e]',
-    waiting: 'bg-border-light text-text-muted',
-    resolved: 'bg-success-light text-success',
-    closed: 'bg-border-light text-text-xmuted',
+    open: 'n8n-badge n8n-badge-primary',
+    in_progress: 'n8n-badge n8n-badge-warning',
+    waiting: 'n8n-badge',
+    resolved: 'n8n-badge n8n-badge-success',
+    closed: 'n8n-badge',
   }
-  return m[s] || 'bg-border-light text-text-muted'
+  return m[s] || 'n8n-badge'
 }

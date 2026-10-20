@@ -88,7 +88,7 @@ export function SecurityPage() {
         <button
           onClick={() => auditMut.mutate()}
           disabled={auditMut.isPending}
-          className="flex items-center gap-1.5 text-sm px-4 py-2 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+          className="n8n-btn n8n-btn-primary"
         >
           {auditMut.isPending
             ? <><Loader2 size={14} className="animate-spin" /> Running...</>
@@ -123,7 +123,7 @@ export function SecurityPage() {
             const summary = categorySummary(items)
             const isOpen = !collapsed.has(cat)
             return (
-              <div key={cat} className="bg-card border border-border rounded-md overflow-hidden">
+              <div key={cat} className="n8n-card overflow-hidden">
                 <button
                   onClick={() => toggleCollapse(cat)}
                   className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-card-hover transition-colors"

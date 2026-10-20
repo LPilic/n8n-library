@@ -150,11 +150,11 @@ export function LoginPage() {
     }
   }
 
-  const inputClass = 'w-full px-3 py-2 border border-input-border rounded-sm bg-input-bg text-text-dark text-sm focus:outline-none focus:border-input-focus'
+  const inputClass = 'n8n-input'
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-bg">
-      <div className="w-full max-w-sm bg-card border border-border rounded-lg p-8 shadow-lg">
+      <div className="n8n-card w-full max-w-sm p-8">
         <div className="flex flex-col items-center mb-6">
           {branding?.brand_logo && (
             <img src={branding.brand_logo} alt="" className="h-12 max-w-[200px] object-contain mb-3" />
@@ -182,7 +182,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2 bg-primary text-white rounded-sm text-sm font-medium hover:bg-primary-hover disabled:opacity-50"
+              className="n8n-btn n8n-btn-primary w-full"
             >
               {loading ? 'Verifying...' : 'Verify'}
             </button>
@@ -209,7 +209,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2 bg-primary text-white rounded-sm text-sm font-medium hover:bg-primary-hover disabled:opacity-50"
+              className="n8n-btn n8n-btn-primary w-full"
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
@@ -230,7 +230,7 @@ export function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setView('n8n')}
-                  className="w-full py-2 border border-border rounded-sm text-sm font-medium text-text-dark hover:bg-bg transition-colors"
+                  className="n8n-btn n8n-btn-secondary w-full"
                 >
                   Sign in with n8n account
                 </button>
@@ -255,7 +255,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2 bg-primary text-white rounded-sm text-sm font-medium hover:bg-primary-hover disabled:opacity-50"
+              className="n8n-btn n8n-btn-primary w-full"
             >
               {loading ? 'Sending...' : 'Send reset link'}
             </button>
@@ -285,7 +285,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2 bg-primary text-white rounded-sm text-sm font-medium hover:bg-primary-hover disabled:opacity-50"
+              className="n8n-btn n8n-btn-primary w-full"
             >
               {loading ? 'Resetting...' : 'Reset password'}
             </button>
@@ -305,8 +305,8 @@ export function LoginPage() {
                   value: String(inst.id),
                   label: inst.name,
                 }))}
-                className={`mb-3`}
-                triggerClassName={inputClass}
+                className="mb-3 w-full"
+                triggerClassName=""
               />
             )}
             <input
@@ -327,7 +327,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={loading || !email}
-              className="w-full py-2 bg-primary text-white rounded-sm text-sm font-medium hover:bg-primary-hover disabled:opacity-50"
+              className="n8n-btn n8n-btn-primary w-full"
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
@@ -360,7 +360,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={loading || !n8nPassword}
-              className="w-full py-2 bg-primary text-white rounded-sm text-sm font-medium hover:bg-primary-hover disabled:opacity-50"
+              className="n8n-btn n8n-btn-primary w-full"
             >
               {loading ? 'Setting up...' : 'Set password & sign in'}
             </button>

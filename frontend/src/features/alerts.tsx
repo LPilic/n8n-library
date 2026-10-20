@@ -70,7 +70,7 @@ export function AlertsPage() {
         <span className="text-xs text-text-muted">{alerts.length} alert{alerts.length !== 1 ? 's' : ''}</span>
         <button
           onClick={() => setModal('create')}
-          className="flex items-center gap-1 text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover"
+          className="n8n-btn n8n-btn-primary n8n-btn-sm"
         >
           <Plus size={12} /> New Alert
         </button>
@@ -277,14 +277,14 @@ function AlertModal({
         <div className="flex justify-end gap-2 px-4 py-3 border-t border-border">
           <button
             onClick={onClose}
-            className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover"
+            className="n8n-btn n8n-btn-secondary n8n-btn-sm"
           >
             Cancel
           </button>
           <button
             disabled={!form.name.trim() || !form.condition || saveMut.isPending}
             onClick={() => saveMut.mutate()}
-            className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+            className="n8n-btn n8n-btn-primary n8n-btn-sm"
           >
             {saveMut.isPending ? 'Saving...' : initial ? 'Save Changes' : 'Create Alert'}
           </button>

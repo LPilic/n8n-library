@@ -124,7 +124,7 @@ function KpiCard({
     color === 'danger' ? 'text-danger' : color === 'warning' ? 'text-warning' : 'text-text-dark'
 
   return (
-    <div className="bg-card border border-border rounded-md overflow-hidden flex">
+    <div className="n8n-card overflow-hidden flex">
       <div className="w-1 shrink-0 bg-success" />
       <div className="flex-1 px-3 py-2.5">
         <div className={cn('text-xl font-bold leading-tight', valueColor)}>{value}</div>
@@ -443,7 +443,7 @@ export function ObservabilityPage() {
       {/* AI report output */}
       {aiReport && (
         <div
-          className="mb-5 bg-card border border-border rounded-md p-4 prose prose-sm max-w-none text-text-dark"
+          className="mb-5 n8n-card p-4 prose prose-sm max-w-none text-text-dark"
           dangerouslySetInnerHTML={{ __html: sanitizeHtml(aiReport) }}
         />
       )}
@@ -535,7 +535,7 @@ export function ObservabilityPage() {
                   const healthy = w.status === 'healthy' || w.status === 'ready'
 
                   return (
-                    <div key={w.id || w.name || idx} className="bg-card border border-border rounded-md overflow-hidden flex">
+                    <div key={w.id || w.name || idx} className="n8n-card overflow-hidden flex">
                       <div className={cn('w-1 shrink-0', healthy ? 'bg-success' : 'bg-danger')} />
                       <div className="flex-1 px-3 py-2.5">
                         <div className="flex items-center justify-between mb-1.5 gap-2">
@@ -593,7 +593,7 @@ export function ObservabilityPage() {
               </div>
             </div>
 
-            <div className="bg-card border border-border rounded-md overflow-hidden">
+            <div className="n8n-card overflow-hidden">
               {Object.entries(groups).map(([prefix, entries]) => (
                 <MetricGroup key={prefix} prefix={prefix} entries={entries} />
               ))}

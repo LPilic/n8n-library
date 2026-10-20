@@ -148,12 +148,12 @@ export function AppLayout() {
       {/* Sidebar — hidden on mobile via CSS */}
       <aside
         className={cn(
-          'desktop-sidebar flex flex-col bg-sidebar border-r border-border transition-all duration-200 shrink-0',
-          sidebarOpen ? 'w-[230px]' : 'w-[60px]',
+          'desktop-sidebar flex flex-col border-r border-border bg-sidebar transition-all duration-200 shrink-0',
+          sidebarOpen ? 'w-[240px]' : 'w-[64px]',
         )}
       >
-        {/* Logo area — 57px to match legacy */}
-        <div className="flex items-center h-[57px] px-4 border-b border-border">
+        {/* Logo area */}
+        <div className="flex h-[52px] items-center border-b border-border px-3">
           {sidebarOpen && (
             <div className="flex items-center gap-2 min-w-0">
               {branding?.brand_logo && (
@@ -166,7 +166,7 @@ export function AppLayout() {
           )}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="ml-auto text-text-muted hover:text-text-dark p-1 rounded-md transition-colors duration-150"
+            className="ml-auto rounded-sm p-1 text-text-muted transition-colors duration-150 hover:bg-bg hover:text-text-dark"
             title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
           >
             {sidebarOpen ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
@@ -174,14 +174,14 @@ export function AppLayout() {
         </div>
 
         {/* Nav items */}
-        <nav className="flex-1 overflow-y-auto sidebar-scroll py-2 px-2 flex flex-col">
+        <nav className="sidebar-scroll flex flex-1 flex-col overflow-y-auto px-2 py-2">
           {visibleItems.map((item) => {
             const showSection = sidebarOpen && item.section && item.section !== lastSection && SECTIONS[item.section]
             if (item.section) lastSection = item.section
             return (
               <div key={item.path}>
                 {showSection && (
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.06em] text-text-xmuted px-3 pt-4 pb-1">
+                  <div className="px-2.5 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-xmuted">
                     {SECTIONS[item.section!]}
                   </div>
                 )}
@@ -191,18 +191,18 @@ export function AppLayout() {
                   title={!sidebarOpen ? item.label : undefined}
                   className={({ isActive }) =>
                     cn(
-                      'flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium mb-0.5 transition-all duration-150',
+                      'mb-0.5 flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-[13px] font-medium transition-colors duration-150',
                       sidebarOpen ? '' : 'justify-center px-0',
                       isActive
                         ? 'bg-primary-light text-primary'
-                        : 'text-text-muted hover:bg-bg hover:text-text-dark',
+                        : 'text-text-base hover:bg-bg hover:text-text-dark',
                     )
                   }
                 >
                   <item.icon size={18} className="shrink-0" />
                   {sidebarOpen && <span className="truncate">{item.label}</span>}
                   {sidebarOpen && navBadges[item.path] > 0 && (
-                    <span className="ml-auto bg-primary text-white text-[10px] font-bold min-w-[20px] h-5 flex items-center justify-center rounded-full px-1.5">
+                    <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-white">
                       {navBadges[item.path]}
                     </span>
                   )}
@@ -216,7 +216,7 @@ export function AppLayout() {
             <div className="mt-auto pt-3 border-t border-border-light">
               <button
                 onClick={() => setAiChatOpen(true)}
-                className="flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium text-text-muted hover:bg-bg hover:text-text-dark transition-all duration-150 w-full"
+                className="flex w-full items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-[13px] font-medium text-text-base transition-colors duration-150 hover:bg-bg hover:text-text-dark"
               >
                 <MessageSquareText size={18} className="shrink-0" />
                 AI Chat
@@ -248,7 +248,7 @@ export function AppLayout() {
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Topbar */}
-        <header className="flex items-center h-[57px] px-4 bg-bg-light border-b border-border shrink-0">
+        <header className="flex h-[52px] shrink-0 items-center border-b border-border bg-card px-4">
           {/* Mobile menu button */}
           <button
             onClick={() => setCmdOpen(true)}

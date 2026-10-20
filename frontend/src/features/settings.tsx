@@ -188,7 +188,7 @@ function CancelBtn({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover"
+      className="n8n-btn n8n-btn-secondary n8n-btn-sm"
     >
       Cancel
     </button>
@@ -201,7 +201,7 @@ function SaveBtn({ disabled, pending, label, pendingLabel, onClick }: { disabled
       type="button"
       disabled={disabled || pending}
       onClick={onClick}
-      className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+      className="n8n-btn n8n-btn-primary n8n-btn-sm"
     >
       {pending ? pendingLabel : label}
     </button>
@@ -219,8 +219,8 @@ function ComingSoon({ title }: { title: string }) {
 
 function TableWrap({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-card border border-border rounded-md overflow-hidden">
-      <table className="w-full text-sm">{children}</table>
+    <div className="n8n-card overflow-hidden">
+      <table className="n8n-table">{children}</table>
     </div>
   )
 }
@@ -241,7 +241,7 @@ function SettingsCard({
   action?: React.ReactNode; children: React.ReactNode
 }) {
   return (
-    <div className="bg-card border border-border rounded-lg p-6 mb-6">
+    <div className="n8n-card mb-6 p-6">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
@@ -312,7 +312,7 @@ function UsersTab() {
       icon={<Users size={20} />}
       title="User Management"
       description="Manage user accounts and roles"
-      action={<button onClick={() => setModal('create')} className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover"><Plus size={12} /> New User</button>}
+      action={<button onClick={() => setModal('create')} className="n8n-btn n8n-btn-primary n8n-btn-sm"><Plus size={12} /> New User</button>}
     >
       {isLoading ? (
         <p className="text-sm text-text-muted">Loading users...</p>
@@ -444,7 +444,7 @@ function InstancesTab() {
       icon={<Cpu size={20} />}
       title="n8n Instances"
       description="Manage your n8n environments"
-      action={<button onClick={() => setModal('create')} className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover"><Plus size={12} /> Add Instance</button>}
+      action={<button onClick={() => setModal('create')} className="n8n-btn n8n-btn-primary n8n-btn-sm"><Plus size={12} /> Add Instance</button>}
     >
       {isLoading ? (
         <p className="text-sm text-text-muted">Loading instances...</p>
@@ -677,14 +677,14 @@ function SmtpTab() {
           <button
             disabled={saveMut.isPending}
             onClick={() => saveMut.mutate()}
-            className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+            className="n8n-btn n8n-btn-primary n8n-btn-sm"
           >
             {saveMut.isPending ? 'Saving...' : 'Save'}
           </button>
           <button
             disabled={testMut.isPending}
             onClick={() => testMut.mutate()}
-            className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover disabled:opacity-50"
+            className="n8n-btn n8n-btn-secondary n8n-btn-sm disabled:opacity-50"
           >
             {testMut.isPending ? 'Sending...' : 'Send Test Email'}
           </button>
@@ -771,7 +771,7 @@ function CategoriesTab() {
       icon={<Cpu size={20} />}
       title="Categories"
       description="Organize templates, tickets, and articles"
-      action={<button onClick={() => setModal('create')} className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover"><Plus size={12} /> New Category</button>}
+      action={<button onClick={() => setModal('create')} className="n8n-btn n8n-btn-primary n8n-btn-sm"><Plus size={12} /> New Category</button>}
     >
       {/* Type switcher */}
       <div className="flex gap-1 mb-4 p-1 bg-bg border border-border rounded-sm w-fit">
@@ -984,7 +984,7 @@ function ApiKeysTab() {
       icon={<Key size={20} />}
       title="API Keys"
       description="Generate keys for programmatic API access"
-      action={<button onClick={() => setShowCreate(true)} className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover"><Plus size={12} /> New Key</button>}
+      action={<button onClick={() => setShowCreate(true)} className="n8n-btn n8n-btn-primary n8n-btn-sm"><Plus size={12} /> New Key</button>}
     >
       {newKey && (
         <div className="mb-4 p-3 bg-primary-light border border-primary/30 rounded-md">
@@ -1383,13 +1383,13 @@ function BrandingTab() {
           <button
             disabled={saveMut.isPending}
             onClick={() => saveMut.mutate()}
-            className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+            className="n8n-btn n8n-btn-primary n8n-btn-sm"
           >
             {saveMut.isPending ? 'Saving...' : 'Save Branding'}
           </button>
           <button
             onClick={handleReset}
-            className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover"
+            className="n8n-btn n8n-btn-secondary n8n-btn-sm"
           >
             Reset to Defaults
           </button>
@@ -1472,7 +1472,7 @@ function TwoFaTab() {
         <button
           onClick={() => setupMut.mutate()}
           disabled={setupMut.isPending}
-          className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+          className="n8n-btn n8n-btn-primary n8n-btn-sm"
         >
           {setupMut.isPending ? 'Generating...' : 'Set Up 2FA'}
         </button>
@@ -1490,11 +1490,11 @@ function TwoFaTab() {
             <button
               disabled={verifyMut.isPending || code.length < 6}
               onClick={() => verifyMut.mutate()}
-              className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+              className="n8n-btn n8n-btn-primary n8n-btn-sm"
             >
               {verifyMut.isPending ? 'Verifying...' : 'Verify & Enable'}
             </button>
-            <button onClick={() => { setQrData(null); setCode('') }} className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover">
+            <button onClick={() => { setQrData(null); setCode('') }} className="n8n-btn n8n-btn-secondary n8n-btn-sm">
               Cancel
             </button>
           </div>
@@ -1524,7 +1524,7 @@ function TwoFaTab() {
             >
               {disableMut.isPending ? 'Disabling...' : 'Confirm Disable'}
             </button>
-            <button onClick={() => { setShowDisable(false); setDisableCode('') }} className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover">
+            <button onClick={() => { setShowDisable(false); setDisableCode('') }} className="n8n-btn n8n-btn-secondary n8n-btn-sm">
               Cancel
             </button>
           </div>
@@ -1593,7 +1593,7 @@ function ImportExportTab() {
           <button
             onClick={handleExport}
             disabled={exporting}
-            className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+            className="flex items-center gap-1.5 n8n-btn n8n-btn-primary n8n-btn-sm"
           >
             <Download size={12} />
             {exporting ? 'Exporting...' : 'Download Export'}
@@ -1613,7 +1613,7 @@ function ImportExportTab() {
             <button
               onClick={handleImport}
               disabled={importing}
-              className="shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover disabled:opacity-50"
+              className="shrink-0 flex items-center gap-1.5 n8n-btn n8n-btn-secondary n8n-btn-sm disabled:opacity-50"
             >
               <Upload size={12} />
               {importing ? 'Importing...' : 'Upload'}
@@ -1782,7 +1782,7 @@ function EmailTemplatesTab() {
           <button
             disabled={previewMut.isPending}
             onClick={() => previewMut.mutate()}
-            className="text-[12px] font-semibold px-3 py-1.5 border border-border text-text-muted rounded-md hover:bg-bg disabled:opacity-50"
+            className="n8n-btn n8n-btn-secondary n8n-btn-sm disabled:opacity-50"
           >
             {previewMut.isPending ? 'Generating…' : 'Refresh Preview'}
           </button>
@@ -1875,7 +1875,7 @@ function WebhooksTab() {
       icon={<ExternalLink size={20} />}
       title="Webhook Integrations"
       description="Send event notifications to external services"
-      action={<button onClick={() => setModal('create')} className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover"><Plus size={12} /> New Webhook</button>}
+      action={<button onClick={() => setModal('create')} className="n8n-btn n8n-btn-primary n8n-btn-sm"><Plus size={12} /> New Webhook</button>}
     >
       {isLoading ? (
         <p className="text-sm text-text-muted">Loading webhooks...</p>

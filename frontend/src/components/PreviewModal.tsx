@@ -33,17 +33,15 @@ interface Props {
 
 export function PreviewModal({ title, workflowData, onClose }: Props) {
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center" onClick={onClose}>
-      <div className="fixed inset-0 bg-black/40 modal-overlay" />
+    <div className="n8n-modal-overlay" onClick={onClose}>
       <div
-        className="relative bg-bg-light rounded-lg shadow-lg flex flex-col overflow-hidden"
-        style={{ width: '94vw', maxWidth: '1400px', height: '90vh' }}
+        className="n8n-modal relative flex flex-col overflow-hidden"
+        style={{ width: '94vw', maxWidth: '1400px', height: '90vh', maxHeight: '90vh' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0 bg-bg-light z-10">
           <h2 className="text-[15px] font-bold text-text-dark truncate">{esc(title)}</h2>
-          <button onClick={onClose}
-            className="text-[13px] px-3 py-1.5 border border-border text-text-muted rounded-md hover:bg-bg hover:text-text-dark transition-colors">
+          <button onClick={onClose} className="n8n-btn n8n-btn-secondary n8n-btn-sm">
             Close
           </button>
         </div>

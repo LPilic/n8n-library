@@ -21,8 +21,8 @@ interface CustomSelectProps {
 }
 
 const sizeClasses = {
-  sm: { trigger: 'text-xs px-2 py-1.5', option: 'text-xs px-2 py-1.5' },
-  md: { trigger: 'text-sm px-3 py-1.5', option: 'text-sm px-3 py-1.5' },
+  sm: { trigger: 'n8n-select-sm', option: 'n8n-popover-item-sm' },
+  md: { trigger: '', option: '' },
 }
 
 export default function CustomSelect({
@@ -135,16 +135,15 @@ export default function CustomSelect({
             minWidth: menuPos.minWidth,
             zIndex: 9999,
           }}
-          className="w-max max-h-60 overflow-y-auto bg-card border border-border rounded-md shadow-lg py-1 dropdown-enter"
+          className="n8n-popover w-max max-h-60 overflow-y-auto py-1 dropdown-enter"
         >
           {options.map((o, i) => (
             <div
               key={o.value}
               onClick={() => select(o.value)}
               className={cn(
-                'flex items-center justify-between gap-3 cursor-pointer',
+                'n8n-popover-item justify-between gap-3',
                 sz.option,
-                'hover:bg-card-hover text-text-dark',
                 i === focused && 'bg-card-hover',
               )}
             >
@@ -167,10 +166,9 @@ export default function CustomSelect({
         onClick={() => !disabled && setOpen(!open)}
         onKeyDown={onKeyDown}
         className={cn(
-          'flex items-center justify-between gap-2 border rounded-sm bg-input-bg text-text-dark border-input-border',
-          'focus:outline-none focus:border-input-focus transition-colors',
+          'n8n-select-trigger',
           sz.trigger,
-          disabled && 'opacity-60 cursor-not-allowed',
+          disabled && 'cursor-not-allowed opacity-60',
           triggerClassName,
         )}
       >

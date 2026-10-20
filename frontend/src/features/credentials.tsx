@@ -295,13 +295,13 @@ function CredentialDetailModal({
         <div className="flex items-center gap-2 px-4 py-3 border-t border-border shrink-0">
           <button
             onClick={onEdit}
-            className="flex items-center gap-1 text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover"
+            className="flex items-center gap-1 n8n-btn n8n-btn-secondary n8n-btn-sm"
           >
             <Pencil size={12} /> Edit
           </button>
           <button
             onClick={onTransfer}
-            className="flex items-center gap-1 text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover"
+            className="flex items-center gap-1 n8n-btn n8n-btn-secondary n8n-btn-sm"
           >
             <ArrowRightLeft size={12} /> Transfer
           </button>
@@ -314,7 +314,7 @@ function CredentialDetailModal({
           </button>
           <button
             onClick={onClose}
-            className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover"
+            className="n8n-btn n8n-btn-secondary n8n-btn-sm"
           >
             Close
           </button>
@@ -475,7 +475,7 @@ function CredentialFormModal({
               {!initial && (
                 <button
                   onClick={() => setStep('pick-type')}
-                  className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover"
+                  className="n8n-btn n8n-btn-secondary n8n-btn-sm"
                 >
                   Back
                 </button>
@@ -483,14 +483,14 @@ function CredentialFormModal({
               <div className="flex-1" />
               <button
                 onClick={onClose}
-                className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover"
+                className="n8n-btn n8n-btn-secondary n8n-btn-sm"
               >
                 Cancel
               </button>
               <button
                 disabled={!name.trim() || saveMut.isPending}
                 onClick={() => saveMut.mutate()}
-                className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+                className="n8n-btn n8n-btn-primary n8n-btn-sm"
               >
                 {saveMut.isPending ? 'Saving...' : initial ? 'Save Changes' : 'Create Credential'}
               </button>
@@ -547,13 +547,13 @@ function TransferModal({
           />
         </div>
         <div className="flex justify-end gap-2 px-4 py-3 border-t border-border">
-          <button onClick={onClose} className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover">
+          <button onClick={onClose} className="n8n-btn n8n-btn-secondary n8n-btn-sm">
             Cancel
           </button>
           <button
             disabled={!projectId || transferMut.isPending}
             onClick={() => transferMut.mutate()}
-            className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+            className="n8n-btn n8n-btn-primary n8n-btn-sm"
           >
             {transferMut.isPending ? 'Transferring...' : 'Transfer'}
           </button>
@@ -634,13 +634,13 @@ function ProvisionModal({
           })}
         </div>
         <div className="flex justify-end gap-2 px-4 py-3 border-t border-border shrink-0">
-          <button onClick={onClose} className="text-xs px-3 py-1.5 border border-input-border rounded-sm text-text-muted hover:bg-card-hover">
+          <button onClick={onClose} className="n8n-btn n8n-btn-secondary n8n-btn-sm">
             Cancel
           </button>
           <button
             disabled={!name.trim() || provisionMut.isPending}
             onClick={() => provisionMut.mutate()}
-            className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+            className="n8n-btn n8n-btn-primary n8n-btn-sm"
           >
             {provisionMut.isPending ? 'Provisioning...' : 'Provision'}
           </button>
@@ -756,7 +756,7 @@ function CredentialsTab() {
           />
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1 text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover ml-auto"
+            className="n8n-btn n8n-btn-primary n8n-btn-sm ml-auto"
           >
             <Plus size={12} /> New Credential
           </button>
@@ -771,9 +771,9 @@ function CredentialsTab() {
             <p className="text-text-muted text-sm">No credentials found</p>
           </div>
         ) : (
-          <div className="bg-card border border-border rounded-md overflow-hidden">
+          <div className="n8n-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="n8n-table">
                 <thead>
                   <tr className="border-b border-border-light bg-bg">
                     <th className="text-left px-4 py-2 text-xs font-semibold text-text-muted uppercase">Name</th>
@@ -901,7 +901,7 @@ export function CredentialStoreTab() {
           <h3 className="text-xs font-semibold text-text-muted uppercase">Available Templates</h3>
           {isAdmin && (
             <button onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover">
+              className="n8n-btn n8n-btn-primary n8n-btn-sm">
               <Plus size={12} /> New Template
             </button>
           )}
@@ -981,7 +981,7 @@ export function CredentialStoreTab() {
       {recentActivity.length > 0 && (
         <div>
           <h3 className="text-xs font-semibold text-text-muted uppercase mb-3">Recent Activity</h3>
-          <div className="bg-card border border-border rounded-md overflow-hidden">
+          <div className="n8n-card overflow-hidden">
             <div className="divide-y divide-border-light">
               {recentActivity.map((a, i) => (
                 <div key={i} className="flex items-start gap-3 px-4 py-2.5">
@@ -1141,7 +1141,7 @@ function CreateStoreTemplateModal({ onClose, onSaved }: { onClose: () => void; o
                 <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Search Credential Type</label>
                 <input type="text" value={typeSearch} onChange={(e) => setTypeSearch(e.target.value)} autoFocus
                   placeholder="Search types..."
-                  className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring" />
+                  className="n8n-input" />
               </div>
               <div className="text-[11px] text-text-xmuted text-center">
                 Showing first {filteredTypes.length} of {allTypes.length}. Type to search...
@@ -1167,12 +1167,12 @@ function CreateStoreTemplateModal({ onClose, onSaved }: { onClose: () => void; o
               <div>
                 <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Name *</label>
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring" />
+                  className="n8n-input" />
               </div>
               <div>
                 <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Description</label>
                 <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2}
-                  className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring resize-none"
+                  className="n8n-input resize-none"
                   placeholder="Optional description" />
               </div>
 
@@ -1270,10 +1270,10 @@ function CreateStoreTemplateModal({ onClose, onSaved }: { onClose: () => void; o
         </div>
 
         <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border shrink-0">
-          <button onClick={onClose} className="text-[12px] font-semibold px-3 py-1.5 border border-border text-text-muted rounded-md hover:bg-bg">Cancel</button>
+          <button onClick={onClose} className="n8n-btn n8n-btn-secondary n8n-btn-sm">Cancel</button>
           {step === 'configure' && (
             <button onClick={handleSave} disabled={saving || !name.trim()}
-              className="text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover disabled:opacity-50">
+              className="n8n-btn n8n-btn-primary n8n-btn-sm">
               {saving ? 'Saving...' : 'Save Template'}
             </button>
           )}

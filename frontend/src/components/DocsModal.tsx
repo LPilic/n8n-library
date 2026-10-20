@@ -68,9 +68,9 @@ export function DocsModal({ workflowName, nodes, connections, onClose }: Props) 
   }
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center modal-overlay bg-black/30" onClick={onClose}>
+    <div className="n8n-modal-overlay" onClick={onClose}>
       <div
-        className="bg-card border border-border rounded-lg shadow-lg mx-4 flex flex-col overflow-hidden"
+        className="n8n-modal mx-4 flex flex-col overflow-hidden"
         style={{ width: '90vw', maxWidth: '900px', maxHeight: '90vh' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -83,7 +83,7 @@ export function DocsModal({ workflowName, nodes, connections, onClose }: Props) 
             {savedArticleId ? (
               <button
                 onClick={viewInKb}
-                className="text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover flex items-center gap-1.5"
+                className="n8n-btn n8n-btn-primary n8n-btn-sm"
               >
                 <ExternalLink size={13} /> View in KB
               </button>
@@ -91,7 +91,7 @@ export function DocsModal({ workflowName, nodes, connections, onClose }: Props) 
               <button
                 onClick={saveToKb}
                 disabled={saving}
-                className="text-[12px] font-semibold px-3 py-1.5 bg-success text-white rounded-md hover:bg-success/90 disabled:opacity-50 flex items-center gap-1.5"
+                className="n8n-btn n8n-btn-success n8n-btn-sm"
               >
                 <BookOpen size={13} />
                 {saving ? 'Saving...' : 'Save to Knowledge Base'}
@@ -99,7 +99,7 @@ export function DocsModal({ workflowName, nodes, connections, onClose }: Props) 
             ) : null}
             <button
               onClick={onClose}
-              className="text-[12px] font-semibold px-3 py-1.5 bg-bg-light border border-border text-text-base rounded-md hover:bg-bg"
+              className="n8n-btn n8n-btn-secondary n8n-btn-sm"
             >
               Close
             </button>

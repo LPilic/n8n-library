@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { Button } from './ui'
 
 interface ConfirmState {
   open: boolean
@@ -46,26 +47,22 @@ export function ConfirmDialog() {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center modal-overlay bg-black/30">
-      <div className="bg-card border border-border rounded-lg shadow-lg p-7 w-full max-w-[400px] mx-4 dropdown-enter">
-        <p className="text-[14px] text-text-dark mb-6 leading-relaxed">{message}</p>
-        <div className="flex justify-end gap-2">
-          <button
-            onClick={() => close(false)}
-            className="px-4 py-2 text-[13px] font-semibold text-text-base bg-bg-light border border-border rounded-md hover:bg-bg transition-colors duration-150"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => close(true)}
-            className={`px-4 py-2 text-[13px] font-semibold text-white rounded-md transition-colors duration-150 ${
-              danger
-                ? 'bg-danger hover:bg-danger/90'
-                : 'bg-primary hover:bg-primary-hover'
-            }`}
-          >
-            {okLabel}
-          </button>
+    <div className="n8n-modal-overlay">
+      <div className="n8n-modal dropdown-enter" style={{ maxWidth: 400 }}>
+        <div className="p-5">
+          <p className="mb-6 text-[13px] leading-relaxed text-text-dark">{message}</p>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" size="sm" onClick={() => close(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant={danger ? 'danger' : 'primary'}
+              size="sm"
+              onClick={() => close(true)}
+            >
+              {okLabel}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

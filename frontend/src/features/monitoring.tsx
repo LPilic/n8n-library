@@ -393,8 +393,8 @@ export function MonitoringPage() {
           ) : executions.length === 0 ? (
             <div className="text-center py-8 text-text-muted text-sm">No executions found</div>
           ) : (
-            <div className="bg-card border border-border rounded-lg overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="n8n-card overflow-hidden">
+              <table className="n8n-table">
                 <thead>
                   <tr className="border-b border-border bg-bg">
                     <th className="text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">Status</th>
@@ -914,7 +914,7 @@ function ReportIssueModal({
           <div>
             <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Title *</label>
             <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-input-border rounded-md bg-input-bg text-sm text-text-dark focus-ring" />
+              className="n8n-input" />
           </div>
           <div>
             <label className="block text-[12px] font-semibold uppercase tracking-wide text-text-muted mb-1">Description</label>
@@ -981,9 +981,9 @@ function ReportIssueModal({
           </div>
         </div>
         <div className="flex justify-end gap-2 px-5 py-3 border-t border-border">
-          <button onClick={onClose} className="text-[12px] font-semibold px-3 py-1.5 border border-border text-text-muted rounded-md hover:bg-bg">Cancel</button>
+          <button onClick={onClose} className="n8n-btn n8n-btn-secondary n8n-btn-sm">Cancel</button>
           <button onClick={handleCreate} disabled={saving}
-            className="text-[12px] font-semibold px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-hover disabled:opacity-50">
+            className="n8n-btn n8n-btn-primary n8n-btn-sm">
             {saving ? 'Creating...' : 'Create Ticket'}
           </button>
         </div>

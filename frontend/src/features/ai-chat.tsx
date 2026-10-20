@@ -208,7 +208,7 @@ function ConversationList({
             <button
               onClick={() => createMut.mutate()}
               disabled={createMut.isPending}
-              className="text-xs px-3 py-1.5 bg-primary text-white rounded-sm hover:bg-primary-hover disabled:opacity-50"
+              className="n8n-btn n8n-btn-primary n8n-btn-sm"
             >
               Start a conversation
             </button>
