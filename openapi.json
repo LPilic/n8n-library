@@ -6925,6 +6925,192 @@
           }
         }
       }
+    },
+    "/api/tracing/config": {
+      "get": {
+        "tags": [
+          "Other"
+        ],
+        "summary": "GET /api/tracing/config",
+        "operationId": "get_api_tracing_config",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "4XX": {
+            "description": "Client error"
+          },
+          "5XX": {
+            "description": "Server error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyHeader": []
+          },
+          {
+            "sessionAuth": []
+          }
+        ]
+      }
+    },
+    "/api/tracing/executions/{executionId}": {
+      "get": {
+        "tags": [
+          "Other"
+        ],
+        "summary": "GET /api/tracing/executions/{executionId}",
+        "operationId": "get_api_tracing_executions_executionId",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "4XX": {
+            "description": "Client error"
+          },
+          "5XX": {
+            "description": "Server error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyHeader": []
+          },
+          {
+            "sessionAuth": []
+          }
+        ]
+      }
+    },
+    "/api/tracing/health": {
+      "get": {
+        "tags": [
+          "Other"
+        ],
+        "summary": "GET /api/tracing/health",
+        "operationId": "get_api_tracing_health",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "4XX": {
+            "description": "Client error"
+          },
+          "5XX": {
+            "description": "Server error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyHeader": []
+          },
+          {
+            "sessionAuth": []
+          }
+        ]
+      }
+    },
+    "/api/tracing/services": {
+      "get": {
+        "tags": [
+          "Other"
+        ],
+        "summary": "GET /api/tracing/services",
+        "operationId": "get_api_tracing_services",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "4XX": {
+            "description": "Client error"
+          },
+          "5XX": {
+            "description": "Server error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyHeader": []
+          },
+          {
+            "sessionAuth": []
+          }
+        ]
+      }
+    },
+    "/api/tracing/traces": {
+      "get": {
+        "tags": [
+          "Other"
+        ],
+        "summary": "GET /api/tracing/traces",
+        "operationId": "get_api_tracing_traces",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "4XX": {
+            "description": "Client error"
+          },
+          "5XX": {
+            "description": "Server error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyHeader": []
+          },
+          {
+            "sessionAuth": []
+          }
+        ]
+      }
+    },
+    "/api/tracing/traces/{traceId}": {
+      "get": {
+        "tags": [
+          "Other"
+        ],
+        "summary": "GET /api/tracing/traces/{traceId}",
+        "operationId": "get_api_tracing_traces_traceId",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "4XX": {
+            "description": "Client error"
+          },
+          "5XX": {
+            "description": "Server error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyHeader": []
+          },
+          {
+            "sessionAuth": []
+          }
+        ]
+      }
     }
   }
 }
