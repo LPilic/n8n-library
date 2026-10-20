@@ -1,7 +1,7 @@
 # n8n Library — Security & Reliability Review (October 2026)
 
-Status: **Phases 1–3 complete** on branch `improvement/phase-1-security`.
-Phase 4 is tracked but not yet implemented.
+Status: **Phases 1–4 complete** on branch `improvement/phase-1-security`
+(frontend consolidation; multi-replica support remains optional/untracked).
 
 This document records the findings from a full read of the server, routes, schema,
 frontend, and deployment files, plus the results of:
@@ -189,14 +189,31 @@ Phase 3 validation (2026-10-19):
   backend and frontend runtime dependencies.
 - `npm run openapi` reports 166 paths with no missing operations.
 
-## Phase 4 — Frontend and scale
+## Phase 4 — Frontend and scale (frontend consolidation complete)
 
-- Choose legacy or React as the supported frontend; align Docker/`FRONTEND`.
-- Stop committing `frontend/dist`; build it in CI.
-- Add route-level code splitting and a shared accessible modal.
-- Fix the three ESLint errors and the remaining React hook warnings.
-- If multi-replica deployment is required, move SSE, rate limits, caches, and
-  alert locking to shared infrastructure.
+- [x] Choose React as the supported frontend; align Docker/`FRONTEND`
+      (`04f52b2`, `9784b36`).
+- [x] Remove the legacy vanilla frontend and its app shell
+      (`ae31512`).
+- [x] Keep `frontend/dist` out of git (already ignored); CI builds it.
+- [x] Add route-level code splitting, lazy AI chat, and vendor chunking
+      (`1445e2d`, `7c1d2be`).
+- [x] Add shared UI primitives, including an accessible `Modal`
+      (`3ebb78e`).
+- [x] Clear all ESLint errors and React hook warnings (`d2c7889`).
+- [ ] Multi-replica support: move SSE, rate limits, caches, and alert locking
+      to shared infrastructure if horizontal scaling is required.
+
+Phase 4 validation (2026-10-20):
+
+- `npx eslint .` exits 0 with no warnings.
+- `npm run build` produces lazy route chunks; the initial JS is split into
+  app shell, React, query, and small vendor chunks. The settings chunk remains
+  large because the icon picker imports the full Lucide catalog.
+- Live Playwright smoke test logged in and visited library, settings,
+  credential store, tickets, and monitoring with no console/page errors.
+- The live container serves the React build; `/library` and
+  `/credential-store` deep links return 200.
 
 ---
 
