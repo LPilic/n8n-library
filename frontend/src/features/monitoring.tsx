@@ -37,6 +37,7 @@ import {
   ArrowLeft,
   Sparkles,
   ExternalLink,
+  Waypoints,
 } from 'lucide-react'
 import CustomSelect from '@/components/CustomSelect'
 
@@ -686,7 +687,13 @@ export function ExecutionDetailPage() {
             <div className="text-text-dark capitalize">{mode}</div>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => navigate(`/tracing?executionId=${encodeURIComponent(String(id))}`)}
+            className="n8n-btn n8n-btn-secondary n8n-btn-sm"
+          >
+            <Waypoints size={12} /> View trace
+          </button>
           {status === 'error' && (
             <button onClick={handleRetry}
               className="text-[12px] font-semibold px-2.5 py-[5px] rounded-md bg-primary text-white hover:bg-primary-hover flex items-center gap-1">

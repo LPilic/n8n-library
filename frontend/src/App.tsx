@@ -11,6 +11,7 @@ const DashboardPage = lazy(() => import('@/features/dashboard').then((m) => ({ d
 const LibraryPage = lazy(() => import('@/features/library').then((m) => ({ default: m.LibraryPage })))
 const MonitoringPage = lazy(() => import('@/features/monitoring').then((m) => ({ default: m.MonitoringPage })))
 const ExecutionDetailPage = lazy(() => import('@/features/monitoring').then((m) => ({ default: m.ExecutionDetailPage })))
+const TracingPage = lazy(() => import('@/features/tracing').then((m) => ({ default: m.TracingPage })))
 const ObservabilityPage = lazy(() => import('@/features/observability').then((m) => ({ default: m.ObservabilityPage })))
 const TicketsPage = lazy(() => import('@/features/tickets').then((m) => ({ default: m.TicketsPage })))
 const TicketDetailPage = lazy(() => import('@/features/tickets').then((m) => ({ default: m.TicketDetailPage })))
@@ -89,6 +90,7 @@ export default function App() {
                 <Route path="n8n" element={<N8nWorkflowsPage />} />
                 <Route path="monitoring" element={<MonitoringPage />} />
                 <Route path="monitoring/:id" element={<ExecutionDetailPage />} />
+                <Route path="tracing" element={<TracingPage />} />
                 <Route path="observability" element={<ObservabilityPage />} />
                 <Route path="tickets" element={<TicketsPage />} />
                 <Route path="tickets/:id" element={<TicketDetailPage />} />
