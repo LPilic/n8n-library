@@ -3,6 +3,26 @@
 Scope: `routes/credential-store.js`, `routes/credentials.js`, the credential-store
 schema in `migrate.js`, and the React Credential Store UI.
 
+## Phase 1 status (implemented 2026-10-20)
+
+- [x] API/UI contract: templates now return `type`, `creator`,
+      `user_fields`, and `user_field_definitions`.
+- [x] Provision modal renders typed user fields and enforces required values.
+- [x] Shared/user field overlap is rejected on create, update, and provision.
+- [x] Provisioning is pinned to the template's configured instance.
+- [x] Required shared fields are validated during template creation.
+- [x] Schema defaults use enum/type-aware values and report missing required
+      fields instead of hiding them with empty strings.
+- [x] `credential_store.created_by` and `credential_audit.user_id` use
+      `ON DELETE SET NULL`; audit instance references are validated.
+- [x] n8n error bodies are sanitized for the browser and logged server-side.
+- [x] Audit insert failures no longer turn a successful provisioning into a
+      500; failed provisions are audited as `provision_failed`.
+- [x] Schema helper tests added.
+
+Remaining: edit/rotate UI, target-project ownership, store-specific audit
+endpoint, idempotency, public API authentication, AAD/key rotation.
+
 ## Summary
 
 The credential store has a sound security model: shared secrets are encrypted at
