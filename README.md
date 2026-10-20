@@ -6,6 +6,7 @@ A self-hosted companion app for [n8n](https://n8n.io) that adds a workflow templ
 
 - **Template Library** — Browse, search, and import workflow templates directly into n8n via the built-in template browser
 - **Monitoring Dashboard** — Real-time execution stats, workflow management, activate/deactivate workflows, execution detail with node-level timeline
+- **Distributed Tracing** — OpenTelemetry workflow/node spans exported by n8n, with a Jaeger/Tempo trace viewer and execution links
 - **Observability** — Prometheus metrics visualization, CPU/memory/heap/event loop charts, queue metrics, worker health monitoring
 - **Service Desk** — Ticket system with categories, priorities, assignments, comments, and direct linking to n8n executions
 - **Knowledge Base** — Articles with categories, tags, versioning, full-text search, and helpfulness feedback
@@ -127,6 +128,11 @@ All configuration is via environment variables (or `.env` file):
 | `HITL_CALLBACK_SECRET` | _(empty)_ | Optional HMAC-SHA256 secret for HITL callbacks |
 | `WEBHOOK_ALLOW_PRIVATE` | `false` | Allow webhooks to target private/internal addresses |
 | `HITL_ALLOW_PRIVATE_CALLBACKS` | `false` | Allow HITL callbacks to target private/internal addresses (the configured n8n origin is always allowed) |
+| `OTEL_BACKEND` | `jaeger` | Trace query backend (`jaeger` or `tempo`) |
+| `OTEL_QUERY_URL` | `http://jaeger:16686` | Internal trace backend query URL |
+| `OTEL_PUBLIC_URL` | _(empty)_ | Public trace UI URL used for deep links |
+| `OTEL_SERVICE_NAME` | `n8n` | Service name n8n exports to OTel |
+| `OTEL_QUERY_AUTH_HEADER` | _(empty)_ | Optional Authorization header for trace queries |
 | `AUDIT_RETENTION_DAYS` | `180` | Audit-log retention |
 | `CREDENTIAL_AUDIT_RETENTION_DAYS` | `365` | Credential-audit retention |
 | `NOTIFICATION_RETENTION_DAYS` | `30` | Read-notification retention |

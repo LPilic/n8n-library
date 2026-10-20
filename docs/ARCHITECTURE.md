@@ -52,6 +52,7 @@ n8n-library/
 │   ├── mcp-server.js      # MCP server exposed by the library
 │   ├── middleware.js      # Auth guards, role checks, rate limiters
 │   ├── n8n-api.js         # n8n REST client, instances, summary/name caches
+│   ├── tracing.js         # Jaeger/Tempo trace query adapter and span tree
 │   ├── retention.js       # Scheduled data-retention cleanup
 │   ├── webhooks.js        # Signed outbound webhooks
 │   └── tools.js           # AI tool definitions (built-in + MCP tools)
@@ -60,6 +61,7 @@ n8n-library/
 │   ├── auth.js            # Login, 2FA, password reset, user CRUD
 │   ├── templates.js       # n8n-compatible template API + internal CRUD
 │   ├── monitoring.js      # Health, metrics, executions, workers, instance CRUD
+│   ├── tracing.js         # OpenTelemetry trace search/detail proxy
 │   ├── tickets.js         # Service desk: tickets, comments, activity log
 │   ├── kb.js              # Knowledge base: articles, categories, tags, versions
 │   ├── prompts.js         # Versioned prompt library + public endpoints
@@ -291,6 +293,14 @@ See `frontend/DESIGN.md` for the token and component conventions.
 plus optional offline assets. The n8n frontend integration files
 (`public/n8n-custom.js`, `public/n8n-custom.css`) are injected into n8n through
 `N8N_EXTERNAL_FRONTEND_HOOKS_URLS`.
+
+## OpenTelemetry tracing
+
+n8n exports OTLP traces to Jaeger or Tempo; n8n-library queries the trace backend
+through `routes/tracing.js` and `lib/tracing.js`. The Tracing page normalizes
+Jaeger spans into a common model, builds a span tree, and links traces to
+executions via `n8n.execution.id`. See `docs/opentelemetry-integration.md` for
+the POC and production setup.
 
 ## Approvals (HITL)
 
