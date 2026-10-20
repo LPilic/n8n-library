@@ -12,8 +12,11 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --production
 
-# Copy backend + legacy frontend
+# Copy backend + frontend sources
 COPY . .
+
+# Serve the React build by default. Set FRONTEND=legacy to use public/ instead.
+ENV FRONTEND=react
 
 EXPOSE 3100
 CMD ["sh", "-c", "node migrate.js && node server.js"]
