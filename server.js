@@ -178,9 +178,9 @@ app.use((req, res, next) => {
 
 // --- Static frontend ---
 
-// React frontend is served separately via `npm run dev:frontend` (port 5173) during development.
-// To switch production to React, set FRONTEND=react env var.
-const useReactFrontend = process.env.FRONTEND === 'react';
+// React is the default frontend. `npm run dev:frontend` runs Vite on port 5173
+// during development; production serves the built assets from frontend/dist.
+const useReactFrontend = process.env.FRONTEND !== 'legacy';
 const reactBuildPath = path.join(__dirname, 'frontend', 'dist');
 if (useReactFrontend && fs.existsSync(reactBuildPath)) {
   app.use(express.static(reactBuildPath, {
@@ -396,14 +396,14 @@ const CLIENT_ROUTES = ['dashboard','library','n8n','categories','tickets','kb','
 app.get('*', (req, res, next) => {
   const segment = req.path.split('/')[1];
   if (CLIENT_ROUTES.includes(segment)) {
-    // Serve React build only if FRONTEND=react, otherwise legacy frontend
-    if (useReactFrontend) {
-      const reactIndex = path.join(__dirname, 'frontend', 'dist', 'index.html');
-      if (fs.existsSync(reactIndex)) {
-        return res.sendFile(reactIndex);
-      }
+    if (!useReactFrontend) {
+      return res.status(410).send('The legacy frontend has been removed. Set FRONTEND=react or build frontend/dist.');
     }
-    return res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    const reactIndex = path.join(__dirname, 'frontend', 'dist', 'index.html');
+    if (!fs.existsSync(reactIndex)) {
+      return res.status(503).send('React frontend is not built. Run: npm run build:frontend');
+    }
+    return res.sendFile(reactIndex);
   }
   next();
 });

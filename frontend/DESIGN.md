@@ -76,4 +76,5 @@ cd frontend
 npm run dev
 ```
 
-For a non-Docker server, set `FRONTEND=react` before `node server.js`.
+For a non-Docker server, build `frontend/dist` first (`npm run build` inside
+`frontend/`) and then run `node server.js`.

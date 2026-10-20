@@ -79,11 +79,11 @@ n8n-library/
 │   ├── mcp-routes.js      # MCP server management and tool calls
 │   └── api-keys.js        # API key CRUD
 │
-├── public/                # Legacy vanilla-JS SPA
-│   ├── index.html         # Application shell (all panels defined inline)
-│   ├── css/               # Theme and panel styles
-│   ├── js/                # app.js, library.js, monitoring.js, etc.
-│   └── vendor/            # Vendored CDN dependencies (offline-capable)
+├── public/                # Shared static assets (uploads, n8n hooks, vendor)
+│   ├── n8n-custom.js      # n8n frontend hook integration
+│   ├── n8n-custom.css     # n8n frontend hook styles
+│   ├── uploads/           # Ticket/KB uploads
+│   └── vendor/            # n8n demo web component and offline assets
 │
 ├── frontend/              # React/Vite frontend (FRONTEND=react)
 │   ├── src/features/      # Page-level features
@@ -257,53 +257,40 @@ mcp_servers              # MCP server configurations
 
 ## Frontend Architecture
 
-Two frontends currently coexist:
+The frontend is a React 18 SPA in `frontend/`:
 
-- **Legacy SPA** in `public/` — vanilla JS modules loaded via script tags, no
-  build step. This is the default.
-- **React SPA** in `frontend/` — Vite + React 18 + TypeScript + TanStack Query +
-  Zustand + Tailwind. It is served when `FRONTEND=react` is set and
-  `frontend/dist` exists.
+- Vite + TypeScript
+- React Router with **route-level lazy loading**
+- TanStack Query for server state
+- Zustand for auth, instance, theme, branding, and confirmation state
+- Tailwind 4 with n8n-inspired design tokens
+- Shared UI primitives in `frontend/src/components/ui`
+- TipTap for rich text, Chart.js for monitoring charts
+- DOMPurify for rendered HTML
 
-The Docker image builds both and sets `FRONTEND=react` by default. Set
-`FRONTEND=legacy` to serve `public/` instead. Long-term, one frontend should be
-selected to avoid feature drift.
+The Docker image builds the SPA and sets `FRONTEND=react`. The server serves
+`frontend/dist`; `public/` is kept only for shared static assets
+(`n8n-demo.bundled.js`, n8n frontend hooks, and uploads).
 
-### Panel System (legacy)
+See `frontend/DESIGN.md` for the token and component conventions.
 
-```html
-<div class="panel" id="panel-library">    <!-- Template browsing -->
-<div class="panel" id="panel-monitoring">  <!-- Execution dashboard -->
-<div class="panel" id="panel-observability"> <!-- Metrics charts -->
-<div class="panel" id="panel-tickets">     <!-- Service desk -->
-<div class="panel" id="panel-kb">          <!-- Knowledge base -->
-<div class="panel" id="panel-ai">          <!-- AI configuration -->
-<div class="panel" id="panel-settings">    <!-- Admin settings -->
-```
+### Frontend Patterns
 
-`switchPanel(name)` shows one panel, hides others, and triggers data loading.
+- **Route-level code splitting** — each feature is a lazy-loaded chunk.
+- **Instance selector** — global Zustand store used by monitoring, credentials,
+  tickets, and other instance-aware pages.
+- **Auto-refresh** — configurable polling intervals for monitoring/observability.
+- **Theme** — CSS variables with `[data-theme="dark"]` overrides; branding
+  overrides are re-applied on theme changes.
+- **SSE** — notifications, monitoring, and HITL streams update React Query
+  caches.
 
-### Key Frontend Patterns
+### Shared Static Assets
 
-- **Custom selects** — All `<select>` elements replaced with styled dropdowns (`upgradeSelects()`)
-- **Instance selector** — Sidebar dropdown for switching n8n instances
-- **Auto-refresh** — Configurable polling intervals for monitoring/observability
-- **Theme** — CSS variables with `[data-theme="dark"]` overrides
-- **Legacy frontend** — Vanilla JS with DOM string building for rendering.
-  The React frontend uses components, TanStack Query, and Zustand.
-
-### Vendored Dependencies
-
-All CDN libraries vendored locally in `public/vendor/` for offline/proxy environments:
-
-| Library | Purpose |
-|---------|---------|
-| Chart.js | Monitoring and observability charts |
-| Quill | Rich text editor (tickets, KB articles) |
-| DOMPurify | HTML sanitization |
-| highlight.js | Code syntax highlighting |
-| FontAwesome | Icon set |
-| n8n-demo.bundled.js | n8n workflow preview web components |
+`public/vendor/` retains the n8n demo web component used by workflow previews,
+plus optional offline assets. The n8n frontend integration files
+(`public/n8n-custom.js`, `public/n8n-custom.css`) are injected into n8n through
+`N8N_EXTERNAL_FRONTEND_HOOKS_URLS`.
 
 ## Approvals (HITL)
 
@@ -389,7 +376,7 @@ n8n Library only requires PostgreSQL. It connects to your existing n8n instance(
 
 Set `CREDENTIAL_ENCRYPTION_KEY` to a persistent 64-hex-character value
 (`openssl rand -hex 32`). Losing it makes stored credentials unrecoverable.
-The image sets `FRONTEND=react`; set `FRONTEND=legacy` to serve `public/`.
+The image sets `FRONTEND=react` and serves the built SPA from `frontend/dist`.
 
 If deploying alongside n8n with Docker Compose, add `n8n-library` as a service on the same network so it can reach n8n's internal URL. A sample `docker-compose.yml` is included for reference.
 
