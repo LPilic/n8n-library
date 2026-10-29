@@ -187,8 +187,8 @@ watch(
               :class="[
                 sidebarOpen ? '' : 'justify-center px-0',
                 isActive
-                  ? 'bg-primary-light text-primary'
-                  : 'text-text-base hover:bg-bg hover:text-text-dark',
+                  ? 'bg-bg-light text-text-dark'
+                  : 'text-text-base hover:bg-bg-light hover:text-text-dark',
               ]"
               :title="!sidebarOpen ? entry.item.label : undefined"
               @click="navigate($event)"

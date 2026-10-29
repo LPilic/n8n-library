@@ -166,7 +166,7 @@ async function handleN8nSetup() {
 
         <!-- 2FA -->
         <form v-if="currentView === '2fa'" @submit.prevent="handle2fa">
-          <N8nText size="small" color="secondary" class="mb-4 block text-center">
+          <N8nText size="small" color="text-light" class="mb-4 block text-center">
             Enter your 2FA code to continue
           </N8nText>
           <N8nInput
@@ -222,7 +222,7 @@ async function handleN8nSetup() {
 
         <!-- Forgot -->
         <form v-if="currentView === 'forgot'" @submit.prevent="handleForgot">
-          <N8nText size="small" color="secondary" class="mb-4 block text-center">
+          <N8nText size="small" color="text-light" class="mb-4 block text-center">
             Enter your email to receive a reset link
           </N8nText>
           <N8nInput v-model="email" type="email" placeholder="Email" class="mb-4" />
@@ -244,7 +244,7 @@ async function handleN8nSetup() {
 
         <!-- Reset -->
         <form v-if="currentView === 'reset'" @submit.prevent="handleReset">
-          <N8nText size="small" color="secondary" class="mb-4 block text-center">Enter your new password</N8nText>
+          <N8nText size="small" color="text-light" class="mb-4 block text-center">Enter your new password</N8nText>
           <N8nInput v-model="newPassword" type="password" placeholder="New password" class="mb-4" />
           <N8nButton
             type="submit"
@@ -257,7 +257,7 @@ async function handleN8nSetup() {
 
         <!-- n8n login -->
         <form v-if="currentView === 'n8n'" @submit.prevent="handleN8nLogin">
-          <N8nText size="small" color="secondary" class="mb-4 block text-center">
+          <N8nText size="small" color="text-light" class="mb-4 block text-center">
             Sign in with your n8n account
           </N8nText>
           <CustomSelect
@@ -288,10 +288,10 @@ async function handleN8nSetup() {
 
         <!-- n8n setup -->
         <form v-if="currentView === 'n8n-setup'" @submit.prevent="handleN8nSetup">
-          <N8nText size="small" color="secondary" class="mb-4 block text-center">
+          <N8nText size="small" color="text-light" class="mb-4 block text-center">
             Welcome! Set a password for your library account.
           </N8nText>
-          <N8nText size="xsmall" color="secondary" class="mb-3 block text-center">{{ email }}</N8nText>
+          <N8nText size="xsmall" color="text-light" class="mb-3 block text-center">{{ email }}</N8nText>
           <N8nInput v-model="n8nPassword" type="password" placeholder="Choose a password" class="mb-4" />
           <N8nButton
             type="submit"

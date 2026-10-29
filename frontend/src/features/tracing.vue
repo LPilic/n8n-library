@@ -307,7 +307,7 @@ function refreshAll() {
           <N8nIcon icon="activity" :size="18" class="text-primary" />
           Tracing
         </N8nHeading>
-        <N8nText size="medium" color="secondary">
+        <N8nText size="medium" color="text-light">
           OpenTelemetry traces exported by n8n, including workflow and node spans.
         </N8nText>
       </div>
@@ -401,7 +401,7 @@ function refreshAll() {
         <div class="flex w-full flex-wrap items-center justify-between gap-2 px-1">
           <div>
             <N8nHeading size="medium" tag="h3">Traces</N8nHeading>
-            <N8nText size="small" color="secondary">{{ traces.length }} trace{{ traces.length === 1 ? '' : 's' }} in the selected window</N8nText>
+            <N8nText size="small" color="text-light">{{ traces.length }} trace{{ traces.length === 1 ? '' : 's' }} in the selected window</N8nText>
           </div>
           <span v-if="tracesFetching" class="text-xs text-text-muted">Loading…</span>
         </div>
@@ -470,7 +470,7 @@ function refreshAll() {
         <div class="flex w-full flex-wrap items-center justify-between gap-2 px-1">
           <div>
             <N8nHeading size="medium" tag="h3">Trace detail</N8nHeading>
-            <N8nText size="small" color="secondary">{{ trace.traceId }} · {{ trace.services.join(', ') }} · {{ formatDuration(trace.durationMs) }}</N8nText>
+            <N8nText size="small" color="text-light">{{ trace.traceId }} · {{ trace.services.join(', ') }} · {{ formatDuration(trace.durationMs) }}</N8nText>
           </div>
           <span v-if="traceFetching" class="text-xs text-text-muted">Loading…</span>
         </div>

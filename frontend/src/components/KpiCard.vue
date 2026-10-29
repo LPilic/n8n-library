@@ -19,7 +19,7 @@ const colorMap: Record<string, string> = {
   success: 'bg-success-light text-success',
   danger: 'bg-danger-light text-danger',
   warning: 'bg-warning-light text-warning',
-  info: 'bg-info-light text-info',
+  info: 'bg-info-light text-text-muted',
 }
 
 function onClick() {
@@ -29,13 +29,16 @@ function onClick() {
 </script>
 
 <template>
-  <div class="card-hover-effect flex cursor-pointer flex-col items-start justify-between gap-3 rounded-lg border border-border bg-card p-4" @click="onClick">
-    <div class="min-w-0">
+  <div
+    class="card-hover-effect flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-border bg-card p-4"
+    @click="onClick"
+  >
+    <div class="min-w-0 flex-1">
       <div class="truncate text-[11px] font-semibold text-text-muted tracking-[0.04em] uppercase">{{ sublabel }}</div>
-      <div class="mt-1 text-[20px] leading-tight font-semibold text-text-dark">{{ label }}</div>
+      <div class="mt-1 truncate text-[22px] leading-tight font-semibold text-text-dark">{{ label }}</div>
     </div>
-    <div class="shrink-0 rounded-xs p-1.5" :class="colorMap[color ?? ''] ?? 'bg-bg text-text-muted'">
-      <N8nIcon :icon="icon" :size="20" />
+    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" :class="colorMap[color ?? ''] ?? 'bg-bg-light text-text-muted'">
+      <N8nIcon :icon="icon" :size="18" />
     </div>
   </div>
 </template>

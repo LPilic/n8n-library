@@ -34,55 +34,47 @@ export const useBrandingStore = defineStore('branding', {
       const root = document.documentElement
       const b = this.branding
       // Clear previous inline overrides first
-      const props = [
+      const dsProps = [
         '--background--brand',
         '--background--brand--hover',
         '--background--brand--active',
         '--color--background',
-        '--color--background--light-1',
-        '--color--background--light-2',
         '--color--foreground',
-        '--color--foreground--tint-1',
-        '--color--foreground--tint-2',
         '--color--text',
         '--color--text--shade-1',
-        '--color--text--tint-1',
-        '--color--text--tint-2',
-        '--border-color',
-        '--color-sidebar',
       ]
-      props.forEach((p) => root.style.removeProperty(p))
-      oldProps.forEach((p) => root.style.removeProperty(p))
+      const appProps = [
+        '--color-primary', '--color-primary-hover', '--color-primary-active',
+        '--color-primary-light', '--color-primary-light-hover', '--color-primary-alpha',
+        '--color-input-focus',
+        '--color-bg', '--color-sidebar', '--color-card',
+        '--color-text-base', '--color-text-dark', '--color-text-muted', '--color-text-xmuted',
+      ]
+      dsProps.forEach((p) => root.style.removeProperty(p))
+      appProps.forEach((p) => root.style.removeProperty(p))
       if (!b) return
 
       if (b.brand_primary) {
         root.style.setProperty('--background--brand', b.brand_primary)
         root.style.setProperty('--background--brand--hover', shade(b.brand_primary, -8))
         root.style.setProperty('--background--brand--active', shade(b.brand_primary, -16))
+        root.style.setProperty('--color-primary', b.brand_primary)
+        root.style.setProperty('--color-primary-hover', shade(b.brand_primary, -8))
+        root.style.setProperty('--color-primary-active', shade(b.brand_primary, -16))
+        root.style.setProperty('--color-input-focus', b.brand_primary)
       }
-      // Surface re-tint: only in light mode, mirroring the previous behaviour
-      if (b.brand_bg) root.style.setProperty('--color--background', b.brand_bg)
-      if (b.brand_card) root.style.setProperty('--color--foreground', b.brand_card)
+      // Surface + text re-tint (light-mode look; dark mode overrides removed above)
+      if (b.brand_bg) root.style.setProperty('--color-bg', b.brand_bg)
       if (b.brand_sidebar) root.style.setProperty('--color-sidebar', b.brand_sidebar)
-      if (b.brand_text) {
-        root.style.setProperty('--color--text', b.brand_text)
-        root.style.setProperty('--color--text--shade-1', shade(b.brand_text, -18))
-        root.style.setProperty('--color--text--tint-1', shade(b.brand_text, 18))
-        root.style.setProperty('--color--text--tint-2', shade(b.brand_text, 30))
-      }
+      if (b.brand_card) root.style.setProperty('--color-card', b.brand_card)
+      if (b.brand_text) root.style.setProperty('--color-text-base', b.brand_text)
+      if (b.brand_text_dark) root.style.setProperty('--color-text-dark', b.brand_text_dark)
     },
   },
 })
 
-// Legacy variable names in case an old branding payload ran before this build
-const oldProps = [
-  '--color-primary', '--color-primary-hover', '--color-primary-active',
-  '--color-primary-light', '--color-primary-light-hover', '--color-input-focus',
-  '--color-bg', '--color-bg-alt', '--color-card', '--color-card-hover',
-  '--color-bg-light', '--color-input-bg', '--color-border', '--color-border-light',
-  '--color-input-border', '--color-text-base', '--color-text-dark',
-  '--color-text-muted', '--color-text-xmuted',
-]
+// No legacy props to clean beyond the DS-token props above — old deployments
+// may have applied them; they are removed on first load in any case.
 
 /** Shift a hex color's lightness by percent (n8n-style hover/active shading). */
 function shade(hex: string, percent: number): string {

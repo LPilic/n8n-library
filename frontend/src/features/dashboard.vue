@@ -76,7 +76,7 @@ const recentExecs = computed(
     <!-- Greeting -->
     <div class="mb-6">
       <N8nHeading size="large" tag="h2">{{ greeting }}, {{ data.user.username }}</N8nHeading>
-      <N8nText size="small" color="secondary">Here's what's happening across your n8n environment</N8nText>
+      <N8nText size="small" color="text-light">Here's what's happening across your n8n environment</N8nText>
     </div>
 
     <!-- KPI row -->
@@ -84,7 +84,7 @@ const recentExecs = computed(
       <KpiCard
         v-if="isWriter && data.n8nHealth"
         icon="activity"
-        label="n8n"
+        :label="`n8n Instance${data.n8nHealth.latencyMs ? ` · ${data.n8nHealth.latencyMs}ms` : ''}`"
         :sublabel="healthLabel"
         :color="healthColor"
         link="/monitoring"

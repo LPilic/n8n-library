@@ -1,101 +1,156 @@
 /* n8n Library — app styles.
  *
- * Design tokens come from @n8n/design-system (theme.css, imported in main.ts).
- * This file maps those tokens onto the Tailwind v4 palette so the utilities
- * (bg-card, text-text-muted, …) resolve to the design system's colors in both
- * light and dark mode. Dark mode is driven by [data-theme="dark"] on <html>.
+ * Palette follows the n8n 3.0 design system's rendered look (values measured
+ * from a running n8n 3.0.1 instance): near-white canvas, pure-white cards with
+ * 1px hairline borders and soft indigo-tinted shadows in light mode; #17171a
+ * canvas with #262629 panels in dark mode. Values are literal per theme so
+ * utilities can never inherit an unresolved var() chain.
+ * Dark mode is driven by [data-theme="dark"] on <html> (theme.ts).
+ *
+ * Tailwind is imported UNLAYERED (theme/part imports instead of the layered
+ * default): the design system's own stylesheet is unlayered too and sets
+ * `header, aside, section, … { background: 0 0; border: 0; margin: 0; padding: 0 }`
+ * — layered utilities would lose to that reset on every structural element.
+ * Unlayered, and imported after the design system css (main.ts), utilities win.
  */
-@import 'tailwindcss';
+@import 'tailwindcss/theme.css' theme();
+@import 'tailwindcss/preflight.css';
+@import 'tailwindcss/utilities.css';
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @theme {
-  /* Surfaces */
-  --color-bg: var(--color--background);
-  --color-bg-light: var(--color--background--light-2);
-  --color-bg-alt: var(--color--background--light-1);
-  --color-sidebar: var(--color--background--light-2);
-  --color-card: var(--color--foreground);
-  --color-card-hover: var(--color--foreground--tint-1);
-  --color-surface: var(--color--foreground--tint-2);
-  --color-surface-hover: var(--color--background--light-1);
+  /* Surfaces — light values; overridden below for dark */
+  --color-bg: #fbfbfc;            /* page canvas */
+  --color-bg-light: #f5f5f6;      /* slightly darker canvas strip */
+  --color-bg-alt: #f7f7f8;        /* alt canvas / code blocks */
+  --color-sidebar: #fcfcfd;
+  --color-card: #ffffff;
+  --color-card-hover: #f9f9fb;
+  --color-surface: #ffffff;       /* inputs on cards */
+  --color-surface-hover: #f7f7f8;
   /* Borders */
-  --color-border: var(--border-color);
-  --color-border-light: var(--border-color--light);
-  --color-border-strong: var(--color--foreground--shade-1);
+  --color-border: #e4e4e7;
+  --color-border-light: #ececee;
+  --color-border-strong: #d4d4d8;
   /* Text */
-  --color-text-base: var(--color--text);
-  --color-text-dark: var(--color--text--shade-1);
-  --color-text-muted: var(--color--text--tint-1);
-  --color-text-xmuted: var(--color--text--tint-2);
+  --color-text-base: #434447;
+  --color-text-dark: #1b1c1e;
+  --color-text-muted: #757578;
+  --color-text-xmuted: #9e9ea3;
   /* Brand */
-  --color-primary: var(--background--brand);
-  --color-primary-hover: var(--background--brand--hover);
-  --color-primary-active: var(--background--brand--active);
-  --color-primary-light: color-mix(in oklab, var(--background--brand) 12%, var(--color--foreground--tint-2));
-  --color-primary-light-hover: color-mix(in oklab, var(--background--brand) 18%, var(--color--foreground--tint-2));
-  --color-primary-alpha: color-mix(in oklab, var(--background--brand) 18%, transparent);
+  --color-primary: #ea4b71;
+  --color-primary-hover: #dc3d66;
+  --color-primary-active: #c93358;
+  --color-primary-light: #fdf2f5;
+  --color-primary-light-hover: #fce8ee;
+  --color-primary-alpha: rgba(234, 75, 113, 0.18);
   /* Semantic */
-  --color-success: var(--color--success);
-  --color-danger: var(--color--danger);
-  --color-warning: var(--color--warning);
-  --color-info: var(--color--info);
-  --color-success-light: color-mix(in oklab, var(--color--success) 14%, var(--color--foreground--tint-2));
-  --color-danger-light: color-mix(in oklab, var(--color--danger) 14%, var(--color--foreground--tint-2));
-  --color-warning-light: color-mix(in oklab, var(--color--warning) 18%, var(--color--foreground--tint-2));
-  --color-info-light: color-mix(in oklab, var(--color--info) 14%, var(--color--foreground--tint-2));
+  --color-success: #26a344;
+  --color-danger: #eb4d41;
+  --color-warning: #d9a514;
+  --color-info: #939398;
+  --color-success-light: #e2f4e8;
+  --color-danger-light: #fdebe9;
+  --color-warning-light: #faf3d9;
+  --color-info-light: #eef0f2;
   /* Inputs */
-  --color-input-bg: var(--color--foreground--tint-2);
-  --color-input-border: var(--border-color--light);
-  --color-input-focus: var(--background--brand);
-  /* Typography */
-  --font-sans: var(--font-family);
-  --font-mono: var(--font-family--monospace);
-  /* Radii — the design system uses a generous scale; keep the old class
-     names but point them at n8n radius steps */
-  --radius-xs: var(--radius--3xs);
-  --radius-sm: var(--radius--2xs);
-  --radius-md: var(--radius--xs);
-  --radius-lg: var(--radius--sm);
-  --radius-xl: var(--radius--md);
-  --radius-2xl: var(--radius--lg);
+  --color-input-bg: #ffffff;
+  --color-input-border: #e4e4e7;
+  --color-input-focus: #ea4b71;
+  /* Typography (fonts come from the design system's @font-face) */
+  --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+  /* Radii — n8n 3.0: inputs 8px, cards 16px, small controls 6-8px */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1rem;
   /* Shadows */
-  --shadow-card: var(--shadow--2xs);
-  --shadow-popover: var(--shadow--md);
-  --shadow-modal: var(--shadow--xl);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-card-hover: 0 2px 8px #441c171a;
+  --shadow-popover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-modal: rgba(99, 77, 255, 0.06) 0 4px 16px, 0 20px 25px -5px rgba(0, 0, 0, 0.22);
+}
+
+/* ---- Dark theme (n8n 3.0 dark: #17171a canvas, #262629 panels) ---- */
+[data-theme='dark'] {
+  --color-bg: #17171a;
+  --color-bg-light: #252528;
+  --color-bg-alt: #1d1d20;
+  --color-sidebar: #17171a;
+  --color-card: #262629;
+  --color-card-hover: #2c2c30;
+  --color-surface: #1f1f22;
+  --color-surface-hover: #2c2c30;
+  --color-border: #303034;
+  --color-border-light: #2c2c30;
+  --color-border-strong: #3f3f44;
+  --color-text-base: #b9b9be;
+  --color-text-dark: #f5f5f7;
+  --color-text-muted: #9c9ca2;
+  --color-text-xmuted: #6e6e76;
+  --color-primary: #ea4b71;
+  --color-primary-hover: #f0688a;
+  --color-primary-active: #f27f9c;
+  --color-primary-light: rgba(234, 75, 113, 0.14);
+  --color-primary-light-hover: rgba(234, 75, 113, 0.22);
+  --color-primary-alpha: rgba(234, 75, 113, 0.22);
+  --color-success: #4cc06e;
+  --color-danger: #f0655a;
+  --color-warning: #e6b93e;
+  --color-info: #8a8a90;
+  --color-success-light: rgba(76, 192, 110, 0.16);
+  --color-danger-light: rgba(240, 101, 90, 0.16);
+  --color-warning-light: rgba(230, 185, 62, 0.16);
+  --color-info-light: rgba(138, 138, 144, 0.16);
+  --color-input-bg: #1f1f22;
+  --color-input-border: #303034;
+  --color-input-focus: #ea4b71;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-card-hover: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-popover: 0 10px 15px -3px rgba(0, 0, 0, 0.55), 0 4px 6px -4px rgba(0, 0, 0, 0.5);
+  --shadow-modal: rgba(99, 77, 255, 0.08) 0 4px 16px, 0 20px 25px -5px rgba(0, 0, 0, 0.6);
 }
 
 @layer base {
   body {
-    font-family: var(--font-family);
-    font-size: var(--font-size--sm);
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
     line-height: 1.45;
-    color: var(--color--text);
-    background: var(--color--background);
+    color: var(--color-text-base);
+    background: var(--color-bg);
   }
 
   ::selection {
-    background: color-mix(in oklab, var(--background--brand) 30%, transparent);
+    background: rgba(234, 75, 113, 0.25);
   }
 
   code,
   pre,
   kbd {
-    font-family: var(--font-family--monospace);
+    font-family: var(--font-mono);
   }
 
-  /* Consistent keyboard focus */
   .focus-ring {
-    outline: 2px solid color-mix(in oklab, var(--background--brand) 60%, transparent);
+    outline: 2px solid rgba(234, 75, 113, 0.5);
   }
   .focus-ring:focus-visible {
-    outline-color: var(--background--brand);
+    outline-color: var(--color-primary);
   }
 }
 
 /* ---------- Layout helpers (sidebar / mobile nav) ---------- */
 
-/* Mobile breakpoint: below 850px the sidebar is hidden and the bottom nav shows */
+/* Desktop: hide the mobile bottom nav; Mobile: hide the sidebar */
+@media (min-width: 850px) {
+  .mobile-nav-bar {
+    display: none !important;
+  }
+}
 @media (max-width: 849px) {
   .desktop-sidebar {
     display: none !important;
@@ -105,71 +160,54 @@
   }
 }
 
-/* Bottom nav inset for iOS-style safe areas */
 .safe-area-pb {
   padding-bottom: max(0.25rem, env(safe-area-inset-bottom));
 }
 
 .sidebar-scroll {
   scrollbar-width: thin;
-  scrollbar-color: var(--border-color) transparent;
+  scrollbar-color: var(--color-border) transparent;
 }
 .sidebar-scroll::-webkit-scrollbar {
   width: 6px;
 }
 .sidebar-scroll::-webkit-scrollbar-thumb {
-  background: var(--border-color);
+  background: var(--color-border);
   border-radius: 3px;
 }
 .sidebar-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
 
+/* n8n 3.0 card treatment for hand-rolled cards */
 .card-hover-effect {
   transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 .card-hover-effect:hover {
-  box-shadow: var(--shadow--card-hover);
+  box-shadow: var(--shadow-card-hover);
 }
 
 /* ---------- Animations ---------- */
 
 @keyframes healthPulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.4;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 .health-pulse {
   animation: healthPulse 1.6s ease-in-out infinite;
 }
 
 @keyframes toastSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 .toast-enter {
   animation: toastSlideIn 0.2s ease-out;
 }
 
 @keyframes dropdownFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .dropdown-enter {
   animation: dropdownFadeIn 0.15s ease-out;
@@ -181,13 +219,13 @@ pre code.hljs {
   display: block;
   overflow-x: auto;
   padding: 1em;
-  border-radius: var(--radius--xs);
+  border-radius: var(--radius-md);
   font-size: 13px;
 }
 
 [data-theme='dark'] pre code.hljs {
-  background: var(--color--neutral-900) !important;
-  color: var(--color--neutral-200) !important;
+  background: #17171a !important;
+  color: #e5e5e8 !important;
 }
 
 [data-theme='dark'] .hljs-keyword,

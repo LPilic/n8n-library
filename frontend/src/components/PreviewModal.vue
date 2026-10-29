@@ -11,14 +11,15 @@ const emit = defineEmits<{ (e: 'close'): void }>()
 </script>
 
 <template>
-  <N8nDialog :open="true" size="full" :header="title" @update:open="emit('close')">
-    <div class="flex h-full flex-col">
-      <div class="relative min-h-0 flex-1 overflow-hidden">
+  <!-- Explicit heights: Dialog sizes itself to content; flex-1 chains collapse to 0 -->
+  <N8nDialog :open="true" size="2xlarge" :header="title" @update:open="emit('close')">
+    <div style="height: min(78vh, 760px); margin-top: 12px">
+      <div class="relative h-full w-full overflow-hidden rounded-lg border border-border bg-bg-light">
         <N8nDemoPreview :workflow="workflowData" />
       </div>
-      <div class="flex justify-end border-t border-border px-4 py-2">
-        <N8nButton label="Close" variant="ghost" size="small" @click="emit('close')" />
-      </div>
+    </div>
+    <div class="mt-3 flex justify-end">
+      <N8nButton label="Close" variant="outline" size="small" @click="emit('close')" />
     </div>
   </N8nDialog>
 </template>
