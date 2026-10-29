@@ -1,10 +1,10 @@
 import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [vue(), tailwindcss()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -23,20 +23,21 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    chunkSizeWarningLimit: 1600,
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return
-          if (/node_modules\/(react|react-dom|react-router|react-router-dom|scheduler)\//.test(id)) {
-            return 'vendor-react'
+          if (/node_modules\/(vue|vue-router|pinia|\.bin)\//.test(id) || id.includes('@vue/')) {
+            return 'vendor-vue'
           }
           if (id.includes('@tanstack')) return 'vendor-query'
-          if (id.includes('chart.js') || id.includes('react-chartjs-2')) return 'vendor-charts'
+          if (id.includes('chart.js') || id.includes('vue-chartjs')) return 'vendor-charts'
           if (id.includes('@tiptap') || id.includes('prosemirror')) return 'vendor-editor'
           if (id.includes('dompurify') || id.includes('highlight.js')) return 'vendor-markdown'
-          // Let Rollup split Lucide: the icon picker imports the full barrel,
-          // while the rest of the app only needs the icons it references.
-          if (id.includes('lucide-react')) return
+          if (id.includes('lucide-vue-next')) return 'vendor-lucide'
+          if (id.includes('element-plus') || id.includes('@element-plus')) return 'vendor-element'
+          if (id.includes('@n8n/design-system')) return 'vendor-design-system'
           return 'vendor'
         },
       },

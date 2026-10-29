@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+import { defineStore } from 'pinia'
 import { api } from '@/api/client'
 import type { User, LoginResponse } from '@/api/types'
 
@@ -9,60 +9,72 @@ interface AuthState {
   requires2fa: boolean
   pendingEmail: string | null
   pendingPassword: string | null
-
-  checkAuth: () => Promise<void>
-  login: (email: string, password: string) => Promise<LoginResponse>
-  verify2fa: (totpToken: string) => Promise<void>
-  logout: () => Promise<void>
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  user: null,
-  isAuthenticated: false,
-  isLoading: true,
-  requires2fa: false,
-  pendingEmail: null,
-  pendingPassword: null,
-
-  checkAuth: async () => {
-    try {
-      const data = await api.get<{ user: User }>('/api/auth/me')
-      set({ user: data.user, isAuthenticated: true, isLoading: false })
-    } catch {
-      set({ user: null, isAuthenticated: false, isLoading: false })
-    }
-  },
-
-  login: async (email: string, password: string) => {
-    const data = await api.post<LoginResponse>('/api/auth/login', { email, password })
-    if (data.requires_2fa) {
-      set({ requires2fa: true, pendingEmail: email, pendingPassword: password })
+export const useAuthStore = defineStore('auth', {
+  state: (): AuthState => ({
+    user: null,
+    isAuthenticated: false,
+    isLoading: true,
+    requires2fa: false,
+    pendingEmail: null,
+    pendingPassword: null,
+  }),
+  actions: {
+    async checkAuth() {
+      try {
+        const data = await api.get<{ user: User }>('/api/auth/me')
+        this.user = data.user
+        this.isAuthenticated = true
+      } catch {
+        this.user = null
+        this.isAuthenticated = false
+      } finally {
+        this.isLoading = false
+      }
+    },
+    async login(email: string, password: string) {
+      const data = await api.post<LoginResponse>('/api/auth/login', { email, password })
+      if (data.requires_2fa) {
+        this.requires2fa = true
+        this.pendingEmail = email
+        this.pendingPassword = password
+        return data
+      }
+      if (data.user) {
+        this.user = data.user
+        this.isAuthenticated = true
+        this.requires2fa = false
+        this.pendingEmail = null
+        this.pendingPassword = null
+      }
       return data
-    }
-    if (data.user) {
-      set({ user: data.user, isAuthenticated: true, requires2fa: false, pendingEmail: null, pendingPassword: null })
-    }
-    return data
+    },
+    async verify2fa(totpToken: string) {
+      const data = await api.post<LoginResponse>('/api/auth/login', {
+        email: this.pendingEmail,
+        password: this.pendingPassword,
+        totp_token: totpToken,
+      })
+      if (data.user) {
+        this.user = data.user
+        this.isAuthenticated = true
+        this.requires2fa = false
+        this.pendingEmail = null
+        this.pendingPassword = null
+      }
+    },
+    async logout() {
+      try {
+        await api.post('/api/auth/logout')
+      } catch {
+        // ignore
+      }
+      this.user = null
+      this.isAuthenticated = false
+      this.requires2fa = false
+      this.pendingEmail = null
+      this.pendingPassword = null
+    },
   },
-
-  verify2fa: async (totpToken: string) => {
-    const { pendingEmail, pendingPassword } = get()
-    const data = await api.post<LoginResponse>('/api/auth/login', {
-      email: pendingEmail,
-      password: pendingPassword,
-      totp_token: totpToken,
-    })
-    if (data.user) {
-      set({ user: data.user, isAuthenticated: true, requires2fa: false, pendingEmail: null, pendingPassword: null })
-    }
-  },
-
-  logout: async () => {
-    try {
-      await api.post('/api/auth/logout')
-    } catch {
-      // ignore
-    }
-    set({ user: null, isAuthenticated: false, requires2fa: false, pendingEmail: null, pendingPassword: null })
-  },
-}))
+})
