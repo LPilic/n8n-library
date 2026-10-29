@@ -13,7 +13,15 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #2041 | 7:55 PM | 🔵 | Complete n8n-Library Architecture and Credential Provisioning System Understanding | ~910 |
+| #2040 | " | 🔵 | n8n-library Credential Provisioning System Architecture | ~639 |
 | #2038 | 7:45 PM | 🟣 | Credential audit trail API and logging implementation | ~429 |
 | #1998 | 4:19 PM | 🟣 | Credential Store UI with Template and Provisioning Workflows | ~610 |
 | #1987 | 2:17 PM | 🔵 | Comprehensive credentials UI research and UX gap analysis | ~711 |
+
+### Apr 10, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #2926 | 12:54 AM | 🔵 | Root cause identified for n8n Workflows tab empty state issue | ~609 |
 </claude-mem-context>
