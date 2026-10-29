@@ -17,7 +17,17 @@ function resolve(mode: ThemeMode): 'light' | 'dark' {
 /** The n8n design system toggles dark mode with `data-theme` on <html>. */
 export function applyTheme(mode: ThemeMode) {
   const resolved = resolve(mode)
-  document.documentElement.setAttribute('data-theme', resolved)
+  const html = document.documentElement
+  const previous = html.getAttribute('data-theme')
+  html.setAttribute('data-theme', resolved)
+  // Smooth cross-fade while switching (class removed after the transition)
+  if (previous && previous !== resolved) {
+    html.classList.add('theming')
+    clearTimeout((applyTheme as { _t?: ReturnType<typeof setTimeout> })._t)
+    ;(applyTheme as { _t?: ReturnType<typeof setTimeout> })._t = setTimeout(() => {
+      html.classList.remove('theming')
+    }, 350)
+  }
   window.dispatchEvent(new CustomEvent('themechange', { detail: resolved }))
 }
 
