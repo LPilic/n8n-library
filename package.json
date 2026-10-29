@@ -15,6 +15,9 @@
     "test": "node --test --test-concurrency=1 test/*.test.js",
     "openapi": "node scripts/generate-openapi.js"
   },
+  "engines": {
+    "node": ">=22"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
     "bcryptjs": "^3.0.3",

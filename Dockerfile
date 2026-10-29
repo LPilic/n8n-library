@@ -1,4 +1,6 @@
-FROM node:20-alpine
+# Node 22 for security fixes (Node 20 is EOL since Apr 2026; no fix for CVE-2026-111497).
+# Patch pinned for reproducible builds — bump deliberately when security releases land.
+FROM node:22.23.4-alpine
 
 # Build React frontend
 WORKDIR /app/frontend
