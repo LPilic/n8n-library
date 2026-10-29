@@ -87,7 +87,7 @@ n8n-library/
 │   ├── uploads/           # Ticket/KB uploads
 │   └── vendor/            # n8n demo web component and offline assets
 │
-├── frontend/              # React/Vite frontend (FRONTEND=react)
+├── frontend/              # Vue 3 + @n8n/design-system frontend (FRONTEND=react)
 │   ├── src/features/      # Page-level features
 │   ├── src/components/    # Shared UI components
 │   ├── src/stores/        # Zustand stores (auth, instance, theme, branding)
@@ -259,18 +259,24 @@ mcp_servers              # MCP server configurations
 
 ## Frontend Architecture
 
-The frontend is a React 18 SPA in `frontend/`:
+The frontend is a **Vue 3** SPA in `frontend/`, built on
+[`@n8n/design-system`](https://www.npmjs.com/package/@n8n/design-system) (n8n's
+official component library):
 
-- Vite + TypeScript
-- React Router with **route-level lazy loading**
-- TanStack Query for server state
-- Zustand for auth, instance, theme, branding, and confirmation state
-- Tailwind 4 with n8n-inspired design tokens
-- Shared UI primitives in `frontend/src/components/ui`
-- TipTap for rich text, Chart.js for monitoring charts
+- Vue 3 `<script setup>` + TypeScript, Vite, single-file components
+- vue-router 4 with **route-level lazy loading**
+- TanStack vue-query for server state
+- Pinia for auth, instance, theme, branding, toast and confirmation state
+- `@n8n/design-system` components (N8nButton, N8nSelect, N8nDialog, N8nBadge,
+  N8nIcon/lucide, …) with its design tokens + Geist fonts; Tailwind 4 utilities
+  mapped onto the design-system tokens (`frontend/src/index.css`)
+- TipTap (vue-3) for rich text, Chart.js (vue-chartjs) for monitoring charts
 - DOMPurify for rendered HTML
+- `lucide-vue-next` only inside the icon name picker (PascalCase icon names
+  stored by the backend); `vue-draggable-plus` for the approvals form builder
 
-The Docker image builds the SPA and sets `FRONTEND=react`. The server serves
+The Docker image builds the SPA and sets `FRONTEND=react` (legacy value name;
+means "built SPA"). The server serves
 `frontend/dist`; `public/` is kept only for shared static assets
 (`n8n-demo.bundled.js`, n8n frontend hooks, and uploads).
 
@@ -284,7 +290,7 @@ See `frontend/DESIGN.md` for the token and component conventions.
 - **Auto-refresh** — configurable polling intervals for monitoring/observability.
 - **Theme** — CSS variables with `[data-theme="dark"]` overrides; branding
   overrides are re-applied on theme changes.
-- **SSE** — notifications, monitoring, and HITL streams update React Query
+- **SSE** — notifications, monitoring, and HITL streams update the query cache
   caches.
 
 ### Shared Static Assets
