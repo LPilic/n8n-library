@@ -4,6 +4,9 @@ FROM node:22.23.4-alpine
 
 # Build Vue frontend
 WORKDIR /app/frontend
+# @n8n/design-system pulls an optional native dep (isolated-vm via expression-runtime)
+# that needs node-gyp toolchain to build on alpine
+RUN apk add --no-cache python3 make g++
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/ ./
