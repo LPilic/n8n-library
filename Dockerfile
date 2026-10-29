@@ -2,7 +2,7 @@
 # Patch pinned for reproducible builds — bump deliberately when security releases land.
 FROM node:22.23.4-alpine
 
-# Build React frontend
+# Build Vue frontend
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
