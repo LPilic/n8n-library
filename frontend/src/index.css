@@ -19,6 +19,22 @@
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
+/* ---- Neutralize OS-based theme guards ----
+   The design system's :root component tokens (el-input backgrounds, button
+   colors/shadows, badge/notice colors, …) are guarded by the lightningcss
+   prefers-color-scheme trick: --x: var(--lightningcss-light, LIGHT) var(--lightningcss-dark, DARK).
+   They followed the OS appearance instead of the app's data-theme. Force the
+   OS=light guard state always; :root[data-theme='dark'] flips it explicitly,
+   so the pairs resolve per the app's theme in both directions. */
+:root {
+  --lightningcss-light: initial;
+  --lightningcss-dark: ;
+}
+:root[data-theme='dark'] {
+  --lightningcss-light: ;
+  --lightningcss-dark: initial;
+}
+
 @theme {
   /* Surfaces — light values; overridden below for dark */
   --color-bg: #fbfbfc;            /* page canvas */
