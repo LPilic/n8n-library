@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Suspense, defineAsyncComponent, computed } from 'vue'
 import { RouterView } from 'vue-router'
+import { N8nSpinner } from '@n8n/design-system'
 import { useAuthStore } from '@/stores/auth'
 import ToastContainer from '@/components/ToastContainer.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'

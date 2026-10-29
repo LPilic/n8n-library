@@ -123,7 +123,7 @@ All configuration is via environment variables (or `.env` file):
 | `CREDENTIAL_ENCRYPTION_KEY` | _(required in production)_ | 64 hex chars (32 bytes) for credential/API-key encryption. Generate with `openssl rand -hex 32`. Losing it makes stored secrets unrecoverable. |
 | `APP_URL` | `http://localhost:3100` | Public URL (used in emails) |
 | `N8N_LOGIN_AUTO_PROVISION` | `false` | Allow n8n-login to auto-create/claim accounts. Enable only in trusted deployments. |
-| `FRONTEND` | `react` | Serve the built React SPA from `frontend/dist` |
+| `FRONTEND` | `react` | Serve the built Vue SPA (design-system) from `frontend/dist` — legacy value accepted, no behavior difference |
 | `WEBHOOK_SIGNING_SECRET` | _(empty)_ | Optional HMAC-SHA256 secret for `X-N8N-Library-Signature` on webhooks |
 | `HITL_CALLBACK_SECRET` | _(empty)_ | Optional HMAC-SHA256 secret for HITL callbacks |
 | `WEBHOOK_ALLOW_PRIVATE` | `false` | Allow webhooks to target private/internal addresses |

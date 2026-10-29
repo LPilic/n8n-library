@@ -2,7 +2,7 @@
 // ─── BrandingTab (+ ColorField, live preview) ─────────────────────────────────
 import { computed, ref, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { N8nButton, N8nIcon } from '@n8n/design-system'
+import { N8nButton, N8nIcon, N8nInput } from '@n8n/design-system'
 import { api, ApiError } from '@/api/client'
 import { useToast } from '@/stores/toast'
 import { useThemeStore } from '@/stores/theme'
