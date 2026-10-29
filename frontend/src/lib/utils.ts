@@ -1,8 +1,6 @@
-/** HTML-escape a string for safe insertion */
-export function esc(s: string): string {
-  const el = document.createElement('span')
-  el.textContent = s
-  return el.innerHTML
+/** Join class names, filtering falsy values */
+export function cn(...classes: (string | false | null | undefined)[]): string {
+  return classes.filter(Boolean).join(' ')
 }
 
 /** Format a duration in ms to human-readable */
@@ -27,9 +25,4 @@ export function timeAgo(dateStr: string): string {
   const days = Math.floor(hours / 24)
   if (days < 30) return `${days}d ago`
   return d.toLocaleDateString()
-}
-
-/** Join class names, filtering falsy values */
-export function cn(...classes: (string | false | null | undefined)[]): string {
-  return classes.filter(Boolean).join(' ')
 }
