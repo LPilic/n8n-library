@@ -14,12 +14,17 @@ function resolve(mode: ThemeMode): 'light' | 'dark' {
     : mode
 }
 
-/** The n8n design system toggles dark mode with `data-theme` on <html>. */
+/** The n8n design system toggles dark mode with `data-theme`. It must be set on
+ *  BOTH <html> and <body>: html drives :root/[data-theme] token blocks and the
+ *  Tailwind dark: variant; the body attribute prevents the design system's
+ *  OS-fallback blocks (body:not([data-theme]) … under prefers-color-scheme)
+ *  from applying their tokens to the whole page. */
 export function applyTheme(mode: ThemeMode) {
   const resolved = resolve(mode)
   const html = document.documentElement
   const previous = html.getAttribute('data-theme')
   html.setAttribute('data-theme', resolved)
+  if (document.body) document.body.setAttribute('data-theme', resolved)
   // Smooth cross-fade while switching (class removed after the transition)
   if (previous && previous !== resolved) {
     html.classList.add('theming')
