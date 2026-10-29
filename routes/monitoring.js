@@ -336,16 +336,20 @@ router.get('/api/monitoring/stats', requireRole('admin', 'editor'), async (req, 
     } catch (e) {}
 
     let health = 'unknown';
+    let healthLatencyMs = 0;
     try {
       const cfg = await getInstanceBase(req);
       if (cfg) {
+        const t0 = Date.now();
         const r = await fetch(`${cfg.base}/healthz`, { signal: AbortSignal.timeout(3000) });
+        healthLatencyMs = Date.now() - t0;
         health = r.ok ? 'healthy' : 'unhealthy';
       }
     } catch (e) { health = 'unreachable'; }
 
     const stats = {
       health,
+      healthLatencyMs,
       total: executions.length,
       counts,
       avgDurationMs: durationCount > 0 ? Math.round(totalDuration / durationCount) : 0,

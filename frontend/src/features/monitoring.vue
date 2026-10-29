@@ -10,19 +10,18 @@ import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { N8nIcon, N8nOption, N8nSelect, N8nSpinner } from '@n8n/design-system'
+import { N8nButton, N8nHeading, N8nIcon, N8nOption, N8nSelect, N8nSpinner } from '@n8n/design-system'
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
-  ArcElement,
   Tooltip,
   Legend,
   type ChartData,
   type ChartOptions,
 } from 'chart.js'
-import { Bar, Doughnut } from 'vue-chartjs'
+import { Bar } from 'vue-chartjs'
 import { api, ApiError } from '@/api/client'
 import { useSse } from '@/composables/useSse'
 import { useToast } from '@/stores/toast'
@@ -33,7 +32,7 @@ import NodeFlow from '@/components/NodeFlow.vue'
 import PreviewModal from '@/components/PreviewModal.vue'
 import ExecutionStatusIcon from './monitoring-parts/ExecutionStatusIcon.vue'
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend)
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -41,6 +40,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Le
 
 interface MonStats {
   health: string
+  healthLatencyMs: number
   total: number
   counts: { success: number; error: number; running: number; waiting: number }
   avgDurationMs: number
@@ -251,32 +251,37 @@ async function handleStop(id: string) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Charts (execution history 24h + status breakdown)                  */
+/*  Charts (execution history 24h — n8n Insights style)                */
 /* ------------------------------------------------------------------ */
 
+const N8N_GREEN = 'rgba(47, 158, 68, 0.9)'
+const N8N_RED = 'rgba(224, 49, 49, 0.9)'
+const N8N_BLUE = 'rgba(102, 112, 133, 0.8)'
+
 const barData = computed<ChartData<'bar', number[], string>>(() => {
-  const now = Date.now()
-  const hours = Array.from({ length: 24 }, (_, i) => {
-    const d = new Date(now - (23 - i) * 3600_000)
-    return { label: `${d.getHours()}:00`, ts: d.getTime(), success: 0, error: 0, running: 0 }
+  // Daily buckets like n8n Insights ("Breakdown by day") — last 7 days
+  const now = new Date()
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - i))
+    return { label: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }), ts: d.getTime(), success: 0, error: 0, running: 0 }
   })
   for (const exec of executions.value) {
     const t = new Date(exec.startedAt).getTime()
-    for (let i = hours.length - 1; i >= 0; i--) {
-      if (t >= hours[i].ts) {
-        if (exec.status === 'success') hours[i].success++
-        else if (exec.status === 'error') hours[i].error++
-        else hours[i].running++
+    for (let i = days.length - 1; i >= 0; i--) {
+      if (t >= days[i].ts) {
+        if (exec.status === 'success') days[i].success++
+        else if (exec.status === 'error') days[i].error++
+        else days[i].running++
         break
       }
     }
   }
   return {
-    labels: hours.map((h) => h.label),
+    labels: days.map((h) => h.label),
     datasets: [
-      { label: 'Success', data: hours.map((h) => h.success), backgroundColor: 'rgba(34,197,94,0.7)' },
-      { label: 'Error', data: hours.map((h) => h.error), backgroundColor: 'rgba(239,68,68,0.7)' },
-      { label: 'Running', data: hours.map((h) => h.running), backgroundColor: 'rgba(59,130,246,0.7)' },
+      { label: 'Succeeded', data: days.map((h) => h.success), backgroundColor: N8N_GREEN, borderRadius: { topLeft: 3, topRight: 3 }, borderSkipped: 'bottom', barPercentage: 0.55, categoryPercentage: 0.7 },
+      { label: 'Failed', data: days.map((h) => h.error), backgroundColor: N8N_RED, borderRadius: 0, borderSkipped: 'bottom', barPercentage: 0.55, categoryPercentage: 0.7 },
+      { label: 'Running', data: days.map((h) => h.running), backgroundColor: N8N_BLUE, borderRadius: 0, borderSkipped: 'bottom', barPercentage: 0.55, categoryPercentage: 0.7 },
     ],
   }
 })
@@ -284,124 +289,104 @@ const barData = computed<ChartData<'bar', number[], string>>(() => {
 const barOptions: ChartOptions<'bar'> = {
   responsive: true,
   maintainAspectRatio: false,
-  scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } },
-  plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
-}
-
-const doughnutData = computed<ChartData<'doughnut', number[], string> | null>(() => {
-  const s = stats.value
-  if (!s) return null
-  const c = s.counts
-  return {
-    labels: ['Success', 'Error', 'Running', 'Waiting'],
-    datasets: [{
-      data: [c.success, c.error, c.running, c.waiting],
-      backgroundColor: ['#22c55e', '#ef4444', '#3b82f6', '#f59e0b'],
-      borderWidth: 0,
-    }],
-  }
-})
-
-const doughnutOptions: ChartOptions<'doughnut'> = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
+  animation: { duration: 300 },
+  scales: {
+    x: {
+      stacked: true,
+      grid: { display: false },
+      border: { display: false },
+      ticks: { color: 'rgba(127,127,134,0.9)', font: { size: 10 }, maxRotation: 0, autoSkipPadding: 24 },
+    },
+    y: {
+      stacked: true,
+      beginAtZero: true,
+      grid: { color: 'rgba(127,127,134,0.14)' },
+      border: { display: false },
+      ticks: { color: 'rgba(127,127,134,0.9)', font: { size: 10 }, precision: 0 },
+    },
+  },
+  plugins: {
+    legend: {
+      position: 'bottom',
+      align: 'start',
+      labels: { boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: 'rect', color: 'rgba(127,127,134,1)', font: { size: 11 } },
+    },
+  },
 }
 
 const hasMore = computed(() => executions.value.length === 50 * page.value)
 
 /* ------------------------------------------------------------------ */
-/*  Stat cards (inline StatCard as a computed data model)              */
+/*  KPI strip (n8n Insights style: single card, divided columns)       */
 /* ------------------------------------------------------------------ */
 
-interface StatCardModel {
+interface KpiColumn {
   label: string
+  hint: string
   value: string
-  colorClass: string
-  dot?: { pulse: boolean; colorClass: string }
+  valueClass?: string
+  /** Status filter toggled by clicking this column */
+  filter?: string
   active?: boolean
-  onClick?: () => void
-}
-
-const COLOR_MAP: Record<string, string> = {
-  success: 'text-success',
-  danger: 'text-danger',
-  warning: 'text-warning',
-  primary: 'text-primary',
-  muted: 'text-text-muted',
-}
-const DOT_COLOR_MAP: Record<string, string> = {
-  success: 'bg-success',
-  danger: 'bg-danger',
-  warning: 'bg-warning',
-  primary: 'bg-primary',
-  muted: 'bg-text-muted',
 }
 
 function toggleStatusFilter(value: string) {
   statusFilter.value = statusFilter.value === value ? '' : value
 }
 
-const statCards = computed<StatCardModel[]>(() => {
+const kpiColumns = computed<KpiColumn[]>(() => {
   const s = stats.value
   if (!s) return []
-  const healthColor = s.health === 'healthy' ? 'success' : s.health === 'unhealthy' ? 'warning' : 'danger'
+  const failureRate = Math.max(0, 100 - s.successRate)
   return [
     {
-      label: 'Health',
-      value: s.health === 'healthy' ? 'Healthy' : s.health === 'unhealthy' ? 'Unhealthy' : 'Unreachable',
-      colorClass: COLOR_MAP[healthColor] ?? '',
-      dot: { pulse: s.health === 'healthy', colorClass: DOT_COLOR_MAP[healthColor] ?? 'bg-text-muted' },
+      label: 'Executions',
+      hint: 'Recent runs',
+      value: String(s.total),
     },
     {
-      label: 'Success',
+      label: 'Succeeded',
+      hint: 'Recent runs',
       value: String(s.counts.success),
-      colorClass: COLOR_MAP['success'] ?? '',
-      onClick: () => toggleStatusFilter('success'),
+      filter: 'success',
       active: statusFilter.value === 'success',
     },
     {
-      label: 'Error',
+      label: 'Failed',
+      hint: 'Recent runs',
       value: String(s.counts.error),
-      colorClass: COLOR_MAP[s.counts.error > 0 ? 'danger' : 'muted'] ?? '',
-      onClick: () => toggleStatusFilter('error'),
+      valueClass: s.counts.error > 0 ? 'text-danger' : '',
+      filter: 'error',
       active: statusFilter.value === 'error',
     },
     {
       label: 'Running',
+      hint: 'Recent runs',
       value: String(s.counts.running),
-      colorClass: COLOR_MAP['primary'] ?? '',
-      onClick: () => toggleStatusFilter('running'),
+      valueClass: s.counts.running > 0 ? 'text-primary' : '',
+      filter: 'running',
       active: statusFilter.value === 'running',
     },
     {
-      label: 'Waiting',
-      value: String(s.counts.waiting),
-      colorClass: COLOR_MAP['warning'] ?? '',
-      onClick: () => toggleStatusFilter('waiting'),
-      active: statusFilter.value === 'waiting',
+      label: 'Failure rate',
+      hint: 'Recent runs',
+      value: `${failureRate}%`,
+      valueClass: s.successRate >= 95 ? '' : s.successRate >= 50 ? 'text-warning' : 'text-danger',
     },
     {
-      label: 'Success Rate',
-      value: `${s.successRate}%`,
-      colorClass: COLOR_MAP[s.successRate >= 80 ? 'success' : s.successRate >= 50 ? 'warning' : 'danger'] ?? '',
-    },
-    {
-      label: 'Active / Total',
-      value: s.workflowsReady === false ? '—' : `${s.activeWorkflows} / ${s.totalWorkflows}`,
-      colorClass: COLOR_MAP['primary'] ?? '',
-    },
-    {
-      label: 'Avg Duration',
+      label: 'Run time (avg.)',
+      hint: 'Per finished run',
       value: formatDuration(s.avgDurationMs),
-      colorClass: COLOR_MAP['muted'] ?? '',
-    },
-    {
-      label: 'Total Executions',
-      value: String(s.total),
-      colorClass: COLOR_MAP['muted'] ?? '',
     },
   ]
+})
+
+const healthPill = computed<{ cls: string; label: string; pulse: boolean }>(() => {
+  const s = stats.value
+  if (!s) return { cls: 'bg-border-light text-text-muted', label: 'no data', pulse: false }
+  if (s.health === 'healthy') return { cls: 'bg-success-light text-success', label: `Healthy${s.healthLatencyMs ? ` · ${s.healthLatencyMs}ms` : ''}`, pulse: true }
+  if (s.health === 'unhealthy') return { cls: 'bg-warning-light text-warning', label: 'Unhealthy', pulse: false }
+  return { cls: 'bg-danger-light text-danger', label: 'Unreachable', pulse: false }
 })
 
 /* ------------------------------------------------------------------ */
@@ -444,71 +429,68 @@ const WF_FILTERS: Array<'all' | 'active' | 'inactive'> = ['all', 'active', 'inac
 
 <template>
   <div>
-    <!-- Stats bar -->
-    <div v-if="statCards.length > 0" class="grid grid-cols-2 gap-2 mb-4 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10">
-      <div
-        v-for="card in statCards"
-        :key="card.label"
+    <!-- Header row: title + health + controls (n8n Insights style) -->
+    <div class="mb-4 flex items-center justify-between gap-3 flex-wrap">
+      <div class="flex items-center gap-3">
+        <N8nHeading size="large" tag="h2">Monitoring</N8nHeading>
+        <span v-if="stats" class="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold" :class="healthPill.cls">
+          <span class="inline-block h-1.5 w-1.5 rounded-full bg-current" :class="healthPill.pulse && 'animate-pulse'" />
+          {{ healthPill.label }}
+        </span>
+      </div>
+      <div class="flex items-center gap-2">
+        <N8nSelect
+          :model-value="String(autoRefresh)"
+          :filterable="false"
+          size="small"
+          class="w-[150px]"
+          @update:model-value="onAutoRefreshChange"
+        >
+          <N8nOption v-for="o in REFRESH_OPTIONS" :key="o.value" :value="o.value" :label="o.label">
+            {{ o.label }}
+          </N8nOption>
+        </N8nSelect>
+        <N8nButton icon="refresh-cw" size="small" variant="outline" label="Refresh" @click="handleRefresh" />
+        <N8nButton
+          v-if="runningIds.length > 0"
+          icon="square"
+          size="small"
+          variant="destructive"
+          :label="`Stop All (${runningIds.length})`"
+          @click="handleStopAll"
+        />
+      </div>
+    </div>
+
+    <!-- KPI strip: single card divided into columns -->
+    <div v-if="stats" class="mb-4 grid grid-cols-2 overflow-hidden rounded-xl border border-border bg-card sm:grid-cols-3 lg:grid-cols-6">
+      <button
+        v-for="(col, i) in kpiColumns"
+        :key="col.label"
+        type="button"
         :class="cn(
-          'bg-card border rounded-lg p-3 text-center',
-          card.onClick ? 'cursor-pointer hover:bg-card-hover' : '',
-          card.active ? 'border-primary ring-1 ring-primary/30' : 'border-border',
+          'relative flex flex-col items-start px-4 py-3 text-left outline-none transition-colors',
+          i > 0 && 'border-l border-border-light',
+          col.filter ? 'cursor-pointer hover:bg-card-hover' : 'cursor-default',
+          col.active ? 'bg-primary-light' : '',
         )"
-        @click="card.onClick?.()"
+        @click="col.filter ? toggleStatusFilter(col.filter) : undefined"
       >
-        <div v-if="card.dot" class="flex justify-center mb-1">
-          <span
-            :class="cn('inline-block w-2.5 h-2.5 rounded-full', card.dot.colorClass, card.dot.pulse && 'animate-pulse')"
-          />
-        </div>
-        <div :class="cn('text-lg font-bold leading-tight', card.colorClass)">{{ card.value }}</div>
-        <div class="text-[10px] text-text-muted mt-0.5 leading-tight">{{ card.label }}</div>
-      </div>
-    </div>
-
-    <!-- Toolbar -->
-    <div class="flex items-center gap-2 mb-4 flex-wrap">
-      <N8nSelect
-        :model-value="String(autoRefresh)"
-        :filterable="false"
-        size="small"
-        class="w-[180px]"
-        @update:model-value="onAutoRefreshChange"
-      >
-        <N8nOption v-for="o in REFRESH_OPTIONS" :key="o.value" :value="o.value" :label="o.label">
-          {{ o.label }}
-        </N8nOption>
-      </N8nSelect>
-      <button
-        type="button"
-        class="flex items-center gap-1 rounded-md border border-input-border bg-input-bg px-2.5 py-[5px] text-[12px] font-semibold text-text-dark hover:bg-card-hover"
-        @click="handleRefresh"
-      >
-        <N8nIcon icon="refresh-cw" :size="12" /> Refresh
-      </button>
-      <button
-        v-if="runningIds.length > 0"
-        type="button"
-        class="flex items-center gap-1 rounded-md bg-danger px-2.5 py-[5px] text-[12px] font-semibold text-white hover:bg-danger/90"
-        @click="handleStopAll"
-      >
-        <N8nIcon icon="circle-stop" :size="12" /> Stop All Running ({{ runningIds.length }})
+        <span v-if="col.active" class="absolute inset-x-0 bottom-0 h-[2px] bg-primary" />
+        <span class="text-[13px] font-medium text-text-dark">{{ col.label }}</span>
+        <span class="text-[11px] text-text-muted">{{ col.hint }}</span>
+        <span class="mt-1.5 text-[22px] leading-tight font-semibold" :class="col.valueClass || 'text-text-dark'">{{ col.value }}</span>
       </button>
     </div>
+    <div v-else class="mb-4 flex items-center gap-2 py-6 text-sm text-text-muted">
+      <N8nSpinner size="small" /> Loading instance stats...
+    </div>
 
-    <!-- Charts row -->
-    <div v-if="stats" class="grid grid-cols-1 gap-3 mb-4 lg:grid-cols-3">
-      <div class="rounded-lg border border-border bg-card p-3 lg:col-span-2">
-        <h4 class="text-[11px] font-semibold uppercase tracking-wide text-text-muted mb-2">Execution History (24h)</h4>
-        <div class="h-[180px]">
-          <Bar :data="barData" :options="barOptions" />
-        </div>
-      </div>
-      <div v-if="doughnutData" class="flex flex-col items-center justify-center rounded-lg border border-border bg-card p-3">
-        <h4 class="text-[11px] font-semibold uppercase tracking-wide text-text-muted mb-2">Status Breakdown</h4>
-        <div class="h-[160px] w-[160px]">
-          <Doughnut :data="doughnutData" :options="doughnutOptions" />
-        </div>
+    <!-- Execution history (last 7 days, like n8n Insights "Breakdown by day") -->
+    <div v-if="stats" class="mb-4 rounded-xl border border-border bg-card p-4">
+      <N8nHeading size="medium" tag="h3" class="mb-3">Breakdown by day · Last 7 days</N8nHeading>
+      <div class="h-[240px]">
+        <Bar :data="barData" :options="barOptions" />
       </div>
     </div>
 
@@ -558,17 +540,17 @@ const WF_FILTERS: Array<'all' | 'active' | 'inactive'> = ['all', 'active', 'inac
       <div v-else-if="executions.length === 0" class="py-8 text-center text-sm text-text-muted">
         No executions found
       </div>
-      <div v-else class="overflow-hidden rounded-lg border border-border bg-card">
+      <div v-else class="overflow-hidden rounded-xl border border-border bg-card">
         <table class="w-full">
           <thead>
-            <tr class="border-b border-border bg-bg">
-              <th class="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">Status</th>
-              <th class="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">ID</th>
-              <th class="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">Workflow</th>
-              <th class="hidden px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted md:table-cell">Mode</th>
-              <th class="hidden px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted lg:table-cell">Duration</th>
-              <th class="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">Started</th>
-              <th class="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wide text-text-muted">Actions</th>
+            <tr class="border-b border-border bg-bg-light">
+              <th class="px-3 py-2 text-left text-[12px] font-medium text-text-muted">Status</th>
+              <th class="px-3 py-2 text-left text-[12px] font-medium text-text-muted">ID</th>
+              <th class="px-3 py-2 text-left text-[12px] font-medium text-text-muted">Workflow</th>
+              <th class="hidden px-3 py-2 text-left text-[12px] font-medium text-text-muted md:table-cell">Mode</th>
+              <th class="hidden px-3 py-2 text-right text-[12px] font-medium text-text-muted lg:table-cell">Duration</th>
+              <th class="px-3 py-2 text-left text-[12px] font-medium text-text-muted">Started</th>
+              <th class="px-3 py-2 text-right text-[12px] font-medium text-text-muted">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-border-light">
@@ -580,11 +562,13 @@ const WF_FILTERS: Array<'all' | 'active' | 'inactive'> = ['all', 'active', 'inac
             >
               <td class="px-3 py-2"><ExecutionStatusIcon :status="exec.status" /></td>
               <td class="px-3 py-2 font-mono text-xs text-text-muted">#{{ exec.id }}</td>
-              <td class="max-w-[200px] truncate px-3 py-2 text-text-dark">
-                {{ exec.workflowName || `Workflow #${exec.workflowId}` }}
+              <td class="max-w-[220px] truncate px-3 py-2">
+                <span class="text-[13px] text-text-dark underline decoration-border-strong underline-offset-2">
+                  {{ exec.workflowName || `Workflow #${exec.workflowId}` }}
+                </span>
               </td>
               <td class="hidden px-3 py-2 text-text-muted capitalize md:table-cell">{{ exec.mode }}</td>
-              <td class="hidden px-3 py-2 text-text-muted lg:table-cell">{{ durationText(exec) }}</td>
+              <td class="hidden px-3 py-2 text-right text-text-muted lg:table-cell">{{ durationText(exec) }}</td>
               <td class="px-3 py-2 text-text-muted">{{ timeAgo(exec.startedAt) }}</td>
               <td class="px-3 py-2 text-right">
                 <div class="flex items-center justify-end gap-1" @click.stop>
