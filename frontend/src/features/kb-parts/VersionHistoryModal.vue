@@ -73,7 +73,7 @@ function onUpdateOpen(open: boolean) {
       <p v-else-if="!versions || versions.length === 0" class="text-sm text-text-muted">
         No version history found.
       </p>
-      <div v-else class="space-y-2">
+      <div v-else class="flex flex-col gap-2 ">
         <div
           v-for="v in versions"
           :key="v.id"

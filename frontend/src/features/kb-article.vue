@@ -332,7 +332,7 @@ function attachmentHref(att: NonNullable<KbArticle['attachments']>[number]): str
       <!-- Attachments -->
       <div v-if="(article.attachments ?? []).length > 0" class="mt-5 border-t border-border-light pt-4">
         <N8nHeading size="medium" tag="h3" class="mb-2">Attachments</N8nHeading>
-        <div class="space-y-1">
+        <div class="flex flex-col gap-1 ">
           <a
             v-for="att in article.attachments ?? []"
             :key="att.id"

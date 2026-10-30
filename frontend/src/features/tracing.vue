@@ -300,7 +300,7 @@ function refreshAll() {
 </script>
 
 <template>
-  <div class="space-y-5">
+  <div class="flex flex-col gap-5 ">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
         <N8nHeading size="xlarge" tag="h2" class="flex items-center gap-2">
@@ -535,7 +535,7 @@ function refreshAll() {
               </tbody>
             </table>
           </div>
-          <div v-if="selectedSpan.logs.length > 0" class="mt-2 space-y-1">
+          <div v-if="selectedSpan.logs.length > 0" class="flex flex-col gap-1 mt-2">
             <div v-for="(log, index) in selectedSpan.logs" :key="index" class="rounded-sm border border-border-light bg-card p-2 font-mono text-[11px] text-text-base">
               <div v-for="[key, value] in Object.entries(log.fields)" :key="key">
                 <span class="text-text-muted">{{ key }}:</span> {{ String(value) }}

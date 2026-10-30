@@ -154,7 +154,7 @@ const keyOptions = computed(() =>
   <SettingsCard v-else icon="mail" title="Email Templates" description="Customize email notification content">
     <div class="flex flex-col gap-6 lg:flex-row">
       <!-- Left: Editor -->
-      <div class="w-full min-w-0 space-y-4 lg:w-1/2">
+      <div class="flex flex-col gap-4 w-full min-w-0 lg:w-1/2">
         <FieldRow label="Template">
           <N8nSelect v-model="selectedKey" :filterable="false" size="medium">
             <N8nOption v-for="o in keyOptions" :key="o.value" :value="o.value" :label="o.label">

@@ -60,7 +60,7 @@ async function createTicket() {
     show-close-button
     @update:open="emit('close')"
   >
-    <div class="space-y-3">
+    <div class="flex flex-col gap-3 ">
       <div>
         <label class="mb-1 block text-xs font-medium text-text-muted">Title *</label>
         <N8nInput

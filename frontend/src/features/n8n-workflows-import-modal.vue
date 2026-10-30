@@ -146,7 +146,7 @@ async function generateDescription() {
         <div :style="{ height: '350px', overflow: 'hidden', position: 'relative' }">
           <N8nDemoPreview :workflow="{ nodes: workflow.nodes, connections: workflow.connections }" min-height="350px" />
         </div>
-        <div class="space-y-4 px-6 py-4">
+        <div class="flex flex-col gap-4  px-6 py-4">
           <div>
             <div class="mb-1 flex items-center justify-between">
               <label class="text-[12px] font-semibold uppercase tracking-wide text-text-muted">Name</label>

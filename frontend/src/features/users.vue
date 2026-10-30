@@ -267,7 +267,7 @@ const roleVariant = (r: string): BadgeVariant => (r === 'admin' ? 'danger' : r =
       show-close-button
       @update:open="onModalOpenChange"
     >
-      <div class="space-y-4 p-5">
+      <div class="flex flex-col gap-4  p-5">
         <div>
           <label class="mb-1 block text-[12px] font-medium text-text-muted">Username *</label>
           <N8nInput v-model="username" type="text" placeholder="john" />

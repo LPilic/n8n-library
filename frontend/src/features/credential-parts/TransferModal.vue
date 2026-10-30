@@ -52,7 +52,7 @@ function onOpenChange(open: boolean) {
     show-close-button
     @update:open="onOpenChange"
   >
-    <div class="space-y-3 p-4">
+    <div class="flex flex-col gap-3  p-4">
       <p class="text-xs text-text-muted">
         Transfer <span class="font-medium text-text-dark">{{ cred.name }}</span> to a project:
       </p>

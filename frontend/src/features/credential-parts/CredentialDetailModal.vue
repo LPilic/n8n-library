@@ -37,7 +37,7 @@ function onOpenChange(open: boolean) {
     @update:open="onOpenChange"
   >
     <div class="flex max-h-[80vh] flex-col">
-      <div class="flex-1 space-y-4 overflow-y-auto p-4">
+      <div class="flex-1 overflow-y-auto p-4">
         <div>
           <TypeBadge :type="cred.type" />
         </div>
@@ -66,7 +66,7 @@ function onOpenChange(open: boolean) {
         <!-- Shared with -->
         <div v-if="cred.shared && cred.shared.length > 0">
           <p class="mb-2 text-[10px] font-semibold uppercase text-text-xmuted">Shared With</p>
-          <div class="space-y-1">
+          <div class="flex flex-col gap-1 ">
             <div
               v-for="(s, i) in cred.shared"
               :key="i"
@@ -84,7 +84,7 @@ function onOpenChange(open: boolean) {
         <!-- Audit trail -->
         <div v-if="credAudit.length > 0">
           <p class="mb-2 text-[10px] font-semibold uppercase text-text-xmuted">Recent Activity</p>
-          <div class="space-y-1">
+          <div class="flex flex-col gap-1 ">
             <div v-for="(a, i) in credAudit" :key="i" class="flex items-start gap-2 text-xs text-text-muted">
               <N8nIcon icon="clock" :size="11" class="mt-0.5 shrink-0 text-text-xmuted" />
               <span class="flex-1">

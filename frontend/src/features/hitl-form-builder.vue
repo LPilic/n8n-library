@@ -395,7 +395,7 @@ const LivePreview = defineComponent({
         }
       }
 
-      return h('div', { class: 'space-y-3' }, [
+      return h('div', { class: 'flex flex-col gap-3' }, [
         ...p.components.map((comp) => renderComp(comp)),
         p.components.length === 0 ? h('p', { class: 'text-sm italic text-text-muted' }, 'No components to preview') : null,
       ])
@@ -1033,7 +1033,7 @@ function copyCurl(prod: boolean) {
               :sort="false"
               draggable=".datafield-item"
               ghost-class="opacity-40"
-              class="space-y-1"
+              class="flex flex-col gap-1 "
               @end="clearZones"
             >
               <div

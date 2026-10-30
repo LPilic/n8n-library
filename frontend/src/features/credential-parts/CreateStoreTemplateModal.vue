@@ -209,7 +209,7 @@ function onOpenChange(open: boolean) {
     @update:open="onOpenChange"
   >
     <div class="flex max-h-[80vh] flex-col">
-      <div class="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+      <div class="flex-1 overflow-y-auto px-5 py-4">
         <!-- Step 1: pick type -->
         <template v-if="step === 'pick-type'">
           <div>
@@ -264,7 +264,7 @@ function onOpenChange(open: boolean) {
               Credential Fields
             </label>
             <div v-if="schemaLoading" class="py-2 text-sm text-text-muted">Loading schema...</div>
-            <div v-else-if="schemaFields.length > 0" class="space-y-3">
+            <div v-else-if="schemaFields.length > 0" class="flex flex-col gap-3 ">
               <div v-for="f in schemaFields" :key="f.key" class="rounded-md border border-border bg-bg/50 p-3">
                 <div class="mb-1 flex items-center justify-between">
                   <label class="text-[13px] font-medium text-text-dark">

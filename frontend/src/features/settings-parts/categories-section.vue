@@ -213,7 +213,7 @@ async function saveCategory() {
       show-close-button
       @update:open="(v: boolean) => { if (!v) openModal(null, editingType) }"
     >
-      <div class="space-y-3">
+      <div class="flex flex-col gap-3 ">
         <FieldRow label="Name *">
           <N8nInput :model-value="name" placeholder="e.g. Automation" @update:model-value="handleNameChange" />
         </FieldRow>

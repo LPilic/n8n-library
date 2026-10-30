@@ -147,8 +147,8 @@ function onOpenChange(open: boolean) {
     show-close-button
     @update:open="onOpenChange"
   >
-    <div class="space-y-4 p-1 pt-2">
-      <div class="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
+    <div class="flex flex-col gap-4  p-1 pt-2">
+      <div class="flex flex-col gap-4 max-h-[70vh] overflow-y-auto pr-1">
         <div>
           <label class="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-text-muted">Title *</label>
           <N8nInput v-model="title" type="text" />

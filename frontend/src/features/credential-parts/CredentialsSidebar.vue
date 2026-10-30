@@ -32,10 +32,10 @@ function onTypeFilter(type: string) {
 
 <template>
   <aside class="w-48 shrink-0">
-    <div class="space-y-4 rounded-xl border border-border bg-card p-4">
+    <div class="flex flex-col gap-4  rounded-xl border border-border bg-card p-4">
       <div>
         <p class="mb-2 text-[10px] font-semibold uppercase text-text-xmuted">Overview</p>
-        <div class="space-y-1.5">
+        <div class="flex flex-col gap-1.5 ">
           <div class="flex justify-between text-xs">
             <span class="text-text-muted">Total</span>
             <span class="font-semibold text-text-dark">{{ credentials.length }}</span>
@@ -49,7 +49,7 @@ function onTypeFilter(type: string) {
 
       <div v-if="typeCounts.length > 0">
         <p class="mb-2 text-[10px] font-semibold uppercase text-text-xmuted">By Type</p>
-        <div class="space-y-0.5">
+        <div class="flex flex-col gap-0.5 ">
           <button
             v-for="[type, count] in typeCounts"
             :key="type"

@@ -662,7 +662,7 @@ const workerCards = computed<WorkerCard[]>(() =>
               <span>{{ g.prefix }} <span class="text-text-xmuted font-normal">({{ g.entries.length }})</span></span>
               <span class="text-text-xmuted text-[10px]">{{ openGroups[g.prefix] ? '▲' : '▼' }}</span>
             </button>
-            <div v-if="openGroups[g.prefix]" class="px-3 pb-2 space-y-0.5">
+            <div v-if="openGroups[g.prefix]" class="flex flex-col gap-0.5 px-3 pb-2">
               <div v-for="(m, i) in g.entries" :key="i" class="flex items-center justify-between py-0.5 text-xs">
                 <span class="text-text-muted truncate mr-2 font-mono">{{ m.name }}</span>
                 <span class="text-text-dark font-mono shrink-0">

@@ -162,7 +162,7 @@ function recipientLabel(r: Alert['recipients'][number]): string {
     <div v-else-if="alerts.length === 0" class="py-12 text-center text-sm text-text-muted">
       No alerts configured
     </div>
-    <div v-else class="space-y-4">
+    <div v-else class="flex flex-col gap-4 ">
       <div
         v-for="alert in alerts"
         :key="alert.id"
@@ -224,7 +224,7 @@ function recipientLabel(r: Alert['recipients'][number]): string {
       show-close-button
       @update:open="onModalOpenChange"
     >
-      <div class="space-y-3 p-4">
+      <div class="flex flex-col gap-3  p-4">
         <div>
           <label class="mb-1 block text-xs font-medium text-text-muted">Name *</label>
           <N8nInput

@@ -150,7 +150,7 @@ async function save() {
       show-close-button
       @update:open="onModalOpenChange"
     >
-      <div class="space-y-3 p-4">
+      <div class="flex flex-col gap-3  p-4">
         <div>
           <label class="mb-1 block text-xs font-medium text-text-muted">Key *</label>
           <N8nInput v-model="formKey" type="text" placeholder="MY_VARIABLE" class="font-mono" />

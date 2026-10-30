@@ -78,7 +78,7 @@ function selectTab(tabId: string) {
     <!-- Sidebar -->
     <nav class="hidden w-52 shrink-0 sm:block">
       <div class="sticky top-4 rounded-lg border border-border bg-card p-2">
-        <ul class="space-y-0.5">
+        <ul class="flex flex-col gap-0.5 ">
           <li v-for="tab in TABS" :key="tab.id">
             <button
               type="button"

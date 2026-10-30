@@ -119,7 +119,7 @@ async function onDelete(id: number) {
 <template>
   <div class="flex gap-6">
     <!-- KPI Sidebar -->
-    <aside class="hidden w-64 shrink-0 space-y-4 lg:block">
+    <aside class="flex flex-col gap-4 hidden w-64 shrink-0 lg:block">
       <template v-if="stats">
         <!-- Overview KPI cards -->
         <div class="grid grid-cols-2 gap-4">
@@ -236,7 +236,7 @@ async function onDelete(id: number) {
       <div v-else-if="tickets.length === 0" class="py-12 text-center">
         <p class="text-text-muted">No tickets found</p>
       </div>
-      <div v-else class="space-y-5">
+      <div v-else class="flex flex-col gap-5 ">
         <TicketCard
           v-for="ticket in tickets"
           :key="ticket.id"

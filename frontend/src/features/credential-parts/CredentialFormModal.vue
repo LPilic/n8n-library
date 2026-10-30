@@ -134,7 +134,7 @@ function onOpenChange(open: boolean) {
 
     <!-- Step 2: Fill form -->
     <div v-else class="flex max-h-[80vh] flex-col">
-      <div class="flex-1 space-y-3 overflow-y-auto p-4">
+      <div class="flex-1 overflow-y-auto p-4">
         <div>
           <label class="mb-1 block text-xs font-medium text-text-muted">Name *</label>
           <N8nInput

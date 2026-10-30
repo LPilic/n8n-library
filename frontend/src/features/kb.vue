@@ -147,7 +147,7 @@ function onSearchInput(e: Event) {
 
     <div class="flex gap-6">
       <!-- Sidebar -->
-      <aside class="hidden w-64 shrink-0 space-y-4 lg:block">
+      <aside class="flex flex-col gap-4 hidden w-64 shrink-0 lg:block">
         <!-- Stats KPI -->
         <div v-if="stats" class="rounded-xl border border-border bg-card p-5 text-center">
           <div class="text-[20px] leading-tight font-semibold text-primary">{{ stats.total }}</div>
@@ -296,7 +296,7 @@ function onSearchInput(e: Event) {
           <N8nIcon icon="book-open" :size="32" class="mx-auto mb-2 text-text-xmuted" />
           <p class="text-sm text-text-muted">No articles found</p>
         </div>
-        <div v-else class="space-y-5">
+        <div v-else class="flex flex-col gap-5 ">
           <ArticleCard
             v-for="article in articles"
             :key="article.id"

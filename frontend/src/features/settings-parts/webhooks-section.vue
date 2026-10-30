@@ -193,7 +193,7 @@ async function saveWebhook() {
       show-close-button
       @update:open="(v: boolean) => { if (!v) openModal(null) }"
     >
-      <div class="space-y-3">
+      <div class="flex flex-col gap-3 ">
         <FieldRow label="Name *">
           <N8nInput v-model="name" placeholder="My webhook" />
         </FieldRow>

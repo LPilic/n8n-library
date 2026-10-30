@@ -389,7 +389,7 @@ const nodeRows = computed<NodeRowModel[]>(() =>
       <!-- Node timeline -->
       <div v-if="nodeRows.length > 0">
         <h3 class="text-[11px] font-semibold uppercase tracking-wide text-text-muted mb-3">Node Timeline</h3>
-        <div class="space-y-2">
+        <div class="flex flex-col gap-2 ">
           <div
             v-for="row in nodeRows"
             :key="row.nodeName"

@@ -447,7 +447,7 @@ function backToList() {
               <N8nIcon icon="chevron-up" :size="12" />
             </button>
           </div>
-          <div class="space-y-1">
+          <div class="flex flex-col gap-1 ">
             <label v-for="srv in mcpServers" :key="srv.id" class="group flex cursor-pointer items-center gap-2">
               <input
                 type="checkbox"
@@ -482,7 +482,7 @@ function backToList() {
         </div>
 
         <!-- Message area -->
-        <div class="space-y-3 flex-1 overflow-y-auto px-4 py-3">
+        <div class=" flex-1 overflow-y-auto px-4 py-3">
           <div v-if="convLoading" class="text-sm text-text-muted">Loading...</div>
           <div v-else-if="messages.length === 0" class="flex h-full flex-col items-center justify-center gap-2 text-center">
             <N8nIcon icon="sparkles" :size="28" class="text-text-xmuted" />

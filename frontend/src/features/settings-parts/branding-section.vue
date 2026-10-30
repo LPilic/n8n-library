@@ -141,10 +141,10 @@ const showLogoUrlInput = computed(() => !form.value.brand_logo.startsWith('data:
   <SettingsCard v-else icon="palette" title="Layout / Design" description="Customize colors and logo">
     <div class="flex items-start gap-8">
       <!-- Left: form -->
-      <div class="max-w-sm min-w-0 flex-1 space-y-4">
+      <div class="max-w-sm min-w-0 flex-1">
         <!-- Logo -->
         <FieldRow label="Logo">
-          <div class="space-y-2">
+          <div class="flex flex-col gap-2 ">
             <div
               class="flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-sm border-2 border-dashed border-input-border bg-bg py-5 transition-colors hover:border-primary"
               @click="logoInputRef?.click()"
@@ -192,7 +192,7 @@ const showLogoUrlInput = computed(() => !form.value.brand_logo.startsWith('data:
         </FieldRow>
 
         <!-- Colors -->
-        <div class="space-y-3 pt-1">
+        <div class="flex flex-col gap-3  pt-1">
           <p class="text-[13px] font-medium text-text-muted">Colors</p>
           <ColorField label="Primary" :value="form.brand_primary" @change="setField('brand_primary', $event)" />
           <ColorField label="Primary Hover" :value="form.brand_primary_hover" @change="setField('brand_primary_hover', $event)" />
@@ -248,7 +248,7 @@ const showLogoUrlInput = computed(() => !form.value.brand_logo.startsWith('data:
             </span>
           </div>
           <!-- Cards -->
-          <div class="space-y-2 p-3">
+          <div class="flex flex-col gap-2  p-3">
             <div
               class="flex items-center justify-between rounded p-2.5"
               :style="{ background: form.brand_card, border: '1px solid #e2e4e7' }"

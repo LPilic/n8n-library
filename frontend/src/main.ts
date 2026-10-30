@@ -4,9 +4,7 @@ import { VueQueryPlugin } from '@tanstack/vue-query'
 import { N8nPlugin } from '@n8n/design-system/plugin'
 import { IconBodyLoaderKey, loadLucideIconBody } from '@n8n/design-system/icons/lucide'
 
-// Design system first, app overrides after
-import '@n8n/design-system/theme.css'
-import '@n8n/design-system/style.css'
+// Design system + Tailwind css are layered and ordered in src/index.css
 import './index.css'
 
 import App from './App.vue'

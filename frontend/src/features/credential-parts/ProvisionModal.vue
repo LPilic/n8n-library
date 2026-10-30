@@ -86,7 +86,7 @@ function onOpenChange(open: boolean) {
     @update:open="onOpenChange"
   >
     <div class="flex max-h-[75vh] flex-col">
-      <div class="flex-1 space-y-3 overflow-y-auto p-4">
+      <div class="flex-1 overflow-y-auto p-4">
         <div>
           <TypeBadge :type="template.type || template.credential_type || ''" />
         </div>

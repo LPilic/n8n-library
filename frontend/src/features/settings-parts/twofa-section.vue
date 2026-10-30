@@ -81,7 +81,7 @@ function cancelDisable() {
   <p v-if="isLoading" class="text-sm text-text-muted">Loading 2FA status...</p>
 
   <SettingsCard v-else icon="lock" title="Two-Factor Authentication" description="Add an extra layer of security with TOTP">
-    <div class="space-y-4">
+    <div class="flex flex-col gap-4 ">
       <div
         class="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
         :class="enabled ? 'bg-success/10 text-success' : 'border border-border bg-bg text-text-muted'"
@@ -91,7 +91,7 @@ function cancelDisable() {
       </div>
 
       <!-- Setup: show QR -->
-      <div v-if="!enabled && qrData" class="space-y-3">
+      <div v-if="!enabled && qrData" class="flex flex-col gap-3 ">
         <p class="text-xs text-text-muted">Scan this QR code with your authenticator app, then enter the 6-digit code below.</p>
         <img :src="qrData.qr" alt="2FA QR code" class="h-40 w-40 rounded-md border border-border" />
         <p class="break-all font-mono text-xs text-text-xmuted">Secret: {{ qrData.secret }}</p>
@@ -134,7 +134,7 @@ function cancelDisable() {
       </button>
 
       <!-- Disable flow -->
-      <div v-if="enabled && showDisable" class="space-y-3 rounded-xl border border-border bg-bg p-4">
+      <div v-if="enabled && showDisable" class="flex flex-col gap-3  rounded-xl border border-border bg-bg p-4">
         <p class="text-xs text-text-muted">Enter your current 2FA code to disable.</p>
         <FieldRow label="Code">
           <N8nInput v-model="disableCode" placeholder="123456" />

@@ -199,7 +199,7 @@ function statusChipClass(current: PromptStatus, target: PromptStatus): string {
 
       <div class="flex flex-col gap-6 lg:flex-row">
         <!-- Main -->
-        <div class="min-w-0 flex-1 space-y-5">
+        <div class="min-w-0 flex-1">
           <!-- Header -->
           <div class="rounded-xl border border-border bg-card p-5">
             <div class="mb-3 flex items-start justify-between gap-3">
@@ -336,7 +336,7 @@ function statusChipClass(current: PromptStatus, target: PromptStatus): string {
         </div>
 
         <!-- Sidebar -->
-        <aside class="w-full shrink-0 space-y-4 lg:w-56">
+        <aside class="flex flex-col gap-4 w-full shrink-0 lg:w-56">
           <!-- Variables -->
           <div v-if="varList.length > 0" class="overflow-hidden rounded-xl border border-border bg-card">
             <div class="border-b border-border-light bg-bg px-3 py-2.5">
@@ -344,7 +344,7 @@ function statusChipClass(current: PromptStatus, target: PromptStatus): string {
                 <N8nIcon icon="variable" :size="10" /> Variables ({{ varList.length }})
               </N8nHeading>
             </div>
-            <div class="space-y-1 px-3 py-2">
+            <div class="flex flex-col gap-1  px-3 py-2">
               <div
                 v-for="v in varList"
                 :key="v"

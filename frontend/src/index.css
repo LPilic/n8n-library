@@ -7,14 +7,21 @@
  * utilities can never inherit an unresolved var() chain.
  * Dark mode is driven by [data-theme="dark"] on <html> (theme.ts).
  *
- * Tailwind is imported UNLAYERED (theme/part imports instead of the layered
- * default): the design system's own stylesheet is unlayered too and sets
- * `header, aside, section, … { background: 0 0; border: 0; margin: 0; padding: 0 }`
- * — layered utilities would lose to that reset on every structural element.
- * Unlayered, and imported after the design system css (main.ts), utilities win.
+ * ALL UNLAYERED, in a deliberate physical order (the bundler strips @layer
+ * statements, so layer() modifiers are unreliable here; in a single cascade
+ * origin, ORDER + SPECIFICITY decide everything):
+ *   1. tailwind theme tokens
+ *   2. tailwind preflight (`* { margin: 0; padding: 0; border: 0 solid }`)
+ *   3. design-system tokens + components — AFTER the preflight, so component
+ *      rules (padding/border/background, class-based) beat the reset
+ *   4. tailwind utilities LAST — classes beat element selectors on
+ *      specificity anyway, and they win ties against DS rules by order
+ *   5. the [data-theme] token overrides below (custom props, unlayered)
  */
 @import 'tailwindcss/theme.css' theme();
 @import 'tailwindcss/preflight.css';
+@import '@n8n/design-system/theme.css';
+@import '@n8n/design-system/style.css';
 @import 'tailwindcss/utilities.css';
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));

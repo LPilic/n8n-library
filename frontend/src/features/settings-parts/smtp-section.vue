@@ -92,7 +92,7 @@ async function sendTestEmail() {
   <p v-if="!loaded" class="text-sm text-text-muted">Loading SMTP settings...</p>
 
   <SettingsCard v-else icon="mail" title="Email (SMTP)" description="Configure email delivery for notifications">
-    <div class="space-y-3">
+    <div class="flex flex-col gap-3 ">
       <FieldRow label="Host"><N8nInput v-model="host" placeholder="smtp.example.com" /></FieldRow>
       <FieldRow label="Port"><N8nInput v-model="port" type="number" placeholder="587" /></FieldRow>
       <FieldRow label="Username"><N8nInput v-model="user" placeholder="smtp-user" /></FieldRow>

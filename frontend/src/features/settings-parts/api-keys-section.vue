@@ -167,7 +167,7 @@ async function createKey() {
       show-close-button
       @update:open="(v: boolean) => { if (!v) showCreate = false }"
     >
-      <div class="space-y-3">
+      <div class="flex flex-col gap-3 ">
         <FieldRow label="Name *">
           <N8nInput v-model="name" placeholder="My integration" />
         </FieldRow>

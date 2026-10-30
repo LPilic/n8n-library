@@ -66,7 +66,7 @@ async function handleRestore(versionId: number) {
       <div class="flex-1 overflow-y-auto px-5 py-4">
         <p v-if="isLoading" class="text-sm text-text-muted">Loading...</p>
         <p v-else-if="versions.length === 0" class="text-sm text-text-muted">No version history.</p>
-        <div v-else class="space-y-2">
+        <div v-else class="flex flex-col gap-2 ">
           <div
             v-for="v in versions"
             :key="v.id"

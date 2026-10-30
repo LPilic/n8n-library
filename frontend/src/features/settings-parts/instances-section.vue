@@ -189,7 +189,7 @@ async function saveInstance() {
       show-close-button
       @update:open="(v: boolean) => { if (!v) openModal(null) }"
     >
-      <div class="space-y-3">
+      <div class="flex flex-col gap-3 ">
         <FieldRow label="Name *">
           <N8nInput v-model="name" placeholder="Production" />
         </FieldRow>
@@ -221,7 +221,7 @@ async function saveInstance() {
           <p v-if="workers.length === 0" class="text-xs text-text-xmuted">
             No workers configured. Add worker URLs for queue mode monitoring.
           </p>
-          <div v-else class="space-y-2">
+          <div v-else class="flex flex-col gap-2 ">
             <div v-for="(w, i) in workers" :key="i" class="flex items-center gap-2">
               <input
                 v-model="w.name"

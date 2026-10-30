@@ -156,7 +156,7 @@ async function handleSave() {
         </div>
 
         <!-- Form fields -->
-        <div class="space-y-4 px-6 py-4">
+        <div class="flex flex-col gap-4  px-6 py-4">
           <p v-if="metaLoading || name === null" class="text-sm text-text-muted">Loading template...</p>
           <template v-else>
             <div>

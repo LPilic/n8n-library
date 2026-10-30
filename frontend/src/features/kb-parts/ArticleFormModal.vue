@@ -107,7 +107,7 @@ function onUpdateOpen(open: boolean) {
     @update:open="onUpdateOpen"
   >
     <!-- Body -->
-    <div class="max-h-[60vh] space-y-4 overflow-y-auto">
+    <div class="flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
       <!-- Title -->
       <div>
         <label class="mb-1 block text-xs font-medium text-text-muted">Title</label>

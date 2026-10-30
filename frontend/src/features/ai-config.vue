@@ -342,7 +342,7 @@ function serverSubtitle(srv: McpServer): string {
       <div v-if="settingsLoading" class="flex items-center gap-2 text-sm text-text-muted">
         <N8nSpinner /> Loading settings...
       </div>
-      <div v-else class="space-y-4 max-w-lg">
+      <div v-else class="flex flex-col gap-4  max-w-lg">
         <!-- Provider -->
         <div>
           <label :class="labelCls">Provider</label>
@@ -461,7 +461,7 @@ function serverSubtitle(srv: McpServer): string {
       <div v-if="promptsLoading" class="flex items-center gap-2 text-sm text-text-muted">
         <N8nSpinner /> Loading prompts...
       </div>
-      <div v-else class="space-y-5">
+      <div v-else class="flex flex-col gap-5 ">
         <div v-for="{ key, label } in PROMPT_FIELDS" :key="key">
           <div class="flex items-center justify-between mb-1">
             <label class="text-xs font-medium text-text-muted">{{ label }}</label>
@@ -574,7 +574,7 @@ function serverSubtitle(srv: McpServer): string {
           </div>
 
           <!-- Body -->
-          <div class="space-y-3 flex-1 overflow-y-auto p-4">
+          <div class=" flex-1 overflow-y-auto p-4">
             <!-- Name -->
             <div>
               <label class="mb-1 block text-xs font-medium text-text-muted">Name *</label>

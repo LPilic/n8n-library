@@ -334,7 +334,7 @@ function renderCompNode(comp: SchemaComponent, ctx: RenderCtx, key?: number | st
               h('span', { class: 'text-xs font-semibold uppercase text-text-muted' }, resolveTemplate(comp.title, ctx.data)),
             ])
           : null,
-        h('div', { class: 'space-y-3 p-3' }, (comp.children ?? []).map((child, i) =>
+        h('div', { class: 'flex flex-col gap-3 p-3' }, (comp.children ?? []).map((child, i) =>
           h(RenderComponent, {
             key: i,
             comp: child,
@@ -347,7 +347,7 @@ function renderCompNode(comp: SchemaComponent, ctx: RenderCtx, key?: number | st
 
     case 'columns':
       return h('div', { key, class: 'flex flex-wrap gap-3' }, (comp.children ?? []).map((child, i) =>
-        h('div', { key: i, class: 'min-w-0 flex-1 space-y-3' }, [
+        h('div', { key: i, class: 'min-w-0 flex-1 flex flex-col gap-3' }, [
           h(RenderComponent, {
             comp: child,
             data: ctx.data,
@@ -567,7 +567,7 @@ function formatRespondedAt(iso: string): string {
         <p class="text-sm text-text-muted">{{ TAB_EMPTY_MESSAGES[tab] }}</p>
       </div>
 
-      <div v-else class="space-y-2">
+      <div v-else class="flex flex-col gap-2 ">
         <!-- RequestCard -->
         <div
           v-for="r in requests"
@@ -639,7 +639,7 @@ function formatRespondedAt(iso: string): string {
           <button class="text-lg leading-none text-text-xmuted hover:text-text-dark" @click="selectedRequest = null">&times;</button>
         </div>
 
-        <div class="max-h-[70vh] space-y-4 overflow-y-auto p-4">
+        <div class="flex flex-col gap-4 max-h-[70vh] overflow-y-auto p-4">
           <div class="flex flex-wrap items-center gap-2">
             <N8nBadge :variant="(statusBadgeVariant(req.status) as 'warning')" size="xsmall" class="capitalize">
               {{ req.status }}
@@ -664,7 +664,7 @@ function formatRespondedAt(iso: string): string {
 
           <div v-if="detailLoading" class="text-sm text-text-muted">Loading details...</div>
 
-          <div v-else-if="schema.length > 0" class="space-y-3">
+          <div v-else-if="schema.length > 0" class="flex flex-col gap-3 ">
             <RenderComponent
               v-for="(comp, i) in schema"
               :key="i"
@@ -677,7 +677,7 @@ function formatRespondedAt(iso: string): string {
           </div>
 
           <!-- Fallback: show raw submitted data -->
-          <div v-else class="space-y-2">
+          <div v-else class="flex flex-col gap-2 ">
             <div v-for="[k, v] in dataEntriesOf(req.submitted_data)" :key="k" class="flex flex-col gap-0.5">
               <span class="text-[10px] font-semibold uppercase text-text-xmuted">{{ k }}</span>
               <span class="text-sm text-text-dark">{{ String(v) }}</span>
@@ -687,7 +687,7 @@ function formatRespondedAt(iso: string): string {
           <!-- Response data (for completed requests) -->
           <div v-if="!isPending" class="border-t border-border-light pt-3">
             <div class="mb-2 text-[10px] font-semibold uppercase text-text-xmuted">Reviewer Response</div>
-            <div v-if="hasResponseData" class="space-y-1">
+            <div v-if="hasResponseData" class="flex flex-col gap-1 ">
               <div v-for="[k, v] in dataEntriesOf(req.response_data)" :key="k" class="flex gap-2 text-xs">
                 <span class="text-text-xmuted">{{ k }}:</span>
                 <span class="text-text-dark">{{ String(v) }}</span>

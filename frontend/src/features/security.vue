@@ -114,7 +114,7 @@ const totalHigh = computed(() =>
     </div>
 
     <!-- Categories -->
-    <div v-if="report" class="space-y-4">
+    <div v-if="report" class="flex flex-col gap-4 ">
       <div
         v-for="cat in CATEGORY_ORDER"
         :key="cat"

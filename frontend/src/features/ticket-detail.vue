@@ -131,7 +131,7 @@ const reporterName = computed(() => ticket.value?.reporter_username ?? ticket.va
 
       <div class="flex flex-col gap-6 lg:flex-row">
         <!-- Main content -->
-        <div class="min-w-0 flex-1 space-y-5">
+        <div class="min-w-0 flex-1">
           <!-- Header card -->
           <div class="rounded-xl border border-border bg-card p-5">
             <div class="mb-3 flex items-start gap-2">
@@ -220,7 +220,7 @@ const reporterName = computed(() => ticket.value?.reporter_username ?? ticket.va
         </div>
 
         <!-- Sidebar: metadata -->
-        <aside class="w-full shrink-0 space-y-4 lg:w-72">
+        <aside class="flex flex-col gap-4 w-full shrink-0 lg:w-72">
           <TicketMetaCard label="Status">
             <CustomSelect
               :value="ticket.status"
@@ -258,7 +258,7 @@ const reporterName = computed(() => ticket.value?.reporter_username ?? ticket.va
             <div class="border-b border-border-light bg-bg px-3 py-2">
               <N8nHeading size="medium" tag="h3">Linked Executions</N8nHeading>
             </div>
-            <div class="space-y-1.5 px-3 py-2">
+            <div class="flex flex-col gap-1.5  px-3 py-2">
               <div
                 v-for="ex in ticket.executions ?? []"
                 :key="ex.execution_id"
@@ -285,7 +285,7 @@ const reporterName = computed(() => ticket.value?.reporter_username ?? ticket.va
             <div class="border-b border-border-light bg-bg px-3 py-2">
               <N8nHeading size="medium" tag="h3">Execution Context</N8nHeading>
             </div>
-            <div class="space-y-1 px-3 py-2">
+            <div class="flex flex-col gap-1  px-3 py-2">
               <div v-if="ticket.execution_data.workflow_name" class="flex justify-between text-xs">
                 <span class="text-text-muted">Workflow</span>
                 <span class="font-medium text-text-dark">{{ ticket.execution_data.workflow_name }}</span>
@@ -333,7 +333,7 @@ const reporterName = computed(() => ticket.value?.reporter_username ?? ticket.va
             <div class="border-b border-border-light bg-bg px-3 py-2">
               <N8nHeading size="medium" tag="h3">Activity</N8nHeading>
             </div>
-            <div class="space-y-1.5 px-3 py-2">
+            <div class="flex flex-col gap-1.5  px-3 py-2">
               <div
                 v-for="a in (ticket.activity ?? []).slice(0, 10)"
                 :key="a.id"

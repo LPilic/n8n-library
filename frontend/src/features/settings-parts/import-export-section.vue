@@ -51,8 +51,8 @@ async function handleImport() {
 
 <template>
   <SettingsCard icon="upload" title="Export / Import" description="Backup and restore settings, categories, and alerts">
-    <div class="space-y-6">
-      <div class="space-y-2">
+    <div class="flex flex-col gap-6 ">
+      <div class="flex flex-col gap-2 ">
         <N8nHeading size="medium" tag="h3">Export</N8nHeading>
         <p class="text-[13px] text-text-muted">
           Download a JSON snapshot of all settings, categories, instances, and configuration.
@@ -65,7 +65,7 @@ async function handleImport() {
         </N8nButton>
       </div>
 
-      <div class="space-y-2 border-t border-border-light pt-4">
+      <div class="flex flex-col gap-2  border-t border-border-light pt-4">
         <N8nHeading size="medium" tag="h3">Import</N8nHeading>
         <p class="text-[13px] text-text-muted">
           Upload a previously exported JSON file to restore settings. Existing data may be overwritten.
