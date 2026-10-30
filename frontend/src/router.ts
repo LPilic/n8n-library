@@ -3,7 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import AppLayout from '@/components/AppLayout.vue'
 
 // All routes lazy-loaded; names mirror the React SPA's pathname map.
-export default createRouter({
+const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
@@ -45,3 +45,21 @@ export default createRouter({
     { path: '/login', redirect: '/' },
   ],
 })
+
+// Stale-tab recovery: a browser tab loaded before a deploy references chunk
+// hashes that no longer exist; navigating then fails on the lazy import.
+// Reload once to pick up the fresh index.html + chunks.
+router.onError((error, to) => {
+  const msg = String(error?.message || '')
+  if (/Failed to fetch dynamically imported|dynamically imported module|Importing a module script failed/.test(msg)) {
+    const key = 'nav-reload:' + (to?.fullPath ?? '')
+    if (sessionStorage.getItem(key) !== '1') {
+      sessionStorage.setItem(key, '1')
+      window.location.href = to?.fullPath ?? '/'
+    }
+    return
+  }
+  console.error(error)
+})
+
+export default router

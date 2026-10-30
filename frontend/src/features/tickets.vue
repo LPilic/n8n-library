@@ -125,7 +125,7 @@ async function onDelete(id: number) {
     </div>
     <div class="flex gap-6">
     <!-- KPI Sidebar -->
-    <aside class="flex flex-col gap-4 hidden w-64 shrink-0 lg:block">
+    <aside class="hidden w-64 shrink-0 flex-col gap-4 self-start lg:sticky lg:top-6 lg:block">
       <template v-if="stats">
         <!-- Overview KPI cards -->
         <div class="grid grid-cols-2 gap-4">

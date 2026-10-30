@@ -147,7 +147,7 @@ function onSearchInput(e: Event) {
 
     <div class="flex gap-6">
       <!-- Sidebar -->
-      <aside class="flex flex-col gap-4 hidden w-64 shrink-0 lg:block">
+      <aside class="hidden w-64 shrink-0 flex-col gap-4 self-start lg:sticky lg:top-6 lg:block">
         <!-- Stats KPI -->
         <div v-if="stats" class="rounded-xl border border-border bg-card p-5 text-center">
           <div class="text-[12px] font-medium text-text-muted">Articles</div>
@@ -159,11 +159,11 @@ function onSearchInput(e: Event) {
           <div class="border-b border-border-light px-4 py-2.5">
             <N8nHeading size="medium" tag="h3">Popular</N8nHeading>
           </div>
-          <div class="p-1.5">
+          <div class="p-1">
             <button
               v-for="a in stats.popular.slice(0, 5)"
               :key="a.id"
-              class="w-full truncate rounded-md px-2 py-1.5 text-left text-[12px] text-text-muted transition-colors hover:bg-bg hover:text-primary"
+              class="w-full truncate rounded-md px-2.5 py-1.5 text-left text-[12px] text-text-muted transition-colors hover:bg-bg hover:text-primary"
               @click="router.push(`/kb/${a.id}`)"
             >
               {{ a.title }}
