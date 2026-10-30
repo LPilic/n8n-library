@@ -90,7 +90,7 @@ n8n-library/
 ├── frontend/              # Vue 3 + @n8n/design-system frontend (FRONTEND=react)
 │   ├── src/features/      # Page-level features
 │   ├── src/components/    # Shared UI components
-│   ├── src/stores/        # Zustand stores (auth, instance, theme, branding)
+│   ├── src/stores/        # Pinia stores (auth, instance, theme, branding)
 │   ├── src/api/           # Fetch client and shared types
 │   └── dist/              # Production build
 │
@@ -285,7 +285,7 @@ See `frontend/DESIGN.md` for the token and component conventions.
 ### Frontend Patterns
 
 - **Route-level code splitting** — each feature is a lazy-loaded chunk.
-- **Instance selector** — global Zustand store used by monitoring, credentials,
+- **Instance selector** — global Pinia store used by monitoring, credentials,
   tickets, and other instance-aware pages.
 - **Auto-refresh** — configurable polling intervals for monitoring/observability.
 - **Theme** — CSS variables with `[data-theme="dark"]` overrides; branding

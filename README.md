@@ -29,7 +29,7 @@ A self-hosted companion app for [n8n](https://n8n.io) that adds a workflow templ
 
 ### Prerequisites
 
-- **Node.js** 20+
+- **Node.js** 22+
 - **PostgreSQL** 14+
 - An **n8n** instance (self-hosted)
 
