@@ -201,12 +201,12 @@ const roleVariant = (r: string): BadgeVariant => (r === 'admin' ? 'danger' : r =
             <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Role</th>
             <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Source</th>
             <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Created</th>
-            <th class="w-20 px-4 py-2" />
+            <th class="text-[12px] w-20 px-4 py-2" />
           </tr>
         </thead>
         <tbody class="divide-y divide-border-light">
           <tr v-for="u in users" :key="u.id" class="transition-colors hover:bg-card-hover">
-            <td class="px-4 py-2.5">
+            <td class="text-[13px] px-4 py-2.5">
               <div class="flex items-center gap-3">
                 <div
                   class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold text-white"
@@ -223,19 +223,19 @@ const roleVariant = (r: string): BadgeVariant => (r === 'admin' ? 'danger' : r =
                 </div>
               </div>
             </td>
-            <td class="px-4 py-2.5">
+            <td class="text-[13px] px-4 py-2.5">
               <N8nBadge :variant="roleVariant(u.role)" size="xsmall" class="uppercase">
                 {{ u.role }}
               </N8nBadge>
             </td>
-            <td class="px-4 py-2.5">
+            <td class="text-[13px] px-4 py-2.5">
               <N8nBadge v-if="u.n8n_instance_id" variant="primary" size="xsmall" leading-icon="server">
                 {{ u.instance_name || 'n8n' }}
               </N8nBadge>
               <N8nBadge v-else variant="subtle" size="xsmall">Local</N8nBadge>
             </td>
             <td class="px-4 py-2.5 text-xs text-text-muted">{{ timeAgo(u.created_at) }}</td>
-            <td class="px-4 py-2.5">
+            <td class="text-[13px] px-4 py-2.5">
               <div class="flex items-center justify-end gap-1">
                 <button
                   title="Edit user"

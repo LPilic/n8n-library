@@ -132,19 +132,19 @@ async function createKey() {
           <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Role</th>
           <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Last Used</th>
           <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Expires</th>
-          <th class="w-16 px-4 py-2" />
+          <th class="text-[12px] w-16 px-4 py-2" />
         </tr>
       </thead>
       <tbody class="divide-y divide-border-light">
         <tr v-for="k in keys" :key="k.id" class="transition-colors hover:bg-card-hover">
-          <td class="px-4 py-2.5 font-medium text-text-dark">{{ k.name }}</td>
+          <td class="px-4 py-2.5 font-medium text-text-dark text-[13px]">{{ k.name }}</td>
           <td class="px-4 py-2.5 font-mono text-xs text-text-muted">{{ k.key_prefix }}…</td>
-          <td class="px-4 py-2.5">
+          <td class="text-[13px] px-4 py-2.5">
             <span class="rounded bg-bg px-1.5 py-0.5 text-[11px] font-semibold uppercase text-text-muted">{{ k.role }}</span>
           </td>
           <td class="px-4 py-2.5 text-xs text-text-muted">{{ k.last_used_at ? timeAgo(k.last_used_at) : 'Never' }}</td>
           <td class="px-4 py-2.5 text-xs text-text-muted">{{ k.expires_at ? timeAgo(k.expires_at) : '—' }}</td>
-          <td class="px-4 py-2.5">
+          <td class="text-[13px] px-4 py-2.5">
             <div class="flex justify-end">
               <button
                 type="button"

@@ -106,12 +106,12 @@ async function save() {
           <tr class="border-b border-border bg-bg-light">
             <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Key</th>
             <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Value</th>
-            <th class="w-20 px-4 py-2" />
+            <th class="text-[12px] w-20 px-4 py-2" />
           </tr>
         </thead>
         <tbody class="divide-y divide-border-light">
           <tr v-for="v in variables" :key="v.id" class="transition-colors hover:bg-card-hover">
-            <td class="px-4 py-2.5">
+            <td class="text-[13px] px-4 py-2.5">
               <span class="rounded bg-primary-light px-1.5 py-0.5 font-mono text-xs text-primary">
                 {{ v.key }}
               </span>
@@ -119,7 +119,7 @@ async function save() {
             <td class="max-w-xs truncate px-4 py-2.5 font-mono text-xs text-text-muted">
               {{ v.value }}
             </td>
-            <td class="px-4 py-2.5">
+            <td class="text-[13px] px-4 py-2.5">
               <div class="flex items-center justify-end gap-1">
                 <button
                   title="Edit"

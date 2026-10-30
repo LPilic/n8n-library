@@ -560,17 +560,17 @@ const WF_FILTERS: Array<'all' | 'active' | 'inactive'> = ['all', 'active', 'inac
               class="cursor-pointer hover:bg-card-hover"
               @click="router.push(`/monitoring/${exec.id}`)"
             >
-              <td class="px-3 py-2"><ExecutionStatusIcon :status="exec.status" /></td>
+              <td class="px-3 py-2 text-[13px]"><ExecutionStatusIcon :status="exec.status" /></td>
               <td class="px-3 py-2 font-mono text-xs text-text-muted">#{{ exec.id }}</td>
-              <td class="max-w-[220px] truncate px-3 py-2">
+              <td class="max-w-[220px] truncate px-3 py-2 text-[13px]">
                 <span class="text-[13px] text-text-dark underline decoration-border-strong underline-offset-2">
                   {{ exec.workflowName || `Workflow #${exec.workflowId}` }}
                 </span>
               </td>
-              <td class="hidden px-3 py-2 text-text-muted capitalize md:table-cell">{{ exec.mode }}</td>
-              <td class="hidden px-3 py-2 text-right text-text-muted lg:table-cell">{{ durationText(exec) }}</td>
-              <td class="px-3 py-2 text-text-muted">{{ timeAgo(exec.startedAt) }}</td>
-              <td class="px-3 py-2 text-right">
+              <td class="hidden px-3 py-2 text-text-muted capitalize md:table-cell text-[13px]">{{ exec.mode }}</td>
+              <td class="hidden px-3 py-2 text-right text-text-muted lg:table-cell text-[13px]">{{ durationText(exec) }}</td>
+              <td class="px-3 py-2 text-text-muted text-[13px]">{{ timeAgo(exec.startedAt) }}</td>
+              <td class="px-3 py-2 text-right text-[13px]">
                 <div class="flex items-center justify-end gap-1" @click.stop>
                   <button
                     v-if="exec.status === 'error'"

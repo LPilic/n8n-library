@@ -130,12 +130,12 @@ async function onDelete(id: number) {
         <!-- Overview KPI cards -->
         <div class="grid grid-cols-2 gap-4">
           <div class="rounded-xl border border-border bg-card p-5 text-center">
-            <div class="text-[20px] font-semibold text-primary">{{ stats.unassigned }}</div>
-            <div class="mt-0.5 text-[12px] font-medium text-text-muted">Unassigned</div>
+            <div class="text-[12px] font-medium text-text-muted">Unassigned</div>
+            <div class="mt-1 text-[20px] leading-tight font-semibold text-text-dark">{{ stats.unassigned }}</div>
           </div>
           <div class="rounded-xl border border-border bg-card p-5 text-center">
-            <div class="text-[20px] font-semibold text-text-dark">{{ avgResolveLabel }}</div>
-            <div class="mt-0.5 text-[12px] font-medium text-text-muted">Avg Resolve</div>
+            <div class="text-[12px] font-medium text-text-muted">Avg Resolve</div>
+            <div class="mt-1 text-[20px] leading-tight font-semibold text-text-dark">{{ avgResolveLabel }}</div>
           </div>
         </div>
 

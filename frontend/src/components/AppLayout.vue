@@ -207,7 +207,7 @@ watch(
 
         <div v-if="sidebarOpen" class="mt-auto border-t border-border-light pt-3">
           <button
-            class="flex w-full cursor-pointer items-center gap-2.5 rounded-xs px-2.5 py-1.5 text-[13px] font-medium text-text-base transition-colors duration-150 hover:bg-bg hover:text-text-dark"
+            class="flex w-full cursor-pointer items-center gap-2.5 rounded-xs px-2.5 py-1.5 font-medium text-text-base transition-colors duration-150 hover:bg-bg hover:text-text-dark"
             @click="aiChatOpen = !aiChatOpen"
           >
             <N8nIcon icon="message-square-text" :size="18" class="shrink-0" />

@@ -130,25 +130,25 @@ function actionVariant(action: string): 'primary' | 'success' | 'danger' | 'warn
           </thead>
           <tbody class="divide-y divide-border-light">
             <tr v-for="entry in entries" :key="entry.id" class="transition-colors hover:bg-card-hover">
-              <td class="whitespace-nowrap px-3 py-2.5 text-text-xmuted">
+              <td class="whitespace-nowrap px-3 py-2.5 text-text-xmuted text-[13px]">
                 {{ timeAgo(entry.created_at) }}
               </td>
-              <td class="px-3 py-2.5 text-text-muted">
+              <td class="px-3 py-2.5 text-text-muted text-[13px]">
                 <span v-if="entry.user">{{ entry.user }}</span>
                 <span v-else class="text-text-xmuted">—</span>
               </td>
-              <td class="px-3 py-2.5">
+              <td class="px-3 py-2.5 text-[13px]">
                 <N8nBadge :variant="actionVariant(entry.action) as 'primary'" size="xsmall" class="capitalize">
                   {{ entry.action }}
                 </N8nBadge>
               </td>
-              <td class="px-3 py-2.5 text-text-muted capitalize">
+              <td class="px-3 py-2.5 text-text-muted capitalize text-[13px]">
                 {{ entry.entity_type }}
               </td>
-              <td class="px-3 py-2.5 font-mono text-text-xmuted">
+              <td class="px-3 py-2.5 font-mono text-text-xmuted text-[13px]">
                 {{ entry.entity_id != null ? String(entry.entity_id) : '—' }}
               </td>
-              <td class="max-w-xs truncate px-3 py-2.5 text-text-muted">
+              <td class="max-w-xs truncate px-3 py-2.5 text-text-muted text-[13px]">
                 <span v-if="entry.details">{{ entry.details }}</span>
                 <span v-else class="text-text-xmuted">—</span>
               </td>

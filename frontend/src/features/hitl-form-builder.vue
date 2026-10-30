@@ -230,7 +230,7 @@ const ComponentPreview = defineComponent({
         case 'image':
           return pr.src
             ? h('img', { src: String(pr.src), alt: String(pr.alt || ''), class: 'max-w-full max-h-[120px] rounded' })
-            : h('div', { class: 'text-[13px] italic' }, `Image: {${String(pr.field || 'url')}}`)
+            : h('div', { class: 'italic' }, `Image: {${String(pr.field || 'url')}}`)
         case 'badge':
           return h('div', { class: 'text-[13px]' }, [
             h('span', { class: 'inline-block px-1.5 rounded bg-bg-alt text-[11px]' }, String(pr.label || 'Badge')),

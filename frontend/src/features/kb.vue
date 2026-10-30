@@ -150,8 +150,8 @@ function onSearchInput(e: Event) {
       <aside class="flex flex-col gap-4 hidden w-64 shrink-0 lg:block">
         <!-- Stats KPI -->
         <div v-if="stats" class="rounded-xl border border-border bg-card p-5 text-center">
-          <div class="text-[20px] leading-tight font-semibold text-primary">{{ stats.total }}</div>
-          <div class="mt-0.5 text-[12px] font-medium text-text-muted">Articles</div>
+          <div class="text-[12px] font-medium text-text-muted">Articles</div>
+          <div class="mt-1 text-[20px] leading-tight font-semibold text-text-dark">{{ stats.total }}</div>
         </div>
 
         <!-- Popular articles -->

@@ -180,13 +180,13 @@ async function saveCategory() {
           <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Name</th>
           <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Description</th>
           <th v-if="cfg.hasSlug" class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Slug</th>
-          <th class="w-20 px-4 py-2" />
+          <th class="text-[12px] w-20 px-4 py-2" />
         </tr>
       </thead>
       <tbody class="divide-y divide-border-light">
         <tr v-for="c in categories" :key="c.id" class="transition-colors hover:bg-card-hover">
-          <td class="w-10 px-4 py-2.5"><LucideIcon :name="c.icon" /></td>
-          <td class="px-4 py-2.5 font-medium text-text-dark">{{ c.name }}</td>
+          <td class="w-10 px-4 py-2.5 text-[13px]"><LucideIcon :name="c.icon" /></td>
+          <td class="px-4 py-2.5 font-medium text-text-dark text-[13px]">{{ c.name }}</td>
           <td class="max-w-[250px] px-4 py-2.5 text-xs text-text-muted">
             <div
               v-if="c.description"
@@ -199,7 +199,7 @@ async function saveCategory() {
             <span v-if="c.slug === undefined || c.slug === null" class="text-text-xmuted">—</span>
             <template v-else>{{ c.slug }}</template>
           </td>
-          <td class="px-4 py-2.5">
+          <td class="text-[13px] px-4 py-2.5">
             <ActionBtns @edit="openModal(c, activeType)" @delete="handleDelete(c)" />
           </td>
         </tr>

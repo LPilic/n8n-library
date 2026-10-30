@@ -142,18 +142,18 @@ async function saveWebhook() {
           <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Name</th>
           <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">URL</th>
           <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Events</th>
-          <th class="w-32 px-4 py-2" />
+          <th class="text-[12px] w-32 px-4 py-2" />
         </tr>
       </thead>
       <tbody class="divide-y divide-border-light">
         <tr v-for="w in webhooks" :key="w.id" class="transition-colors hover:bg-card-hover">
-          <td class="flex items-center gap-2 px-4 py-2.5 font-medium text-text-dark">
+          <td class="flex items-center gap-2 px-4 py-2.5 font-medium text-text-dark text-[13px]">
             <span class="h-2 w-2 shrink-0 rounded-full" :class="w.enabled ? 'bg-success' : 'bg-text-xmuted'" />
             {{ w.name }}
           </td>
           <td class="max-w-[220px] truncate px-4 py-2.5 font-mono text-xs text-text-muted">{{ w.url }}</td>
           <td class="px-4 py-2.5 text-xs text-text-muted">{{ w.events.length }} event{{ w.events.length !== 1 ? 's' : '' }}</td>
-          <td class="px-4 py-2.5">
+          <td class="text-[13px] px-4 py-2.5">
             <div class="flex items-center justify-end gap-1">
               <button
                 type="button"

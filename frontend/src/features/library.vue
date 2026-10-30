@@ -145,8 +145,8 @@ async function openDocs(templateId: number, templateName: string) {
     <aside class="flex flex-col gap-4 hidden w-64 shrink-0 lg:block">
       <!-- Template count -->
       <div class="rounded-xl border border-border bg-card p-5 text-center">
-        <div class="text-[20px] leading-tight font-semibold text-primary">{{ templates.length }}</div>
-        <div class="mt-1 text-[12px] font-medium text-text-muted">Templates</div>
+        <div class="text-[12px] font-medium text-text-muted">Templates</div>
+        <div class="mt-1 text-[20px] leading-tight font-semibold text-text-dark">{{ templates.length }}</div>
       </div>
 
       <!-- Categories -->

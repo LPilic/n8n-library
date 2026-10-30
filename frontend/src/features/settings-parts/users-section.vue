@@ -110,12 +110,12 @@ async function saveUser() {
           <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Email</th>
           <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Role</th>
           <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Created</th>
-          <th class="w-20 px-4 py-2" />
+          <th class="text-[12px] w-20 px-4 py-2" />
         </tr>
       </thead>
       <tbody class="divide-y divide-border-light">
         <tr v-for="u in users" :key="u.id" class="transition-colors hover:bg-card-hover">
-          <td class="px-4 py-2.5 font-medium text-text-dark">
+          <td class="px-4 py-2.5 font-medium text-text-dark text-[13px]">
             {{ u.username }}
             <span
               v-if="auth.user?.id === u.id"
@@ -123,14 +123,14 @@ async function saveUser() {
             >you</span>
           </td>
           <td class="px-4 py-2.5 text-xs text-text-muted">{{ u.email }}</td>
-          <td class="px-4 py-2.5">
+          <td class="text-[13px] px-4 py-2.5">
             <span
               class="rounded px-1.5 py-0.5 text-[11px] font-semibold uppercase"
               :class="roleColors[u.role] ?? 'bg-bg text-text-muted'"
             >{{ u.role }}</span>
           </td>
           <td class="px-4 py-2.5 text-xs text-text-muted">{{ timeAgo(u.created_at) }}</td>
-          <td class="px-4 py-2.5">
+          <td class="text-[13px] px-4 py-2.5">
             <ActionBtns @edit="openModal(u)" @delete="handleDelete(u)" />
           </td>
         </tr>

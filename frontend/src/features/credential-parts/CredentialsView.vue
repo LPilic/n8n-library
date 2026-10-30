@@ -188,13 +188,13 @@ function onTransferDone() {
                 class="cursor-pointer transition-colors hover:bg-card-hover"
                 @click="detailCred = cred"
               >
-                <td class="px-4 py-2.5">
+                <td class="text-[13px] px-4 py-2.5">
                   <span class="flex items-center gap-1.5">
                     <N8nIcon icon="key-round" :size="12" class="shrink-0 text-text-xmuted" />
                     <span class="font-medium text-text-dark underline decoration-border-strong underline-offset-2">{{ cred.name }}</span>
                   </span>
                 </td>
-                <td class="px-4 py-2.5">
+                <td class="text-[13px] px-4 py-2.5">
                   <TypeBadge :type="cred.type" />
                 </td>
                 <td class="px-4 py-2.5 text-xs text-text-muted">

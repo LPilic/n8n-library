@@ -109,12 +109,12 @@ function onNameEnter() {
           <tr class="border-b border-border bg-bg-light">
             <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Name</th>
             <th class="px-4 py-2 text-right text-[12px] font-medium text-text-muted">Workflows</th>
-            <th class="w-20 px-4 py-2" />
+            <th class="text-[12px] w-20 px-4 py-2" />
           </tr>
         </thead>
         <tbody class="divide-y divide-border-light">
           <tr v-for="tag in tags" :key="tag.id" class="transition-colors hover:bg-card-hover">
-            <td class="px-4 py-2.5">
+            <td class="text-[13px] px-4 py-2.5">
               <span class="flex items-center gap-1.5">
                 <N8nIcon icon="tags" :size="12" class="shrink-0 text-text-xmuted" />
                 <span class="font-medium text-text-dark">{{ tag.name }}</span>
@@ -123,7 +123,7 @@ function onNameEnter() {
             <td class="px-4 py-2.5 text-right text-xs text-text-muted">
               {{ tag.workflow_count ?? 0 }}
             </td>
-            <td class="px-4 py-2.5">
+            <td class="text-[13px] px-4 py-2.5">
               <div class="flex items-center justify-end gap-1">
                 <button
                   title="Edit"

@@ -333,52 +333,52 @@ function refreshAll() {
     <N8nCard>
       <div class="grid gap-4 md:grid-cols-12">
         <div class="md:col-span-3">
-          <label class="mb-1 block text-xs font-medium text-text-muted">Service</label>
-          <N8nSelect :model-value="service" :filterable="false" size="medium" class="w-full" @update:model-value="onServiceChange">
+          <label class="mb-1 block text-[12px] font-medium text-text-muted">Service</label>
+          <N8nSelect :model-value="service" :filterable="false" size="small" class="w-full" @update:model-value="onServiceChange">
             <N8nOption v-for="s in serviceOptions" :key="s" :value="s" :label="s">{{ s }}</N8nOption>
           </N8nSelect>
         </div>
         <div class="md:col-span-2">
-          <label class="mb-1 block text-xs font-medium text-text-muted">Lookback</label>
-          <N8nSelect :model-value="lookback" :filterable="false" size="medium" class="w-full" @update:model-value="onLookbackChange">
+          <label class="mb-1 block text-[12px] font-medium text-text-muted">Lookback</label>
+          <N8nSelect :model-value="lookback" :filterable="false" size="small" class="w-full" @update:model-value="onLookbackChange">
             <N8nOption v-for="item in LOOKBACKS" :key="item.value" :value="item.value" :label="item.label">{{ item.label }}</N8nOption>
           </N8nSelect>
         </div>
         <div class="md:col-span-2">
-          <label class="mb-1 block text-xs font-medium text-text-muted">Status</label>
-          <N8nSelect :model-value="status" :filterable="false" size="medium" class="w-full" @update:model-value="onStatusChange">
+          <label class="mb-1 block text-[12px] font-medium text-text-muted">Status</label>
+          <N8nSelect :model-value="status" :filterable="false" size="small" class="w-full" @update:model-value="onStatusChange">
             <N8nOption v-for="item in STATUS_OPTIONS" :key="item.value" :value="item.value" :label="item.label">{{ item.label }}</N8nOption>
           </N8nSelect>
         </div>
         <div class="md:col-span-3">
-          <label class="mb-1 block text-xs font-medium text-text-muted">Execution ID</label>
+          <label class="mb-1 block text-[12px] font-medium text-text-muted">Execution ID</label>
           <N8nInput
             v-model="executionInput"
             placeholder="e.g. 12345"
+            size="small"
             @keydown="onFilterKeydown"
           />
         </div>
         <div class="flex items-end md:col-span-2">
-          <N8nButton variant="brand" size="small" icon="search" class="w-full" @click="applyFilters">
-            Search
-          </N8nButton>
+          <N8nButton variant="brand" size="small" icon="search" label="Search" class="w-full" @click="applyFilters" />
         </div>
-        <div class="md:col-span-4">
-          <label class="mb-1 block text-xs font-medium text-text-muted">Workflow ID</label>
+        <div class="md:col-span-3">
+          <label class="mb-1 block text-[12px] font-medium text-text-muted">Workflow ID</label>
           <N8nInput
             v-model="workflowInput"
             placeholder="optional workflow ID"
+            size="small"
             @keydown="onFilterKeydown"
           />
         </div>
         <div class="md:col-span-2">
-          <label class="mb-1 block text-xs font-medium text-text-muted">Limit</label>
-          <N8nSelect :model-value="limit" :filterable="false" size="medium" class="w-full" @update:model-value="onLimitChange">
+          <label class="mb-1 block text-[12px] font-medium text-text-muted">Limit</label>
+          <N8nSelect :model-value="limit" :filterable="false" size="small" class="w-full" @update:model-value="onLimitChange">
             <N8nOption v-for="o in LIMIT_OPTIONS" :key="o" :value="o" :label="o">{{ o }}</N8nOption>
           </N8nSelect>
         </div>
-        <div class="flex items-end md:col-span-2">
-          <N8nButton variant="ghost" size="small" class="w-full" @click="clearFilters">Clear</N8nButton>
+        <div class="flex items-end gap-2 md:col-span-2">
+          <N8nButton variant="ghost" size="small" label="Clear Filters" class="w-full" @click="clearFilters" />
         </div>
       </div>
     </N8nCard>
@@ -442,20 +442,20 @@ function refreshAll() {
               :class="selectedTraceId === item.traceId ? 'bg-primary-light/60' : 'hover:bg-card-hover'"
               @click="selectTrace(item.traceId)"
             >
-              <td class="px-3 py-2.5">
+              <td class="px-3 py-2.5 text-[13px]">
                 <N8nIcon :icon="statusIcon(item.status).icon" :size="14" :class="statusIcon(item.status).cls" />
               </td>
-              <td class="px-3 py-2.5">
+              <td class="px-3 py-2.5 text-[13px]">
                 <div class="font-medium text-text-dark">{{ item.name }}</div>
                 <div class="max-w-[220px] truncate text-[11px] text-text-xmuted">{{ item.traceId }}</div>
               </td>
-              <td class="px-3 py-2.5">
+              <td class="px-3 py-2.5 text-[13px]">
                 <div class="max-w-[220px] truncate text-[13px] text-text-dark underline decoration-border-strong underline-offset-2">{{ item.workflowName || '—' }}</div>
                 <div class="text-[11px] text-text-xmuted">{{ item.workflowId || '' }}</div>
               </td>
               <td class="px-3 py-2.5 font-mono text-xs">{{ item.executionId || '—' }}</td>
-              <td class="whitespace-nowrap px-3 py-2.5">{{ formatDuration(item.durationMs) }}</td>
-              <td class="px-3 py-2.5">{{ item.spanCount }}</td>
+              <td class="whitespace-nowrap px-3 py-2.5 text-[13px]">{{ formatDuration(item.durationMs) }}</td>
+              <td class="px-3 py-2.5 text-[13px]">{{ item.spanCount }}</td>
               <td class="whitespace-nowrap px-3 py-2.5 text-xs text-text-muted">
                 {{ new Date(item.startTimeMs).toLocaleString() }}
               </td>
@@ -529,8 +529,8 @@ function refreshAll() {
             <table class="w-full text-[11px]">
               <tbody>
                 <tr v-for="([key, value], i) in Object.entries(selectedSpan.tags || {})" :key="`${key}-${i}`" class="border-b border-border-light last:border-0">
-                  <td class="w-1/3 px-2 py-1 font-mono text-text-muted">{{ key }}</td>
-                  <td class="break-all px-2 py-1 font-mono text-text-dark">{{ String(value) }}</td>
+                  <td class="w-1/3 px-2 py-1 font-mono text-text-muted text-[13px]">{{ key }}</td>
+                  <td class="break-all px-2 py-1 font-mono text-text-dark text-[13px]">{{ String(value) }}</td>
                 </tr>
               </tbody>
             </table>

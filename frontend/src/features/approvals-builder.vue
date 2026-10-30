@@ -146,7 +146,7 @@ function handleSaved() {
         <tbody class="divide-y divide-border-light">
           <tr v-for="tpl in templates" :key="tpl.id" class="transition-colors hover:bg-card-hover">
             <!-- Active toggle -->
-            <td class="px-4 py-2.5">
+            <td class="text-[13px] px-4 py-2.5">
               <button
                 class="text-text-xmuted hover:text-primary"
                 :title="tpl.is_active ? 'Deactivate' : 'Activate'"
@@ -160,16 +160,16 @@ function handleSaved() {
               </button>
             </td>
             <!-- Template name + description -->
-            <td class="px-4 py-2.5">
+            <td class="text-[13px] px-4 py-2.5">
               <div class="text-sm font-medium text-text-dark">{{ tpl.name }}</div>
               <div v-if="tpl.description" class="max-w-xs truncate text-[11px] text-text-xmuted">{{ tpl.description }}</div>
             </td>
             <!-- Slug -->
-            <td class="px-4 py-2.5">
+            <td class="text-[13px] px-4 py-2.5">
               <span class="font-mono text-xs text-text-muted">{{ tpl.slug }}</span>
             </td>
             <!-- Requests count + pending badge -->
-            <td class="px-4 py-2.5 text-center">
+            <td class="px-4 py-2.5 text-center text-[13px]">
               <span class="text-xs text-text-dark">{{ tpl.request_count }}</span>
               <span
                 v-if="tpl.pending_count > 0"
@@ -179,17 +179,17 @@ function handleSaved() {
               </span>
             </td>
             <!-- Status badge -->
-            <td class="px-4 py-2.5">
+            <td class="text-[13px] px-4 py-2.5">
               <N8nBadge :variant="(tpl.is_active ? 'success' : 'subtle') as 'success'" size="xsmall">
                 {{ tpl.is_active ? 'Active' : 'Inactive' }}
               </N8nBadge>
             </td>
             <!-- Updated -->
-            <td class="px-4 py-2.5">
+            <td class="text-[13px] px-4 py-2.5">
               <N8nTimeAgo :date="tpl.updated_at" class="text-xs text-text-xmuted" />
             </td>
             <!-- Actions -->
-            <td class="px-4 py-2.5 text-right">
+            <td class="px-4 py-2.5 text-right text-[13px]">
               <div class="flex items-center justify-end gap-1">
                 <button class="rounded-sm p-1.5 text-text-xmuted hover:text-text-dark" title="Edit" @click="modal = tpl">
                   <N8nIcon icon="pencil" :size="13" />
