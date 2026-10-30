@@ -134,7 +134,7 @@ function cancelDisable() {
       </button>
 
       <!-- Disable flow -->
-      <div v-if="enabled && showDisable" class="space-y-3 rounded-md border border-border bg-bg p-3">
+      <div v-if="enabled && showDisable" class="space-y-3 rounded-xl border border-border bg-bg p-4">
         <p class="text-xs text-text-muted">Enter your current 2FA code to disable.</p>
         <FieldRow label="Code">
           <N8nInput v-model="disableCode" placeholder="123456" />

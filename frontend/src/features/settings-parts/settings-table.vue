@@ -4,7 +4,7 @@
 </script>
 
 <template>
-  <div class="overflow-hidden rounded-md border border-border bg-card shadow-card">
+  <div class="overflow-hidden rounded-xl border border-border bg-card shadow-card">
     <table class="w-full border-collapse text-[13px]">
       <slot />
     </table>

@@ -74,7 +74,7 @@ async function toggleTool(tool: string, next: boolean) {
   <SettingsCard icon="cpu" title="MCP Server" description="Expose n8n Library as an MCP server">
     <div class="space-y-5">
       <!-- Enable toggle -->
-      <div class="flex items-center justify-between rounded-md border border-border bg-bg p-3">
+      <div class="flex items-center justify-between rounded-xl border border-border bg-bg p-4">
         <div>
           <p class="text-sm font-semibold text-text-dark">MCP Server</p>
           <p class="mt-0.5 text-xs text-text-muted">
@@ -97,7 +97,7 @@ async function toggleTool(tool: string, next: boolean) {
 
       <!-- Endpoint URLs -->
       <div class="space-y-2">
-        <p class="text-xs font-semibold uppercase tracking-wide text-text-dark">Endpoint URLs</p>
+        <p class="text-[13px] font-medium text-text-dark">Endpoint URLs</p>
         <div class="space-y-1.5">
           <div>
             <p class="mb-0.5 text-[11px] text-text-xmuted">HTTP (SSE / streamable-http)</p>
@@ -116,9 +116,9 @@ async function toggleTool(tool: string, next: boolean) {
 
       <!-- Per-tool toggles -->
       <div class="space-y-2">
-        <p class="text-xs font-semibold uppercase tracking-wide text-text-dark">Tools</p>
+        <p class="text-[13px] font-medium text-text-dark">Tools</p>
         <p v-if="toolsLoading" class="text-xs text-text-muted">Loading tools...</p>
-        <div v-else class="divide-y divide-border-light rounded-md border border-border">
+        <div v-else class="divide-y divide-border-light rounded-xl border border-border">
           <div v-for="tool in MCP_TOOLS" :key="tool" class="flex items-center justify-between px-3 py-2">
             <span class="font-mono text-sm text-text-dark">{{ tool }}</span>
             <N8nSwitch

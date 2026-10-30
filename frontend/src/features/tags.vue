@@ -90,7 +90,7 @@ function onNameEnter() {
 <template>
   <div class="max-w-xl">
     <!-- Toolbar -->
-    <div class="mb-4 flex items-center justify-between">
+    <div class="mb-5 flex items-center justify-between">
       <span class="text-xs text-text-muted">
         {{ tags.length }} tag{{ tags.length !== 1 ? 's' : '' }}
       </span>
@@ -103,12 +103,12 @@ function onNameEnter() {
       <N8nIcon icon="tags" :size="28" class="mx-auto mb-2 text-text-xmuted" />
       <p class="text-sm text-text-muted">No tags yet</p>
     </div>
-    <div v-else class="overflow-hidden rounded-md border border-border bg-card">
+    <div v-else class="overflow-hidden rounded-xl border border-border bg-card">
       <table class="w-full text-sm">
         <thead>
-          <tr class="border-b border-border-light bg-bg">
-            <th class="px-4 py-2 text-left text-xs font-semibold uppercase text-text-muted">Name</th>
-            <th class="px-4 py-2 text-right text-xs font-semibold uppercase text-text-muted">Workflows</th>
+          <tr class="border-b border-border bg-bg-light">
+            <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Name</th>
+            <th class="px-4 py-2 text-right text-[12px] font-medium text-text-muted">Workflows</th>
             <th class="w-20 px-4 py-2" />
           </tr>
         </thead>

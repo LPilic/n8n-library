@@ -18,7 +18,7 @@ import {
 } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { N8nBadge, N8nButton, N8nIcon, N8nTimeAgo } from '@n8n/design-system'
+import { N8nBadge, N8nButton, N8nHeading, N8nIcon, N8nTimeAgo } from '@n8n/design-system'
 import { api, ApiError } from '@/api/client'
 import { appConfirm } from '@/stores/confirm'
 import { useSse } from '@/composables/useSse'
@@ -521,7 +521,7 @@ function formatRespondedAt(iso: string): string {
     <div class="min-w-0 flex-1">
       <!-- Header -->
       <div class="mb-4 flex items-center gap-3">
-        <h2 class="text-sm font-semibold text-text-dark">Approval Requests</h2>
+        <N8nHeading size="xlarge" tag="h2">Approval Requests</N8nHeading>
         <span
           v-if="pendingCount > 0"
           class="rounded-full bg-warning px-1.5 py-0.5 text-[10px] font-semibold text-white"
@@ -539,7 +539,7 @@ function formatRespondedAt(iso: string): string {
       </div>
 
       <!-- Tabs -->
-      <div class="mb-4 flex gap-1 border-b border-border">
+      <div class="mb-5 flex gap-1 border-b border-border">
         <button
           v-for="t in TABS"
           :key="t.key"
@@ -567,7 +567,7 @@ function formatRespondedAt(iso: string): string {
         <div
           v-for="r in requests"
           :key="r.id"
-          class="cursor-pointer rounded-md border bg-card p-3 transition-colors"
+          class="cursor-pointer rounded-xl border bg-card p-4 transition-colors"
           :class="selectedRequest?.id === r.id ? 'border-primary' : 'border-border hover:border-border-strong'"
           @click="toggleCard(r)"
         >
@@ -625,11 +625,11 @@ function formatRespondedAt(iso: string): string {
 
     <!-- Detail panel (RequestDetailPanel) -->
     <aside v-if="selectedRequest && req" class="w-96 shrink-0">
-      <div class="sticky top-0 overflow-hidden rounded-md border border-border bg-card">
+      <div class="sticky top-0 overflow-hidden rounded-xl border border-border bg-card">
         <div class="flex items-center justify-between border-b border-border px-4 py-3">
           <div class="flex items-center gap-2">
             <N8nIcon :icon="statusIconName(req.status)" :size="13" class="shrink-0" :class="statusIconClass(req.status)" />
-            <h3 class="text-sm font-semibold text-text-dark">{{ req.template_name }}</h3>
+            <N8nHeading size="medium" tag="h3">{{ req.template_name }}</N8nHeading>
           </div>
           <button class="text-lg leading-none text-text-xmuted hover:text-text-dark" @click="selectedRequest = null">&times;</button>
         </div>

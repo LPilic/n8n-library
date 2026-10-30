@@ -193,7 +193,7 @@ const showLogoUrlInput = computed(() => !form.value.brand_logo.startsWith('data:
 
         <!-- Colors -->
         <div class="space-y-3 pt-1">
-          <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Colors</p>
+          <p class="text-[13px] font-medium text-text-muted">Colors</p>
           <ColorField label="Primary" :value="form.brand_primary" @change="setField('brand_primary', $event)" />
           <ColorField label="Primary Hover" :value="form.brand_primary_hover" @change="setField('brand_primary_hover', $event)" />
           <ColorField label="Background" :value="form.brand_bg" @change="setField('brand_bg', $event)" />
@@ -219,7 +219,7 @@ const showLogoUrlInput = computed(() => !form.value.brand_logo.startsWith('data:
 
       <!-- Right: live preview -->
       <div class="shrink-0">
-        <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-text-muted">Live Preview</p>
+        <p class="mb-3 text-[13px] font-medium text-text-muted">Live Preview</p>
         <div
           class="select-none overflow-hidden rounded-md border text-[11px]"
           :style="{ background: form.brand_bg, borderColor: '#e2e4e7', width: '340px' }"

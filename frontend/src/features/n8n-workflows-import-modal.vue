@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { N8nButton, N8nIcon, N8nInput } from '@n8n/design-system'
+import { N8nButton, N8nHeading, N8nIcon, N8nInput } from '@n8n/design-system'
 import { api, ApiError } from '@/api/client'
 import { useToast } from '@/stores/toast'
 import { cn } from '@/lib/utils'
@@ -125,11 +125,11 @@ async function generateDescription() {
 <template>
   <div class="fixed inset-0 z-[120] flex items-center justify-center bg-black/30" @click.self="emit('close')">
     <div
-      class="mx-4 flex flex-col overflow-hidden rounded-lg border border-border bg-bg-light shadow-lg"
+      class="mx-4 flex flex-col overflow-hidden rounded-xl border border-border bg-bg-light shadow-lg"
       :style="{ width: '90vw', maxWidth: '1100px', maxHeight: '90vh' }"
     >
       <div class="flex shrink-0 items-center justify-between border-b border-border px-6 py-3">
-        <h3 class="text-[15px] font-bold text-text-dark">Import: {{ workflow.name }}</h3>
+        <N8nHeading size="medium" tag="h3">Import: {{ workflow.name }}</N8nHeading>
         <div class="flex items-center gap-2">
           <N8nButton variant="outline" size="small" label="Cancel" @click="emit('close')" />
           <N8nButton

@@ -20,7 +20,7 @@ const varCount = computed(() => props.prompt.variables?.length ?? 0)
 
 <template>
   <div
-    class="group cursor-pointer rounded-md border border-border bg-card p-3 transition-colors hover:border-border-focus"
+    class="group cursor-pointer rounded-xl border border-border bg-card p-4 transition-colors hover:border-border-focus"
     @click="emit('open')"
   >
     <div class="mb-2 flex items-start justify-between gap-2">

@@ -138,10 +138,10 @@ async function saveWebhook() {
     <p v-else-if="webhooks.length === 0" class="py-12 text-center text-sm text-text-muted">No webhooks configured.</p>
     <SettingsTable v-else>
       <thead>
-        <tr class="border-b border-border-light bg-bg">
-          <th class="px-4 py-2 text-left text-xs font-semibold text-text-muted uppercase">Name</th>
-          <th class="px-4 py-2 text-left text-xs font-semibold text-text-muted uppercase">URL</th>
-          <th class="px-4 py-2 text-left text-xs font-semibold text-text-muted uppercase">Events</th>
+        <tr class="border-b border-border bg-bg-light">
+          <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Name</th>
+          <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">URL</th>
+          <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Events</th>
           <th class="w-32 px-4 py-2" />
         </tr>
       </thead>

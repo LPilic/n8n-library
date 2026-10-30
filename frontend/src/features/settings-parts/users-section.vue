@@ -105,11 +105,11 @@ async function saveUser() {
     <p v-else-if="users.length === 0" class="py-12 text-center text-sm text-text-muted">No users found</p>
     <SettingsTable v-else>
       <thead>
-        <tr class="border-b border-border-light bg-bg">
-          <th class="px-4 py-2 text-left text-xs font-semibold text-text-muted uppercase">Username</th>
-          <th class="px-4 py-2 text-left text-xs font-semibold text-text-muted uppercase">Email</th>
-          <th class="px-4 py-2 text-left text-xs font-semibold text-text-muted uppercase">Role</th>
-          <th class="px-4 py-2 text-left text-xs font-semibold text-text-muted uppercase">Created</th>
+        <tr class="border-b border-border bg-bg-light">
+          <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Username</th>
+          <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Email</th>
+          <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Role</th>
+          <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Created</th>
           <th class="w-20 px-4 py-2" />
         </tr>
       </thead>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // ─── ImportExportTab ──────────────────────────────────────────────────────────
 import { ref } from 'vue'
-import { N8nButton, N8nIcon } from '@n8n/design-system'
+import { N8nButton, N8nHeading, N8nIcon } from '@n8n/design-system'
 import { api } from '@/api/client'
 import { useToast } from '@/stores/toast'
 import SettingsCard from './settings-card.vue'
@@ -53,8 +53,8 @@ async function handleImport() {
   <SettingsCard icon="upload" title="Export / Import" description="Backup and restore settings, categories, and alerts">
     <div class="space-y-6">
       <div class="space-y-2">
-        <h3 class="text-sm font-semibold text-text-dark">Export</h3>
-        <p class="text-xs text-text-muted">
+        <N8nHeading size="medium" tag="h3">Export</N8nHeading>
+        <p class="text-[13px] text-text-muted">
           Download a JSON snapshot of all settings, categories, instances, and configuration.
         </p>
         <N8nButton variant="brand" size="small" :loading="exporting" :disabled="exporting" @click="handleExport">
@@ -66,8 +66,8 @@ async function handleImport() {
       </div>
 
       <div class="space-y-2 border-t border-border-light pt-4">
-        <h3 class="text-sm font-semibold text-text-dark">Import</h3>
-        <p class="text-xs text-text-muted">
+        <N8nHeading size="medium" tag="h3">Import</N8nHeading>
+        <p class="text-[13px] text-text-muted">
           Upload a previously exported JSON file to restore settings. Existing data may be overwritten.
         </p>
         <div class="flex items-center gap-2">

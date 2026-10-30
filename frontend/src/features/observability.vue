@@ -4,7 +4,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend, type ChartData, type ChartDataset, type ChartOptions } from 'chart.js'
 import { Line } from 'vue-chartjs'
-import { N8nIcon, N8nSelect, N8nOption, N8nSpinner } from '@n8n/design-system'
+import { N8nHeading, N8nIcon, N8nSelect, N8nOption, N8nSpinner } from '@n8n/design-system'
 import { api, ApiError } from '@/api/client'
 import { cn } from '@/lib/utils'
 import { markdownToHtml } from '@/lib/markdown'
@@ -297,34 +297,34 @@ const kpiCards = computed<KpiEntry[]>(() => {
   const s = stats.value
   return [
     {
-      label: 'N8N VERSION',
+      label: 'n8n version',
       value: s.version,
       sub: s.nodeVersion ? `Node ${s.nodeVersion}` : 'n8n version',
     },
     {
-      label: 'UPTIME',
+      label: 'Uptime',
       value: fmtUptime(s.uptime),
       sub: `Leader · ${s.activeWf} active workflows`,
     },
     {
-      label: 'MEMORY (RSS)',
+      label: 'Memory (RSS)',
       value: fmtBytes(s.rss),
       sub: s.maxFds > 0 ? `FDs: ${s.fds} / ${s.maxFds}` : `FDs: ${s.fds}`,
     },
     {
-      label: 'HEAP USAGE',
+      label: 'Heap usage',
       value: `${s.heapPct}%`,
       sub: `${fmtMB(s.heapUsed)} MB / ${fmtMB(s.heapTotal)} MB`,
       color: s.heapPct > 85 ? 'danger' : s.heapPct > 70 ? 'warning' : undefined,
     },
     {
-      label: 'EVENT LOOP LAG',
+      label: 'Event loop lag',
       value: `${s.lagMs.toFixed(1)}ms`,
       sub: s.lagP99Ms > 0 ? `p99: ${s.lagP99Ms.toFixed(1)}ms` : 'p99: —',
       color: s.lagMs > 100 ? 'danger' : s.lagMs > 50 ? 'warning' : undefined,
     },
     {
-      label: 'QUEUE (WAIT / ACTIVE)',
+      label: 'Queue (wait / active)',
       value: `${s.qWait} / ${s.qActive}`,
       sub: `${s.qDone} done, ${s.qFailed} failed`,
     },
@@ -484,7 +484,7 @@ const workerCards = computed<WorkerCard[]>(() =>
   <div>
     <!-- Toolbar -->
     <div class="flex items-center gap-3 mb-5 flex-wrap">
-      <h2 class="text-base font-semibold text-text-dark">Observability</h2>
+      <N8nHeading size="xlarge" tag="h2">Observability</N8nHeading>
       <span class="text-xs text-text-muted ml-1">Updated {{ updatedAt }}</span>
       <div class="ml-auto flex items-center gap-2">
         <N8nSelect
@@ -520,7 +520,7 @@ const workerCards = computed<WorkerCard[]>(() =>
     <!-- AI report output -->
     <div
       v-if="aiReport"
-      class="mb-5 overflow-hidden rounded-md border border-border bg-card p-4 max-w-none text-text-dark"
+      class="mb-5 overflow-hidden rounded-xl border border-border bg-card p-5 max-w-none text-text-dark"
       v-html="aiReportHtml"
     />
 
@@ -529,61 +529,61 @@ const workerCards = computed<WorkerCard[]>(() =>
     </div>
     <template v-else>
       <!-- ── KPI Cards ─────────────────────────────────────────────────── -->
-      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-        <div v-for="kpi in kpiCards" :key="kpi.label" class="overflow-hidden rounded-md border border-border bg-card flex">
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+        <div v-for="kpi in kpiCards" :key="kpi.label" class="overflow-hidden rounded-xl border border-border bg-card flex">
           <div class="w-1 shrink-0 bg-success" />
-          <div class="flex-1 px-3 py-2.5">
+          <div class="flex-1 px-4 py-3">
             <div
-              class="text-xl font-bold leading-tight"
+              class="text-[20px] leading-tight font-semibold"
               :class="kpi.color === 'danger' ? 'text-danger' : kpi.color === 'warning' ? 'text-warning' : 'text-text-dark'"
             >
               {{ kpi.value }}
             </div>
-            <div class="text-[10px] font-semibold text-text-xmuted uppercase tracking-wider mt-0.5">{{ kpi.label }}</div>
-            <div class="text-[11px] text-text-muted mt-0.5 truncate">{{ kpi.sub }}</div>
+            <div class="text-[12px] font-medium text-text-muted mt-0.5">{{ kpi.label }}</div>
+            <div class="text-[12px] text-text-muted mt-0.5 truncate">{{ kpi.sub }}</div>
           </div>
         </div>
       </div>
 
       <!-- ── Charts ────────────────────────────────────────────────────── -->
       <div v-if="hist.length > 1" class="grid md:grid-cols-2 gap-4 mb-6">
-        <div class="rounded-md border border-border bg-card p-3">
-          <div class="text-xs font-semibold text-text-dark mb-2">CPU Usage (Seconds)</div>
+        <div class="rounded-xl border border-border bg-card p-5 shadow-card">
+          <N8nHeading size="medium" tag="h3" class="mb-3">CPU Usage (Seconds)</N8nHeading>
           <div :style="{ height: '160px' }">
             <Line :data="cpuData" :options="cpuOpts" />
           </div>
         </div>
 
-        <div class="rounded-md border border-border bg-card p-3">
-          <div class="text-xs font-semibold text-text-dark mb-2">Memory (RSS)</div>
+        <div class="rounded-xl border border-border bg-card p-5 shadow-card">
+          <N8nHeading size="medium" tag="h3" class="mb-3">Memory (RSS)</N8nHeading>
           <div :style="{ height: '160px' }">
             <Line :data="memData" :options="memOpts" />
           </div>
         </div>
 
-        <div class="rounded-md border border-border bg-card p-3">
-          <div class="text-xs font-semibold text-text-dark mb-2">Heap Usage</div>
+        <div class="rounded-xl border border-border bg-card p-5 shadow-card">
+          <N8nHeading size="medium" tag="h3" class="mb-3">Heap Usage</N8nHeading>
           <div :style="{ height: '160px' }">
             <Line :data="heapData" :options="heapOpts" />
           </div>
         </div>
 
-        <div class="rounded-md border border-border bg-card p-3">
-          <div class="text-xs font-semibold text-text-dark mb-2">Event Loop Lag</div>
+        <div class="rounded-xl border border-border bg-card p-5 shadow-card">
+          <N8nHeading size="medium" tag="h3" class="mb-3">Event Loop Lag</N8nHeading>
           <div :style="{ height: '160px' }">
             <Line :data="lagData" :options="lagOpts" />
           </div>
         </div>
 
-        <div class="rounded-md border border-border bg-card p-3">
-          <div class="text-xs font-semibold text-text-dark mb-2">Queue Jobs</div>
+        <div class="rounded-xl border border-border bg-card p-5 shadow-card">
+          <N8nHeading size="medium" tag="h3" class="mb-3">Queue Jobs</N8nHeading>
           <div :style="{ height: '160px' }">
             <Line :data="queueData" :options="queueOpts" />
           </div>
         </div>
 
-        <div class="rounded-md border border-border bg-card p-3">
-          <div class="text-xs font-semibold text-text-dark mb-2">Active Resources</div>
+        <div class="rounded-xl border border-border bg-card p-5 shadow-card">
+          <N8nHeading size="medium" tag="h3" class="mb-3">Active Resources</N8nHeading>
           <div :style="{ height: '160px' }">
             <Line :data="resourcesData" :options="resourcesOpts" />
           </div>
@@ -592,15 +592,15 @@ const workerCards = computed<WorkerCard[]>(() =>
 
       <!-- ── Workers ───────────────────────────────────────────────────── -->
       <div v-if="workerCards.length > 0" class="mb-6">
-        <h3 class="text-sm font-semibold text-text-dark mb-2">Workers</h3>
-        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <N8nHeading size="medium" tag="h3" class="mb-3">Workers</N8nHeading>
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div
             v-for="w in workerCards"
             :key="w.worker.id || w.worker.name || w.idx"
-            class="overflow-hidden rounded-md border border-border bg-card flex"
+            class="overflow-hidden rounded-xl border border-border bg-card flex"
           >
             <div :class="cn('w-1 shrink-0', w.healthy ? 'bg-success' : 'bg-danger')" />
-            <div class="flex-1 px-3 py-2.5">
+            <div class="flex-1 px-4 py-3">
               <div class="flex items-center justify-between mb-1.5 gap-2">
                 <span class="text-sm font-medium text-text-dark truncate">{{ w.name }}</span>
                 <div class="flex items-center gap-1 shrink-0">
@@ -641,7 +641,7 @@ const workerCards = computed<WorkerCard[]>(() =>
       <!-- ── Raw Metrics Explorer ──────────────────────────────────────── -->
       <div>
         <div class="flex items-center gap-2 mb-3">
-          <h3 class="text-sm font-semibold text-text-dark">Raw Metrics</h3>
+          <N8nHeading size="medium" tag="h3">Raw Metrics</N8nHeading>
           <div class="relative ml-auto">
             <N8nIcon icon="search" :size="13" class="absolute left-2 top-1/2 -translate-y-1/2 text-text-xmuted" />
             <input
@@ -653,7 +653,7 @@ const workerCards = computed<WorkerCard[]>(() =>
           </div>
         </div>
 
-        <div class="overflow-hidden rounded-md border border-border bg-card">
+        <div class="overflow-hidden rounded-xl border border-border bg-card">
           <div v-for="g in groupList" :key="g.prefix" class="border-b border-border-light last:border-b-0">
             <button
               class="w-full text-left px-3 py-2 text-xs font-medium text-text-dark hover:bg-card-hover flex items-center justify-between"

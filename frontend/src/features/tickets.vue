@@ -5,7 +5,7 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { N8nButton, N8nIcon } from '@n8n/design-system'
+import { N8nButton, N8nHeading, N8nIcon } from '@n8n/design-system'
 import { api, ApiError } from '@/api/client'
 import { useToast } from '@/stores/toast'
 import { appConfirm } from '@/stores/confirm'
@@ -119,24 +119,24 @@ async function onDelete(id: number) {
 <template>
   <div class="flex gap-6">
     <!-- KPI Sidebar -->
-    <aside class="hidden w-64 shrink-0 space-y-3 lg:block">
+    <aside class="hidden w-64 shrink-0 space-y-4 lg:block">
       <template v-if="stats">
         <!-- Overview KPI cards -->
-        <div class="grid grid-cols-2 gap-2">
-          <div class="rounded-lg border border-border bg-card p-3 text-center">
-            <div class="text-2xl font-extrabold text-primary">{{ stats.unassigned }}</div>
-            <div class="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">Unassigned</div>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="rounded-xl border border-border bg-card p-4 text-center">
+            <div class="text-[20px] font-semibold text-primary">{{ stats.unassigned }}</div>
+            <div class="mt-0.5 text-[12px] font-medium text-text-muted">Unassigned</div>
           </div>
-          <div class="rounded-lg border border-border bg-card p-3 text-center">
-            <div class="text-2xl font-extrabold text-text-dark">{{ avgResolveLabel }}</div>
-            <div class="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">Avg Resolve</div>
+          <div class="rounded-xl border border-border bg-card p-4 text-center">
+            <div class="text-[20px] font-semibold text-text-dark">{{ avgResolveLabel }}</div>
+            <div class="mt-0.5 text-[12px] font-medium text-text-muted">Avg Resolve</div>
           </div>
         </div>
 
         <!-- By Status -->
-        <div class="overflow-hidden rounded-md border border-border bg-card">
+        <div class="overflow-hidden rounded-xl border border-border bg-card">
           <div class="border-b border-border-light px-3 py-2">
-            <h3 class="text-[10px] font-bold uppercase tracking-[0.08em] text-text-xmuted">By Status</h3>
+            <N8nHeading size="medium" tag="h3">By Status</N8nHeading>
           </div>
           <div class="p-1">
             <button
@@ -157,9 +157,9 @@ async function onDelete(id: number) {
         </div>
 
         <!-- By Priority -->
-        <div class="overflow-hidden rounded-md border border-border bg-card">
+        <div class="overflow-hidden rounded-xl border border-border bg-card">
           <div class="border-b border-border-light px-3 py-2">
-            <h3 class="text-[10px] font-bold uppercase tracking-[0.08em] text-text-xmuted">By Priority</h3>
+            <N8nHeading size="medium" tag="h3">By Priority</N8nHeading>
           </div>
           <div class="p-1">
             <button
@@ -187,7 +187,7 @@ async function onDelete(id: number) {
     <!-- Main -->
     <div class="min-w-0 flex-1">
       <!-- Toolbar -->
-      <div class="mb-4 flex flex-wrap items-center gap-2">
+      <div class="mb-5 flex flex-wrap items-center gap-2">
         <div class="relative min-w-0 max-w-xs flex-1">
           <N8nIcon icon="search" :size="14" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-xmuted" />
           <input
@@ -236,7 +236,7 @@ async function onDelete(id: number) {
       <div v-else-if="tickets.length === 0" class="py-12 text-center">
         <p class="text-text-muted">No tickets found</p>
       </div>
-      <div v-else class="space-y-2">
+      <div v-else class="space-y-4">
         <TicketCard
           v-for="ticket in tickets"
           :key="ticket.id"

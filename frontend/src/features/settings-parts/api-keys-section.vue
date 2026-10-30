@@ -97,7 +97,7 @@ async function createKey() {
     </template>
 
     <!-- One-time key reveal -->
-    <div v-if="newKey" class="mb-4 rounded-md border border-primary/30 bg-primary-light p-3">
+    <div v-if="newKey" class="mb-4 rounded-xl border border-primary/30 bg-primary-light p-4">
       <p class="mb-1 text-xs font-medium text-primary">API key created — copy it now, it won't be shown again.</p>
       <div class="flex items-center gap-2">
         <code class="flex-1 truncate rounded-sm border border-border bg-card px-2 py-1.5 font-mono text-xs text-text-dark">
@@ -126,12 +126,12 @@ async function createKey() {
     <p v-else-if="keys.length === 0" class="py-12 text-center text-sm text-text-muted">No API keys yet</p>
     <SettingsTable v-else>
       <thead>
-        <tr class="border-b border-border-light bg-bg">
-          <th class="px-4 py-2 text-left text-xs font-semibold text-text-muted uppercase">Name</th>
-          <th class="px-4 py-2 text-left text-xs font-semibold text-text-muted uppercase">Prefix</th>
-          <th class="px-4 py-2 text-left text-xs font-semibold text-text-muted uppercase">Role</th>
-          <th class="px-4 py-2 text-left text-xs font-semibold text-text-muted uppercase">Last Used</th>
-          <th class="px-4 py-2 text-left text-xs font-semibold text-text-muted uppercase">Expires</th>
+        <tr class="border-b border-border bg-bg-light">
+          <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Name</th>
+          <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Prefix</th>
+          <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Role</th>
+          <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Last Used</th>
+          <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Expires</th>
           <th class="w-16 px-4 py-2" />
         </tr>
       </thead>

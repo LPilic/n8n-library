@@ -30,14 +30,14 @@ function onClick() {
 
 <template>
   <div
-    class="card-hover-effect flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-border bg-card p-4"
+    class="card-hover-effect flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-border bg-card p-5"
     @click="onClick"
   >
     <div class="min-w-0 flex-1">
-      <div class="truncate text-[11px] font-semibold text-text-muted tracking-[0.04em] uppercase">{{ sublabel }}</div>
-      <div class="mt-1 truncate text-[22px] leading-tight font-semibold text-text-dark">{{ label }}</div>
+      <div class="truncate text-[12px] font-medium text-text-muted">{{ sublabel }}</div>
+      <div class="mt-1 truncate text-[20px] leading-tight font-semibold text-text-dark">{{ label }}</div>
     </div>
-    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" :class="colorMap[color ?? ''] ?? 'bg-bg-light text-text-muted'">
+    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" :class="colorMap[color ?? ''] ?? 'bg-bg-light text-text-muted'">
       <N8nIcon :icon="icon" :size="18" />
     </div>
   </div>

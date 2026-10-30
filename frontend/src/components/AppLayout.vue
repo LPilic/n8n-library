@@ -268,10 +268,12 @@ watch(
         <span class="ml-2 hidden text-[13px] font-medium text-text-dark sm:inline">{{ user?.username }}</span>
       </header>
 
-      <main class="main-content flex-1 overflow-y-auto p-4 md:p-6">
-        <ErrorBoundary>
-          <RouterView />
-        </ErrorBoundary>
+      <main class="main-content flex-1 overflow-y-auto">
+        <div class="mx-auto w-full max-w-[1120px] px-4 py-5 md:px-6 md:py-6 lg:py-8 lg:pb-10">
+          <ErrorBoundary>
+            <RouterView />
+          </ErrorBoundary>
+        </div>
       </main>
     </div>
 

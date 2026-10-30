@@ -75,17 +75,17 @@ const recentExecs = computed(
   <div v-else>
     <!-- Greeting -->
     <div class="mb-6">
-      <N8nHeading size="large" tag="h2">{{ greeting }}, {{ data.user.username }}</N8nHeading>
+      <N8nHeading size="xlarge" tag="h2">{{ greeting }}, {{ data.user.username }}</N8nHeading>
       <N8nText size="small" color="text-light">Here's what's happening across your n8n environment</N8nText>
     </div>
 
     <!-- KPI row -->
-    <div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-5">
+    <div class="mb-5 grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-5">
       <KpiCard
         v-if="isWriter && data.n8nHealth"
         icon="activity"
-        :label="`n8n Instance${data.n8nHealth.latencyMs ? ` · ${data.n8nHealth.latencyMs}ms` : ''}`"
-        :sublabel="healthLabel"
+        :label="healthLabel"
+        :sublabel="`n8n Instance${data.n8nHealth.latencyMs ? ` · ${data.n8nHealth.latencyMs}ms` : ''}`"
         :color="healthColor"
         link="/monitoring"
       />
@@ -104,7 +104,7 @@ const recentExecs = computed(
     </div>
 
     <!-- Two-column layout -->
-    <div class="grid gap-4 lg:grid-cols-2">
+    <div class="grid gap-6 lg:grid-cols-2">
       <!-- Left column -->
       <div class="flex flex-col gap-4">
         <N8nCard v-if="data.tickets.myTickets.length > 0">
@@ -124,7 +124,7 @@ const recentExecs = computed(
               <N8nBadge :variant="(priorityVariant(t.priority as string) as 'primary')" size="small">
                 {{ t.priority }}
               </N8nBadge>
-              <span class="flex-1 truncate text-text-dark">{{ t.title }}</span>
+              <span class="flex-1 truncate text-[13px] text-text-dark underline decoration-border-strong underline-offset-2">{{ t.title }}</span>
               <N8nBadge :variant="(statusVariant(t.status as string) as 'primary')" size="small">
                 {{ (t.status as string).replace('_', ' ') }}
               </N8nBadge>
@@ -147,7 +147,7 @@ const recentExecs = computed(
               @click="router.push(`/monitoring/${e.id}`)"
             >
               <N8nIcon icon="circle-x" :size="14" class="shrink-0 text-danger" />
-              <span class="flex-1 truncate text-text-dark">
+              <span class="flex-1 truncate text-[13px] text-text-dark underline decoration-border-strong underline-offset-2">
                 {{ (e.workflowName as string) || `Workflow #${e.workflowId}` }}
               </span>
               <span class="text-xs text-text-xmuted">{{ timeAgo((e.stoppedAt || e.startedAt) as string) }}</span>
@@ -193,7 +193,7 @@ const recentExecs = computed(
                 :class="e.status === 'success' ? 'text-success' : e.status === 'error' ? 'text-danger' : 'text-warning'"
                 class="shrink-0"
               />
-              <span class="flex-1 truncate text-text-dark">
+              <span class="flex-1 truncate text-[13px] text-text-dark underline decoration-border-strong underline-offset-2">
                 {{ (e.workflowName as string) || `Workflow #${e.workflowId}` }}
               </span>
               <span class="text-xs text-text-xmuted">{{ timeAgo((e.stoppedAt || e.startedAt) as string) }}</span>
@@ -216,7 +216,7 @@ const recentExecs = computed(
               @click="router.push(`/kb/${a.id}`)"
             >
               <N8nIcon icon="file-text" :size="14" class="shrink-0 text-text-muted" />
-              <span class="flex-1 truncate text-text-dark">{{ a.title }}</span>
+              <span class="flex-1 truncate text-[13px] text-text-dark underline decoration-border-strong underline-offset-2">{{ a.title }}</span>
               <span class="text-xs text-text-xmuted">{{ a.view_count }} views</span>
             </div>
           </div>
@@ -237,7 +237,7 @@ const recentExecs = computed(
               @click="router.push(`/tickets/${t.id}`)"
             >
               <N8nBadge :variant="(priorityVariant(t.priority as string) as 'primary')" size="small">{{ t.priority }}</N8nBadge>
-              <span class="flex-1 truncate text-text-dark">{{ t.title }}</span>
+              <span class="flex-1 truncate text-[13px] text-text-dark underline decoration-border-strong underline-offset-2">{{ t.title }}</span>
               <span class="text-xs text-text-xmuted">{{ timeAgo(t.created_at as string) }}</span>
             </div>
           </div>

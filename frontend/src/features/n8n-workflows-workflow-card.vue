@@ -45,7 +45,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="card-hover-effect flex flex-col rounded-lg border border-border bg-card p-5 shadow-sm">
+  <div class="card-hover-effect flex flex-col rounded-xl border border-border bg-card p-5 shadow-sm">
     <div class="mb-3">
       <NodeFlow :nodes="workflow.nodePreview" :max-show="12" previewable @preview="emit('preview')" />
     </div>

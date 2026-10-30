@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { N8nBadge, N8nButton, N8nIcon } from '@n8n/design-system'
+import { N8nBadge, N8nButton, N8nHeading, N8nIcon } from '@n8n/design-system'
 import { api, ApiError } from '@/api/client'
 import { useToast } from '@/stores/toast'
 import type { BadgeVariant } from '@n8n/design-system'
@@ -90,8 +90,8 @@ const totalHigh = computed(() =>
     <!-- Header -->
     <div class="mb-6 flex items-center gap-3">
       <div class="flex-1">
-        <h2 class="text-base font-semibold text-text-dark">Security Audit</h2>
-        <p class="mt-0.5 text-xs text-text-muted">
+        <N8nHeading size="xlarge" tag="h2">Security Audit</N8nHeading>
+        <p class="mt-0.5 text-[13px] text-text-muted">
           Scan your n8n instance for credential exposure, risky nodes, and configuration issues.
         </p>
       </div>
@@ -104,7 +104,7 @@ const totalHigh = computed(() =>
     <!-- Summary banner -->
     <div
       v-if="report"
-      class="mb-4 flex items-center gap-3 rounded-md border px-4 py-3"
+      class="mb-4 flex items-center gap-3 rounded-xl border px-4 py-3"
       :class="totalHigh > 0 ? 'border-danger/30 bg-danger-light text-danger' : 'border-success/30 bg-success-light text-success'"
     >
       <N8nIcon :icon="totalHigh > 0 ? 'shield-alert' : 'shield-check'" :size="16" />
@@ -114,11 +114,11 @@ const totalHigh = computed(() =>
     </div>
 
     <!-- Categories -->
-    <div v-if="report" class="space-y-2">
+    <div v-if="report" class="space-y-4">
       <div
         v-for="cat in CATEGORY_ORDER"
         :key="cat"
-        class="overflow-hidden rounded-md border border-border bg-card"
+        class="overflow-hidden rounded-xl border border-border bg-card"
       >
         <button
           class="flex w-full items-center gap-2 px-4 py-2.5 transition-colors hover:bg-card-hover"

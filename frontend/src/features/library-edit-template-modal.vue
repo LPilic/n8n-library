@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { N8nButton, N8nInput } from '@n8n/design-system'
+import { N8nButton, N8nHeading, N8nInput } from '@n8n/design-system'
 import { api, ApiError } from '@/api/client'
 import { useToast } from '@/stores/toast'
 import N8nDemoPreview from '@/components/N8nDemoPreview.vue'
@@ -120,12 +120,12 @@ async function handleSave() {
 <template>
   <div class="fixed inset-0 z-[120] flex items-center justify-center bg-black/30">
     <div
-      class="mx-4 flex flex-col overflow-hidden rounded-lg border border-border bg-bg-light shadow-lg"
+      class="mx-4 flex flex-col overflow-hidden rounded-xl border border-border bg-bg-light shadow-lg"
       :style="{ width: '90vw', maxWidth: '1100px', maxHeight: '90vh' }"
     >
       <!-- Header -->
       <div class="flex shrink-0 items-center justify-between border-b border-border px-6 py-3">
-        <h3 class="text-[15px] font-bold text-text-dark">Edit Template #{{ templateId }}</h3>
+        <N8nHeading size="medium" tag="h3">Edit Template #{{ templateId }}</N8nHeading>
         <div class="flex items-center gap-2">
           <N8nButton
             v-if="aiEnabled && workflow"

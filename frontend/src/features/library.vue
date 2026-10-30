@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { N8nIcon, N8nInput } from '@n8n/design-system'
+import { N8nHeading, N8nIcon, N8nInput } from '@n8n/design-system'
 import { api, ApiError } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/stores/toast'
@@ -136,17 +136,17 @@ async function openDocs(templateId: number, templateName: string) {
 <template>
   <div class="flex gap-6">
     <!-- Sidebar -->
-    <aside class="hidden w-64 shrink-0 space-y-3 lg:block">
+    <aside class="hidden w-64 shrink-0 space-y-4 lg:block">
       <!-- Template count -->
-      <div class="rounded-lg border border-border bg-card p-4 text-center">
-        <div class="text-3xl font-extrabold text-primary">{{ templates.length }}</div>
-        <div class="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted">Templates</div>
+      <div class="rounded-xl border border-border bg-card p-5 text-center">
+        <div class="text-[20px] leading-tight font-semibold text-primary">{{ templates.length }}</div>
+        <div class="mt-1 text-[12px] font-medium text-text-muted">Templates</div>
       </div>
 
       <!-- Categories -->
-      <div class="overflow-hidden rounded-lg border border-border bg-card">
-        <div class="border-b border-border-light px-3 py-2">
-          <h3 class="text-[10px] font-bold uppercase tracking-[0.08em] text-text-xmuted">Categories</h3>
+      <div class="overflow-hidden rounded-xl border border-border bg-card">
+        <div class="border-b border-border-light px-3 py-2.5">
+          <N8nHeading size="medium" tag="h3">Categories</N8nHeading>
         </div>
         <div class="p-1">
           <button
@@ -174,7 +174,7 @@ async function openDocs(templateId: number, templateName: string) {
     </aside>
 
     <div class="min-w-0 flex-1">
-      <div class="mb-4 flex items-center gap-3">
+      <div class="mb-5 flex items-center gap-3">
         <N8nInput
           v-model="search"
           placeholder="Search templates..."

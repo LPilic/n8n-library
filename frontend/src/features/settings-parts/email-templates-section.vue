@@ -221,8 +221,8 @@ const keyOptions = computed(() =>
       <!-- Right: Always-visible preview -->
       <div class="w-full shrink-0 lg:w-1/2">
         <div class="sticky top-0">
-          <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">Preview</p>
-          <div v-if="preview" class="overflow-hidden rounded-lg border border-border bg-white">
+          <p class="mb-2 text-[13px] font-medium text-text-muted">Preview</p>
+          <div v-if="preview" class="overflow-hidden rounded-xl border border-border bg-white">
             <div class="truncate border-b border-border-light bg-bg px-3 py-1.5 text-[11px] text-text-muted">
               Subject: {{ preview.subject }}
             </div>
@@ -236,7 +236,7 @@ const keyOptions = computed(() =>
           </div>
           <div
             v-else
-            class="flex items-center justify-center rounded-lg border border-border bg-bg text-sm italic text-text-xmuted"
+            class="flex items-center justify-center rounded-xl border border-border bg-bg text-sm italic text-text-xmuted"
             style="height: 300px"
           >
             Click "Refresh Preview" to see the email

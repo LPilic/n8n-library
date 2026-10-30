@@ -432,7 +432,7 @@ const WF_FILTERS: Array<'all' | 'active' | 'inactive'> = ['all', 'active', 'inac
     <!-- Header row: title + health + controls (n8n Insights style) -->
     <div class="mb-4 flex items-center justify-between gap-3 flex-wrap">
       <div class="flex items-center gap-3">
-        <N8nHeading size="large" tag="h2">Monitoring</N8nHeading>
+        <N8nHeading size="xlarge" tag="h2">Monitoring</N8nHeading>
         <span v-if="stats" class="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold" :class="healthPill.cls">
           <span class="inline-block h-1.5 w-1.5 rounded-full bg-current" :class="healthPill.pulse && 'animate-pulse'" />
           {{ healthPill.label }}
@@ -463,13 +463,13 @@ const WF_FILTERS: Array<'all' | 'active' | 'inactive'> = ['all', 'active', 'inac
     </div>
 
     <!-- KPI strip: single card divided into columns -->
-    <div v-if="stats" class="mb-4 grid grid-cols-2 overflow-hidden rounded-xl border border-border bg-card sm:grid-cols-3 lg:grid-cols-6">
+    <div v-if="stats" class="mb-5 grid grid-cols-2 overflow-hidden rounded-xl border border-border bg-card sm:grid-cols-3 lg:grid-cols-6">
       <button
         v-for="(col, i) in kpiColumns"
         :key="col.label"
         type="button"
         :class="cn(
-          'relative flex flex-col items-start px-4 py-3 text-left outline-none transition-colors',
+          'relative flex flex-col items-start px-5 py-3.5 text-left outline-none transition-colors',
           i > 0 && 'border-l border-border-light',
           col.filter ? 'cursor-pointer hover:bg-card-hover' : 'cursor-default',
           col.active ? 'bg-primary-light' : '',
@@ -478,16 +478,16 @@ const WF_FILTERS: Array<'all' | 'active' | 'inactive'> = ['all', 'active', 'inac
       >
         <span v-if="col.active" class="absolute inset-x-0 bottom-0 h-[2px] bg-primary" />
         <span class="text-[13px] font-medium text-text-dark">{{ col.label }}</span>
-        <span class="text-[11px] text-text-muted">{{ col.hint }}</span>
-        <span class="mt-1.5 text-[22px] leading-tight font-semibold" :class="col.valueClass || 'text-text-dark'">{{ col.value }}</span>
+        <span class="text-[12px] text-text-muted">{{ col.hint }}</span>
+        <span class="mt-2 text-[20px] leading-tight font-semibold" :class="col.valueClass || 'text-text-dark'">{{ col.value }}</span>
       </button>
     </div>
-    <div v-else class="mb-4 flex items-center gap-2 py-6 text-sm text-text-muted">
+    <div v-else class="mb-5 flex items-center gap-2 py-6 text-sm text-text-muted">
       <N8nSpinner size="small" /> Loading instance stats...
     </div>
 
     <!-- Execution history (last 7 days, like n8n Insights "Breakdown by day") -->
-    <div v-if="stats" class="mb-4 rounded-xl border border-border bg-card p-4">
+    <div v-if="stats" class="mb-5 rounded-xl border border-border bg-card p-5 shadow-card">
       <N8nHeading size="medium" tag="h3" class="mb-3">Breakdown by day · Last 7 days</N8nHeading>
       <div class="h-[240px]">
         <Bar :data="barData" :options="barOptions" />

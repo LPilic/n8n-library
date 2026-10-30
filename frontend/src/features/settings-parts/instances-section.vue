@@ -142,9 +142,9 @@ async function saveInstance() {
     <p v-else-if="instances.length === 0" class="py-12 text-center text-sm text-text-muted">No instances configured</p>
     <SettingsTable v-else>
       <thead>
-        <tr class="border-b border-border-light bg-bg">
-          <th class="px-4 py-2 text-left text-xs font-semibold text-text-muted uppercase">Instance</th>
-          <th class="px-4 py-2 text-left text-xs font-semibold text-text-muted uppercase">Status</th>
+        <tr class="border-b border-border bg-bg-light">
+          <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Instance</th>
+          <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Status</th>
           <th class="w-20 px-4 py-2" />
         </tr>
       </thead>
@@ -213,7 +213,7 @@ async function saveInstance() {
         <!-- Workers -->
         <div>
           <div class="mb-2 flex items-center justify-between">
-            <label class="text-[12px] font-semibold uppercase tracking-wide text-text-muted">Workers (Queue Mode)</label>
+            <label class="text-[12px] font-medium text-text-muted">Workers (Queue Mode)</label>
             <button type="button" class="text-[11px] font-semibold text-primary hover:text-primary-hover" @click="addWorker">
               + Add Worker
             </button>

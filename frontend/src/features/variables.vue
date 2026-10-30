@@ -88,7 +88,7 @@ async function save() {
 <template>
   <div class="max-w-2xl">
     <!-- Toolbar -->
-    <div class="mb-4 flex items-center justify-between">
+    <div class="mb-5 flex items-center justify-between">
       <span class="text-xs text-text-muted">
         {{ variables.length }} variable{{ variables.length !== 1 ? 's' : '' }}
       </span>
@@ -100,12 +100,12 @@ async function save() {
     <div v-else-if="variables.length === 0" class="py-12 text-center text-sm text-text-muted">
       No variables defined
     </div>
-    <div v-else class="overflow-hidden rounded-md border border-border bg-card">
+    <div v-else class="overflow-hidden rounded-xl border border-border bg-card">
       <table class="w-full text-sm">
         <thead>
-          <tr class="border-b border-border-light bg-bg">
-            <th class="px-4 py-2 text-left text-xs font-semibold uppercase text-text-muted">Key</th>
-            <th class="px-4 py-2 text-left text-xs font-semibold uppercase text-text-muted">Value</th>
+          <tr class="border-b border-border bg-bg-light">
+            <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Key</th>
+            <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Value</th>
             <th class="w-20 px-4 py-2" />
           </tr>
         </thead>

@@ -175,11 +175,11 @@ async function saveCategory() {
     <p v-else-if="categories.length === 0" class="py-12 text-center text-sm text-text-muted">No categories defined</p>
     <SettingsTable v-else>
       <thead>
-        <tr class="border-b border-border-light bg-bg">
-          <th class="px-4 py-2 text-left text-xs font-semibold text-text-muted uppercase">Icon</th>
-          <th class="px-4 py-2 text-left text-xs font-semibold text-text-muted uppercase">Name</th>
-          <th class="px-4 py-2 text-left text-xs font-semibold text-text-muted uppercase">Description</th>
-          <th v-if="cfg.hasSlug" class="px-4 py-2 text-left text-xs font-semibold text-text-muted uppercase">Slug</th>
+        <tr class="border-b border-border bg-bg-light">
+          <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Icon</th>
+          <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Name</th>
+          <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Description</th>
+          <th v-if="cfg.hasSlug" class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Slug</th>
           <th class="w-20 px-4 py-2" />
         </tr>
       </thead>

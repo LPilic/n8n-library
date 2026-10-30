@@ -3,7 +3,7 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { N8nButton, N8nIcon, N8nOption, N8nSelect } from '@n8n/design-system'
+import { N8nButton, N8nHeading, N8nIcon, N8nOption, N8nSelect } from '@n8n/design-system'
 import { api, ApiError } from '@/api/client'
 import { useToast } from '@/stores/toast'
 import { appConfirm } from '@/stores/confirm'
@@ -82,8 +82,13 @@ function onCreated() {
 
 <template>
   <div>
+    <!-- Page header -->
+    <div class="mb-6">
+      <N8nHeading size="xlarge" tag="h2">Prompts</N8nHeading>
+    </div>
+
     <!-- Toolbar -->
-    <div class="mb-4 flex flex-wrap items-center gap-2">
+    <div class="mb-5 flex flex-wrap items-center gap-2">
       <div class="relative min-w-0 max-w-sm flex-1">
         <N8nIcon icon="search" :size="14" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-xmuted" />
         <!-- Plain input: icon overlay + compact padding -->
@@ -139,7 +144,7 @@ function onCreated() {
     <div v-else-if="prompts.length === 0" class="py-12 text-center">
       <p class="text-text-muted">No prompts found</p>
     </div>
-    <div v-else class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+    <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
       <PromptCard
         v-for="prompt in prompts"
         :key="prompt.id"
@@ -150,7 +155,7 @@ function onCreated() {
     </div>
 
     <!-- Pagination -->
-    <div v-if="data && data.pages > 1" class="mt-4 flex items-center justify-center gap-2">
+    <div v-if="data && data.pages > 1" class="mt-5 flex items-center justify-center gap-2">
       <button
         :disabled="page <= 1"
         class="rounded-sm border border-input-border bg-input-bg px-3 py-1 text-xs text-text-muted hover:bg-card-hover disabled:opacity-40"

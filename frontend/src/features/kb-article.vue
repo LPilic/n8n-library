@@ -4,7 +4,7 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { N8nIcon, N8nSpinner } from '@n8n/design-system'
+import { N8nHeading, N8nIcon, N8nSpinner } from '@n8n/design-system'
 import { api, ApiError } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/stores/toast'
@@ -203,14 +203,14 @@ function attachmentHref(att: NonNullable<KbArticle['attachments']>[number]): str
   <div v-else class="max-w-3xl">
     <!-- Back button -->
     <button
-      class="mb-4 inline-block text-sm text-primary transition-colors hover:text-primary-hover"
+      class="mb-5 inline-block text-sm text-primary transition-colors hover:text-primary-hover"
       @click="router.push('/kb')"
     >
       &larr; Back to Knowledge Base
     </button>
 
     <!-- Article header -->
-    <div class="mb-4 rounded-md border border-border bg-card p-5">
+    <div class="mb-6 rounded-xl border border-border bg-card p-5">
       <div class="mb-3 flex items-start justify-between gap-3">
         <div class="min-w-0 flex-1">
           <div class="mb-1 flex flex-wrap items-center gap-2">
@@ -229,7 +229,7 @@ function attachmentHref(att: NonNullable<KbArticle['attachments']>[number]): str
               {{ article.status }}
             </span>
           </div>
-          <h1 class="text-xl font-semibold leading-snug text-text-dark">{{ article.title }}</h1>
+          <N8nHeading size="xlarge" tag="h2" class="leading-snug">{{ article.title }}</N8nHeading>
         </div>
 
         <!-- Action buttons -->
@@ -330,8 +330,8 @@ function attachmentHref(att: NonNullable<KbArticle['attachments']>[number]): str
       <p v-else class="text-sm italic text-text-muted">No content available.</p>
 
       <!-- Attachments -->
-      <div v-if="(article.attachments ?? []).length > 0" class="mt-4 border-t border-border-light pt-4">
-        <h3 class="mb-2 text-xs font-semibold uppercase text-text-muted">Attachments</h3>
+      <div v-if="(article.attachments ?? []).length > 0" class="mt-5 border-t border-border-light pt-4">
+        <N8nHeading size="medium" tag="h3" class="mb-2">Attachments</N8nHeading>
         <div class="space-y-1">
           <a
             v-for="att in article.attachments ?? []"
@@ -351,7 +351,7 @@ function attachmentHref(att: NonNullable<KbArticle['attachments']>[number]): str
     </div>
 
     <!-- Feedback -->
-    <div class="rounded-lg border border-border bg-card p-4">
+    <div class="rounded-xl border border-border bg-card p-5">
       <p class="mb-3 text-sm font-medium text-text-dark">Was this article helpful?</p>
       <div class="flex items-center gap-2">
         <button

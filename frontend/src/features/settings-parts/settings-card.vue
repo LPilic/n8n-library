@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { N8nIcon } from '@n8n/design-system'
+import { N8nHeading, N8nIcon } from '@n8n/design-system'
 
 defineProps<{
   /** Lucide kebab-case icon name, rendered in a tinted square */
@@ -11,15 +11,15 @@ defineProps<{
 
 <template>
   <!-- Card wrapper matching legacy settings section design -->
-  <div class="mb-6 rounded-md border border-border bg-card p-6 shadow-card">
+  <div class="mb-6 rounded-xl border border-border bg-card p-6 shadow-card">
     <div class="mb-4 flex items-start justify-between">
       <div class="flex items-center gap-3">
-        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <N8nIcon :icon="icon" :size="20" />
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <N8nIcon :icon="icon" :size="18" />
         </div>
         <div>
-          <h3 class="text-[15px] font-semibold text-text-dark">{{ title }}</h3>
-          <p v-if="description" class="mt-0.5 text-xs text-text-muted">{{ description }}</p>
+          <N8nHeading size="medium" tag="h3">{{ title }}</N8nHeading>
+          <p v-if="description" class="mt-0.5 text-[13px] text-text-muted">{{ description }}</p>
         </div>
       </div>
       <!-- Header action (e.g. "New User" button) -->

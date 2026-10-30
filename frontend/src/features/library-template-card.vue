@@ -46,7 +46,7 @@ const descriptionHtml = computed(() =>
 </script>
 
 <template>
-  <div class="card-hover-effect flex flex-col rounded-lg border border-border bg-card p-5 shadow-sm">
+  <div class="card-hover-effect flex flex-col rounded-xl border border-border bg-card p-5 shadow-sm">
     <!-- Node flow preview — clickable to open full n8n-demo preview -->
     <div class="mb-3">
       <NodeFlow :nodes="nodes" :max-show="12" previewable @preview="emit('preview')" />

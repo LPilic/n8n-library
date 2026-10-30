@@ -520,12 +520,12 @@ function serverSubtitle(srv: McpServer): string {
       <div v-if="serversLoading" class="flex items-center gap-2 text-sm text-text-muted">
         <N8nSpinner /> Loading servers...
       </div>
-      <div v-else-if="servers.length === 0" class="text-center border border-dashed border-border rounded-md py-10">
+      <div v-else-if="servers.length === 0" class="text-center border border-dashed border-border rounded-xl py-10">
         <N8nIcon icon="server" :size="24" class="mx-auto mb-2 text-text-xmuted" />
         <p class="text-sm text-text-muted">No MCP servers configured</p>
         <p class="text-xs text-text-xmuted mt-0.5">Add a server to enable tool use in AI features</p>
       </div>
-      <div v-else class="border border-border rounded-md overflow-hidden divide-y divide-border-light">
+      <div v-else class="border border-border rounded-xl overflow-hidden divide-y divide-border-light">
         <div v-for="srv in servers" :key="srv.id" class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-card-hover">
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium text-text-dark truncate">{{ srv.name }}</p>
@@ -564,12 +564,12 @@ function serverSubtitle(srv: McpServer): string {
 
       <!-- Add/Edit modal -->
       <div v-if="modalServer !== null" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-        <div class="flex max-h-[85vh] w-full max-w-md flex-col rounded-md border border-border bg-card shadow-lg">
+        <div class="flex max-h-[85vh] w-full max-w-md flex-col rounded-xl border border-border bg-card shadow-lg">
           <!-- Header -->
           <div class="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
-            <h2 class="text-sm font-semibold text-text-dark">
+            <N8nHeading size="medium" tag="h3">
               {{ isEditing ? 'Edit MCP Server' : 'Add MCP Server' }}
-            </h2>
+            </N8nHeading>
             <button class="cursor-pointer text-lg leading-none text-text-xmuted hover:text-text-dark" @click="modalServer = null">&times;</button>
           </div>
 

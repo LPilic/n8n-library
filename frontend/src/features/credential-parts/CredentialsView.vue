@@ -131,14 +131,14 @@ function onTransferDone() {
 </script>
 
 <template>
-  <div class="flex gap-4">
+  <div class="flex gap-6">
     <!-- Sidebar -->
     <CredentialsSidebar v-model:type-filter="typeFilter" :credentials="credentials" />
 
     <!-- Main -->
     <div class="min-w-0 flex-1">
       <!-- Toolbar -->
-      <div class="mb-4 flex flex-wrap items-center gap-2">
+      <div class="mb-5 flex flex-wrap items-center gap-2">
         <div class="relative min-w-0 max-w-xs flex-1">
           <N8nIcon icon="search" :size="14" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-xmuted" />
           <input
@@ -170,15 +170,15 @@ function onTransferDone() {
         <N8nIcon icon="key-round" :size="28" class="mx-auto mb-2 text-text-xmuted" />
         <p class="text-sm text-text-muted">No credentials found</p>
       </div>
-      <div v-else class="overflow-hidden rounded-md border border-border bg-card">
+      <div v-else class="overflow-hidden rounded-xl border border-border bg-card">
         <div class="overflow-x-auto">
           <table class="w-full">
             <thead>
-              <tr class="border-b border-border-light bg-bg">
-                <th class="px-4 py-2 text-left text-xs font-semibold uppercase text-text-muted">Name</th>
-                <th class="px-4 py-2 text-left text-xs font-semibold uppercase text-text-muted">Type</th>
-                <th class="px-4 py-2 text-left text-xs font-semibold uppercase text-text-muted">Owner</th>
-                <th class="whitespace-nowrap px-4 py-2 text-left text-xs font-semibold uppercase text-text-muted">Created</th>
+              <tr class="border-b border-border bg-bg-light">
+                <th class="px-4 py-2.5 text-left text-[12px] font-medium normal-case text-text-muted">Name</th>
+                <th class="px-4 py-2.5 text-left text-[12px] font-medium normal-case text-text-muted">Type</th>
+                <th class="px-4 py-2.5 text-left text-[12px] font-medium normal-case text-text-muted">Owner</th>
+                <th class="whitespace-nowrap px-4 py-2.5 text-left text-[12px] font-medium normal-case text-text-muted">Created</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-border-light">
@@ -191,7 +191,7 @@ function onTransferDone() {
                 <td class="px-4 py-2.5">
                   <span class="flex items-center gap-1.5">
                     <N8nIcon icon="key-round" :size="12" class="shrink-0 text-text-xmuted" />
-                    <span class="font-medium text-text-dark">{{ cred.name }}</span>
+                    <span class="font-medium text-text-dark underline decoration-border-strong underline-offset-2">{{ cred.name }}</span>
                   </span>
                 </td>
                 <td class="px-4 py-2.5">

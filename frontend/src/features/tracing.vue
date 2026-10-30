@@ -3,7 +3,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
-import { N8nBadge, N8nButton, N8nCard, N8nHeading, N8nIcon, N8nInput, N8nSelect, N8nOption, N8nText } from '@n8n/design-system'
+import { N8nBadge, N8nButton, N8nCard, N8nHeading, N8nIcon, N8nInput, N8nSelect, N8nOption } from '@n8n/design-system'
 import { api, ApiError } from '@/api/client'
 import { formatDuration } from '@/lib/utils'
 
@@ -300,16 +300,16 @@ function refreshAll() {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="space-y-5">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <N8nHeading size="large" tag="h1" class="flex items-center gap-2">
+        <N8nHeading size="xlarge" tag="h2" class="flex items-center gap-2">
           <N8nIcon icon="activity" :size="18" class="text-primary" />
           Tracing
         </N8nHeading>
-        <N8nText size="medium" color="text-light">
+        <p class="text-[13px] text-text-muted">
           OpenTelemetry traces exported by n8n, including workflow and node spans.
-        </N8nText>
+        </p>
       </div>
       <div class="flex items-center gap-2">
         <N8nBadge :variant="backendUnavailable ? 'danger' : 'success'">
@@ -331,7 +331,7 @@ function refreshAll() {
     </div>
 
     <N8nCard>
-      <div class="grid gap-3 md:grid-cols-12">
+      <div class="grid gap-4 md:grid-cols-12">
         <div class="md:col-span-3">
           <label class="mb-1 block text-xs font-medium text-text-muted">Service</label>
           <N8nSelect :model-value="service" :filterable="false" size="medium" class="w-full" @update:model-value="onServiceChange">
@@ -401,7 +401,7 @@ function refreshAll() {
         <div class="flex w-full flex-wrap items-center justify-between gap-2 px-1">
           <div>
             <N8nHeading size="medium" tag="h3">Traces</N8nHeading>
-            <N8nText size="small" color="text-light">{{ traces.length }} trace{{ traces.length === 1 ? '' : 's' }} in the selected window</N8nText>
+            <p class="text-[13px] text-text-muted">{{ traces.length }} trace{{ traces.length === 1 ? '' : 's' }} in the selected window</p>
           </div>
           <span v-if="tracesFetching" class="text-xs text-text-muted">Loading…</span>
         </div>
@@ -424,14 +424,14 @@ function refreshAll() {
       <div v-else class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b border-border text-left text-xs text-text-muted">
-              <th class="px-2 py-2 font-medium">Status</th>
-              <th class="px-2 py-2 font-medium">Trace</th>
-              <th class="px-2 py-2 font-medium">Workflow</th>
-              <th class="px-2 py-2 font-medium">Execution</th>
-              <th class="px-2 py-2 font-medium">Duration</th>
-              <th class="px-2 py-2 font-medium">Spans</th>
-              <th class="px-2 py-2 font-medium">Started</th>
+            <tr class="border-b border-border bg-bg-light text-left">
+              <th class="px-3 py-2.5 text-[12px] font-medium text-text-muted">Status</th>
+              <th class="px-3 py-2.5 text-[12px] font-medium text-text-muted">Trace</th>
+              <th class="px-3 py-2.5 text-[12px] font-medium text-text-muted">Workflow</th>
+              <th class="px-3 py-2.5 text-[12px] font-medium text-text-muted">Execution</th>
+              <th class="px-3 py-2.5 text-[12px] font-medium text-text-muted">Duration</th>
+              <th class="px-3 py-2.5 text-[12px] font-medium text-text-muted">Spans</th>
+              <th class="px-3 py-2.5 text-[12px] font-medium text-text-muted">Started</th>
             </tr>
           </thead>
           <tbody>
@@ -442,21 +442,21 @@ function refreshAll() {
               :class="selectedTraceId === item.traceId ? 'bg-primary-light/60' : 'hover:bg-card-hover'"
               @click="selectTrace(item.traceId)"
             >
-              <td class="px-2 py-2">
+              <td class="px-3 py-2.5">
                 <N8nIcon :icon="statusIcon(item.status).icon" :size="14" :class="statusIcon(item.status).cls" />
               </td>
-              <td class="px-2 py-2">
+              <td class="px-3 py-2.5">
                 <div class="font-medium text-text-dark">{{ item.name }}</div>
                 <div class="max-w-[220px] truncate text-[11px] text-text-xmuted">{{ item.traceId }}</div>
               </td>
-              <td class="px-2 py-2">
-                <div class="max-w-[220px] truncate text-[13px] text-text-dark">{{ item.workflowName || '—' }}</div>
+              <td class="px-3 py-2.5">
+                <div class="max-w-[220px] truncate text-[13px] text-text-dark underline decoration-border-strong underline-offset-2">{{ item.workflowName || '—' }}</div>
                 <div class="text-[11px] text-text-xmuted">{{ item.workflowId || '' }}</div>
               </td>
-              <td class="px-2 py-2 font-mono text-xs">{{ item.executionId || '—' }}</td>
-              <td class="whitespace-nowrap px-2 py-2">{{ formatDuration(item.durationMs) }}</td>
-              <td class="px-2 py-2">{{ item.spanCount }}</td>
-              <td class="whitespace-nowrap px-2 py-2 text-xs text-text-muted">
+              <td class="px-3 py-2.5 font-mono text-xs">{{ item.executionId || '—' }}</td>
+              <td class="whitespace-nowrap px-3 py-2.5">{{ formatDuration(item.durationMs) }}</td>
+              <td class="px-3 py-2.5">{{ item.spanCount }}</td>
+              <td class="whitespace-nowrap px-3 py-2.5 text-xs text-text-muted">
                 {{ new Date(item.startTimeMs).toLocaleString() }}
               </td>
             </tr>
@@ -470,7 +470,7 @@ function refreshAll() {
         <div class="flex w-full flex-wrap items-center justify-between gap-2 px-1">
           <div>
             <N8nHeading size="medium" tag="h3">Trace detail</N8nHeading>
-            <N8nText size="small" color="text-light">{{ trace.traceId }} · {{ trace.services.join(', ') }} · {{ formatDuration(trace.durationMs) }}</N8nText>
+            <p class="text-[13px] text-text-muted">{{ trace.traceId }} · {{ trace.services.join(', ') }} · {{ formatDuration(trace.durationMs) }}</p>
           </div>
           <span v-if="traceFetching" class="text-xs text-text-muted">Loading…</span>
         </div>
@@ -517,7 +517,7 @@ function refreshAll() {
         </div>
 
         <!-- Span detail (SpanDetail sub-component, inlined) -->
-        <div v-if="selectedSpan" class="mt-4 rounded-md border border-border bg-bg/50 p-3">
+        <div v-if="selectedSpan" class="mt-4 rounded-xl border border-border bg-bg/50 p-4">
           <div class="mb-2 flex items-center justify-between gap-3">
             <div class="min-w-0">
               <div class="truncate text-[13px] font-medium text-text-dark">{{ selectedSpan.name }}</div>

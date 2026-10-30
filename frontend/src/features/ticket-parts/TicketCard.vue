@@ -40,7 +40,7 @@ function priorityVariant(priority: string): BadgeVariant {
 
 <template>
   <div
-    class="cursor-pointer rounded-md border border-border bg-card p-3 transition-colors hover:border-primary"
+    class="cursor-pointer rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary"
     @click="emit('click')"
   >
     <div class="flex items-start gap-2">

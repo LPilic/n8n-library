@@ -6,7 +6,7 @@
 // reset on those transitions instead.
 import { ref, computed, watch, nextTick } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { N8nButton, N8nIcon } from '@n8n/design-system'
+import { N8nButton, N8nHeading, N8nIcon } from '@n8n/design-system'
 import { api, ApiError } from '@/api/client'
 import { useToast } from '@/stores/toast'
 import { appConfirm } from '@/stores/confirm'
@@ -327,7 +327,7 @@ function backToList() {
         <div class="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
           <div class="flex items-center gap-2">
             <N8nIcon icon="sparkles" :size="16" class="text-primary" />
-            <h2 class="text-sm font-semibold text-text-dark">AI Chat</h2>
+            <N8nHeading size="medium" tag="h3">AI Chat</N8nHeading>
           </div>
           <div class="flex items-center gap-1">
             <button

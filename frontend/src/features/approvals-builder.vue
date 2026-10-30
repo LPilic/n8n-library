@@ -108,7 +108,7 @@ function handleSaved() {
 <template>
   <div>
     <!-- Toolbar -->
-    <div class="mb-4 flex items-center justify-between">
+    <div class="mb-5 flex items-center justify-between">
       <N8nButton
         variant="outline"
         size="small"
@@ -130,23 +130,23 @@ function handleSaved() {
 
     <div v-else-if="templates.length === 0" class="py-12 text-center text-sm text-text-muted">No templates yet</div>
 
-    <div v-else class="overflow-hidden rounded-md border border-border">
+    <div v-else class="overflow-hidden rounded-xl border border-border">
       <table class="w-full border-collapse text-left">
         <thead>
-          <tr class="border-b border-border bg-bg">
-            <th class="w-12 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-xmuted">Active</th>
-            <th class="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-xmuted">Template</th>
-            <th class="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-xmuted">Slug</th>
-            <th class="px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-text-xmuted">Requests</th>
-            <th class="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-xmuted">Status</th>
-            <th class="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-xmuted">Updated</th>
-            <th class="w-20 px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wide text-text-xmuted">Actions</th>
+          <tr class="border-b border-border bg-bg-light">
+            <th class="w-12 px-4 py-2.5 text-[12px] font-medium normal-case text-text-muted">Active</th>
+            <th class="px-4 py-2.5 text-[12px] font-medium normal-case text-text-muted">Template</th>
+            <th class="px-4 py-2.5 text-[12px] font-medium normal-case text-text-muted">Slug</th>
+            <th class="px-4 py-2.5 text-center text-[12px] font-medium normal-case text-text-muted">Requests</th>
+            <th class="px-4 py-2.5 text-[12px] font-medium normal-case text-text-muted">Status</th>
+            <th class="px-4 py-2.5 text-[12px] font-medium normal-case text-text-muted">Updated</th>
+            <th class="w-20 px-4 py-2.5 text-right text-[12px] font-medium normal-case text-text-muted">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-border-light">
           <tr v-for="tpl in templates" :key="tpl.id" class="transition-colors hover:bg-card-hover">
             <!-- Active toggle -->
-            <td class="px-3 py-2">
+            <td class="px-4 py-2.5">
               <button
                 class="text-text-xmuted hover:text-primary"
                 :title="tpl.is_active ? 'Deactivate' : 'Activate'"
@@ -160,16 +160,16 @@ function handleSaved() {
               </button>
             </td>
             <!-- Template name + description -->
-            <td class="px-3 py-2">
+            <td class="px-4 py-2.5">
               <div class="text-sm font-medium text-text-dark">{{ tpl.name }}</div>
               <div v-if="tpl.description" class="max-w-xs truncate text-[11px] text-text-xmuted">{{ tpl.description }}</div>
             </td>
             <!-- Slug -->
-            <td class="px-3 py-2">
+            <td class="px-4 py-2.5">
               <span class="font-mono text-xs text-text-muted">{{ tpl.slug }}</span>
             </td>
             <!-- Requests count + pending badge -->
-            <td class="px-3 py-2 text-center">
+            <td class="px-4 py-2.5 text-center">
               <span class="text-xs text-text-dark">{{ tpl.request_count }}</span>
               <span
                 v-if="tpl.pending_count > 0"
@@ -179,17 +179,17 @@ function handleSaved() {
               </span>
             </td>
             <!-- Status badge -->
-            <td class="px-3 py-2">
+            <td class="px-4 py-2.5">
               <N8nBadge :variant="(tpl.is_active ? 'success' : 'subtle') as 'success'" size="xsmall">
                 {{ tpl.is_active ? 'Active' : 'Inactive' }}
               </N8nBadge>
             </td>
             <!-- Updated -->
-            <td class="px-3 py-2">
+            <td class="px-4 py-2.5">
               <N8nTimeAgo :date="tpl.updated_at" class="text-xs text-text-xmuted" />
             </td>
             <!-- Actions -->
-            <td class="px-3 py-2 text-right">
+            <td class="px-4 py-2.5 text-right">
               <div class="flex items-center justify-end gap-1">
                 <button class="rounded-sm p-1.5 text-text-xmuted hover:text-text-dark" title="Edit" @click="modal = tpl">
                   <N8nIcon icon="pencil" :size="13" />
@@ -203,7 +203,7 @@ function handleSaved() {
         </tbody>
       </table>
       <!-- Table footer -->
-      <div class="border-t border-border bg-bg px-3 py-2">
+      <div class="border-t border-border bg-bg-light px-4 py-2.5">
         <span class="text-xs text-text-muted">
           {{ templates.length }} template{{ templates.length !== 1 ? 's' : '' }}
         </span>

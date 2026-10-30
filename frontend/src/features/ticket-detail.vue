@@ -7,7 +7,7 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { N8nButton } from '@n8n/design-system'
+import { N8nButton, N8nHeading } from '@n8n/design-system'
 import { api, ApiError } from '@/api/client'
 import { useToast } from '@/stores/toast'
 import { useHighlight } from '@/composables/useHighlight'
@@ -131,12 +131,12 @@ const reporterName = computed(() => ticket.value?.reporter_username ?? ticket.va
 
       <div class="flex flex-col gap-6 lg:flex-row">
         <!-- Main content -->
-        <div class="min-w-0 flex-1 space-y-4">
+        <div class="min-w-0 flex-1 space-y-5">
           <!-- Header card -->
-          <div class="rounded-md border border-border bg-card p-4">
+          <div class="rounded-xl border border-border bg-card p-5">
             <div class="mb-3 flex items-start gap-2">
               <TicketStatusIcon :status="ticket.status" />
-              <h2 class="text-base font-semibold leading-snug text-text-dark">{{ ticket.title }}</h2>
+              <N8nHeading size="xlarge" tag="h2" class="leading-snug">{{ ticket.title }}</N8nHeading>
               <span class="ml-auto shrink-0 text-xs text-text-xmuted">#{{ ticket.id }}</span>
             </div>
             <div
@@ -152,11 +152,11 @@ const reporterName = computed(() => ticket.value?.reporter_username ?? ticket.va
           </div>
 
           <!-- Comments -->
-          <div class="overflow-hidden rounded-md border border-border bg-card">
+          <div class="overflow-hidden rounded-xl border border-border bg-card">
             <div class="border-b border-border-light bg-bg px-4 py-2">
-              <h3 class="text-xs font-semibold uppercase text-text-muted">
+              <N8nHeading size="medium" tag="h3">
                 Comments ({{ comments.length }})
-              </h3>
+              </N8nHeading>
             </div>
             <div v-if="comments.length === 0" class="px-4 py-6 text-center text-sm text-text-muted">
               No comments yet
@@ -220,7 +220,7 @@ const reporterName = computed(() => ticket.value?.reporter_username ?? ticket.va
         </div>
 
         <!-- Sidebar: metadata -->
-        <aside class="w-full shrink-0 space-y-3 lg:w-72">
+        <aside class="w-full shrink-0 space-y-4 lg:w-72">
           <TicketMetaCard label="Status">
             <CustomSelect
               :value="ticket.status"
@@ -254,9 +254,9 @@ const reporterName = computed(() => ticket.value?.reporter_username ?? ticket.va
           </TicketMetaCard>
 
           <!-- Linked Executions -->
-          <div v-if="(ticket.executions ?? []).length > 0" class="overflow-hidden rounded-md border border-border bg-card">
+          <div v-if="(ticket.executions ?? []).length > 0" class="overflow-hidden rounded-xl border border-border bg-card">
             <div class="border-b border-border-light bg-bg px-3 py-2">
-              <h3 class="text-[10px] font-semibold uppercase text-text-muted">Linked Executions</h3>
+              <N8nHeading size="medium" tag="h3">Linked Executions</N8nHeading>
             </div>
             <div class="space-y-1.5 px-3 py-2">
               <div
@@ -271,7 +271,7 @@ const reporterName = computed(() => ticket.value?.reporter_username ?? ticket.va
                   {{ ex.status }}
                 </span>
                 <button
-                  class="cursor-pointer truncate text-primary hover:text-primary-hover"
+                  class="cursor-pointer truncate text-[13px] text-text-dark underline decoration-border-strong underline-offset-2 hover:text-primary-hover"
                   @click="router.push(`/monitoring/${ex.execution_id}`)"
                 >
                   {{ ex.workflow_name }} #{{ ex.execution_id }}
@@ -281,9 +281,9 @@ const reporterName = computed(() => ticket.value?.reporter_username ?? ticket.va
           </div>
 
           <!-- Execution Context -->
-          <div v-if="ticket.execution_data" class="overflow-hidden rounded-md border border-border bg-card">
+          <div v-if="ticket.execution_data" class="overflow-hidden rounded-xl border border-border bg-card">
             <div class="border-b border-border-light bg-bg px-3 py-2">
-              <h3 class="text-[10px] font-semibold uppercase text-text-muted">Execution Context</h3>
+              <N8nHeading size="medium" tag="h3">Execution Context</N8nHeading>
             </div>
             <div class="space-y-1 px-3 py-2">
               <div v-if="ticket.execution_data.workflow_name" class="flex justify-between text-xs">
@@ -329,9 +329,9 @@ const reporterName = computed(() => ticket.value?.reporter_username ?? ticket.va
           </div>
 
           <!-- Activity -->
-          <div v-if="(ticket.activity ?? []).length > 0" class="overflow-hidden rounded-md border border-border bg-card">
+          <div v-if="(ticket.activity ?? []).length > 0" class="overflow-hidden rounded-xl border border-border bg-card">
             <div class="border-b border-border-light bg-bg px-3 py-2">
-              <h3 class="text-[10px] font-semibold uppercase text-text-muted">Activity</h3>
+              <N8nHeading size="medium" tag="h3">Activity</N8nHeading>
             </div>
             <div class="space-y-1.5 px-3 py-2">
               <div

@@ -47,7 +47,7 @@ function tagName(tag: KbTagRef | string): string {
 
 <template>
   <div
-    class="group cursor-pointer rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary"
+    class="group cursor-pointer rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary"
     @click="emit('click')"
   >
     <div class="flex items-start justify-between gap-3">

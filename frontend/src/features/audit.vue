@@ -69,7 +69,7 @@ const actionOptions = [
 <template>
   <div>
     <!-- Filters -->
-    <div class="mb-4 flex flex-wrap items-center gap-2">
+    <div class="mb-5 flex flex-wrap items-center gap-2">
       <N8nInput
         v-model="search"
         type="text"
@@ -105,40 +105,40 @@ const actionOptions = [
     <div v-else-if="entries.length === 0" class="py-12 text-center text-sm text-text-muted">
       No log entries found
     </div>
-    <div v-else class="overflow-hidden rounded-md border border-border bg-card">
+    <div v-else class="overflow-hidden rounded-xl border border-border bg-card">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b border-border-light bg-bg">
-              <th class="whitespace-nowrap px-3 py-2 text-left font-semibold uppercase text-text-muted">Time</th>
-              <th class="px-3 py-2 text-left font-semibold uppercase text-text-muted">User</th>
-              <th class="px-3 py-2 text-left font-semibold uppercase text-text-muted">Action</th>
-              <th class="whitespace-nowrap px-3 py-2 text-left font-semibold uppercase text-text-muted">Entity Type</th>
-              <th class="whitespace-nowrap px-3 py-2 text-left font-semibold uppercase text-text-muted">Entity ID</th>
-              <th class="px-3 py-2 text-left font-semibold uppercase text-text-muted">Details</th>
+            <tr class="border-b border-border bg-bg-light">
+              <th class="whitespace-nowrap px-3 py-2 text-left text-[12px] font-medium text-text-muted">Time</th>
+              <th class="px-3 py-2 text-left text-[12px] font-medium text-text-muted">User</th>
+              <th class="px-3 py-2 text-left text-[12px] font-medium text-text-muted">Action</th>
+              <th class="whitespace-nowrap px-3 py-2 text-left text-[12px] font-medium text-text-muted">Entity Type</th>
+              <th class="whitespace-nowrap px-3 py-2 text-left text-[12px] font-medium text-text-muted">Entity ID</th>
+              <th class="px-3 py-2 text-left text-[12px] font-medium text-text-muted">Details</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-border-light">
             <tr v-for="entry in entries" :key="entry.id" class="transition-colors hover:bg-card-hover">
-              <td class="whitespace-nowrap px-3 py-2 text-text-xmuted">
+              <td class="whitespace-nowrap px-3 py-2.5 text-text-xmuted">
                 {{ timeAgo(entry.created_at) }}
               </td>
-              <td class="px-3 py-2 text-text-muted">
+              <td class="px-3 py-2.5 text-text-muted">
                 <span v-if="entry.user">{{ entry.user }}</span>
                 <span v-else class="text-text-xmuted">—</span>
               </td>
-              <td class="px-3 py-2">
+              <td class="px-3 py-2.5">
                 <N8nBadge variant="primary" size="xsmall" class="capitalize">
                   {{ entry.action }}
                 </N8nBadge>
               </td>
-              <td class="px-3 py-2 text-text-muted capitalize">
+              <td class="px-3 py-2.5 text-text-muted capitalize">
                 {{ entry.entity_type }}
               </td>
-              <td class="px-3 py-2 font-mono text-text-xmuted">
+              <td class="px-3 py-2.5 font-mono text-text-xmuted">
                 {{ entry.entity_id != null ? String(entry.entity_id) : '—' }}
               </td>
-              <td class="max-w-xs truncate px-3 py-2 text-text-muted">
+              <td class="max-w-xs truncate px-3 py-2.5 text-text-muted">
                 <span v-if="entry.details">{{ entry.details }}</span>
                 <span v-else class="text-text-xmuted">—</span>
               </td>

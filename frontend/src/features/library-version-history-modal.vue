@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
+import { N8nHeading } from '@n8n/design-system'
 import { api, ApiError } from '@/api/client'
 import { useToast } from '@/stores/toast'
 import { appConfirm } from '@/stores/confirm'
@@ -55,9 +56,9 @@ async function handleRestore(versionId: number) {
 
 <template>
   <div class="fixed inset-0 z-[120] flex items-center justify-center bg-black/30">
-    <div class="mx-4 flex max-h-[80vh] w-full max-w-lg flex-col rounded-lg border border-border bg-card shadow-lg">
+    <div class="mx-4 flex max-h-[80vh] w-full max-w-lg flex-col rounded-xl border border-border bg-card shadow-lg">
       <div class="flex items-center justify-between border-b border-border-light px-5 py-3">
-        <h2 class="text-sm font-semibold text-text-dark">Version History</h2>
+        <N8nHeading size="medium" tag="h3">Version History</N8nHeading>
         <button class="text-lg text-text-xmuted transition-colors hover:text-text-muted" @click="emit('close')">
           &times;
         </button>

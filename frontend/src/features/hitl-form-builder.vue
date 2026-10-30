@@ -929,8 +929,8 @@ function copyCurl(prod: boolean) {
     <template v-if="previewMode">
       <!-- ---- Preview mode ---- -->
       <div class="flex flex-1 overflow-hidden">
-        <div class="flex w-[400px] flex-col gap-3 overflow-y-auto border-r border-border bg-card p-4">
-          <N8nHeading size="small" tag="h3">Sample Data (JSON)</N8nHeading>
+        <div class="flex w-[400px] flex-col gap-3 overflow-y-auto border-r border-border bg-card p-5">
+          <N8nHeading size="medium" tag="h3">Sample Data (JSON)</N8nHeading>
           <textarea
             v-model="sampleData"
             class="min-h-[200px] flex-1 rounded border border-border px-3 py-2 bg-bg font-mono text-sm resize-none"
@@ -943,7 +943,7 @@ function copyCurl(prod: boolean) {
           </button>
         </div>
         <div class="flex-1 overflow-y-auto p-6">
-          <div class="mx-auto max-w-[600px] rounded-lg border border-border bg-card p-6">
+          <div class="mx-auto max-w-[600px] rounded-xl border border-border bg-card p-6">
             <LivePreview :components="components" :sample-data="sampleData" />
           </div>
         </div>
@@ -987,7 +987,7 @@ function copyCurl(prod: boolean) {
             </div>
 
             <!-- Webhook capture card -->
-            <div v-if="capturing && captureUrl" class="mb-2 rounded-lg border border-success/30 bg-success-light p-3">
+            <div v-if="capturing && captureUrl" class="mb-2 rounded-xl border border-success/30 bg-success-light p-4">
               <div class="mb-2 flex items-center gap-1.5 text-[12px] font-bold text-success">
                 <span class="health-pulse h-2 w-2 rounded-full bg-success" />
                 Listening for webhook...
@@ -1075,7 +1075,7 @@ function copyCurl(prod: boolean) {
           <div
             v-for="comp in components"
             :key="comp.id"
-            class="canvas-item group mb-2 cursor-pointer overflow-hidden rounded-md border border-border bg-card"
+            class="canvas-item group mb-2 cursor-pointer overflow-hidden rounded-xl border border-border bg-card"
             :class="{ 'ring-2 ring-primary': comp.id === selectedId }"
             @click.stop="selectComponent(comp.id)"
           >

@@ -152,7 +152,7 @@ const roleVariant = (r: string): BadgeVariant => (r === 'admin' ? 'danger' : r =
 <template>
   <div>
     <!-- Header -->
-    <div class="mb-4 flex items-center justify-between">
+    <div class="mb-5 flex items-center justify-between">
       <div class="flex items-center gap-2">
         <N8nIcon icon="users" :size="16" class="text-text-muted" />
         <span class="text-xs font-medium text-text-muted">
@@ -193,20 +193,20 @@ const roleVariant = (r: string): BadgeVariant => (r === 'admin' ? 'danger' : r =
       <N8nIcon icon="users" :size="28" class="mx-auto mb-2 text-text-xmuted" />
       <p class="text-sm text-text-muted">No users found</p>
     </div>
-    <div v-else class="overflow-hidden rounded-md border border-border">
+    <div v-else class="overflow-hidden rounded-xl border border-border bg-card">
       <table class="w-full text-sm">
         <thead>
-          <tr class="border-b border-border bg-bg">
-            <th class="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-text-muted">User</th>
-            <th class="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-text-muted">Role</th>
-            <th class="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-text-muted">Source</th>
-            <th class="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-text-muted">Created</th>
+          <tr class="border-b border-border bg-bg-light">
+            <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">User</th>
+            <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Role</th>
+            <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Source</th>
+            <th class="px-4 py-2 text-left text-[12px] font-medium text-text-muted">Created</th>
             <th class="w-20 px-4 py-2" />
           </tr>
         </thead>
         <tbody class="divide-y divide-border-light">
           <tr v-for="u in users" :key="u.id" class="transition-colors hover:bg-card-hover">
-            <td class="px-4 py-3">
+            <td class="px-4 py-2.5">
               <div class="flex items-center gap-3">
                 <div
                   class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold text-white"
@@ -223,19 +223,19 @@ const roleVariant = (r: string): BadgeVariant => (r === 'admin' ? 'danger' : r =
                 </div>
               </div>
             </td>
-            <td class="px-4 py-3">
+            <td class="px-4 py-2.5">
               <N8nBadge :variant="roleVariant(u.role)" size="xsmall" class="uppercase">
                 {{ u.role }}
               </N8nBadge>
             </td>
-            <td class="px-4 py-3">
+            <td class="px-4 py-2.5">
               <N8nBadge v-if="u.n8n_instance_id" variant="primary" size="xsmall" leading-icon="server">
                 {{ u.instance_name || 'n8n' }}
               </N8nBadge>
               <N8nBadge v-else variant="subtle" size="xsmall">Local</N8nBadge>
             </td>
-            <td class="px-4 py-3 text-xs text-text-muted">{{ timeAgo(u.created_at) }}</td>
-            <td class="px-4 py-3">
+            <td class="px-4 py-2.5 text-xs text-text-muted">{{ timeAgo(u.created_at) }}</td>
+            <td class="px-4 py-2.5">
               <div class="flex items-center justify-end gap-1">
                 <button
                   title="Edit user"
@@ -269,15 +269,15 @@ const roleVariant = (r: string): BadgeVariant => (r === 'admin' ? 'danger' : r =
     >
       <div class="space-y-4 p-5">
         <div>
-          <label class="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-text-muted">Username *</label>
+          <label class="mb-1 block text-[12px] font-medium text-text-muted">Username *</label>
           <N8nInput v-model="username" type="text" placeholder="john" />
         </div>
         <div>
-          <label class="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-text-muted">Email *</label>
+          <label class="mb-1 block text-[12px] font-medium text-text-muted">Email *</label>
           <N8nInput v-model="email" type="email" placeholder="john@example.com" />
         </div>
         <div>
-          <label class="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-text-muted">
+          <label class="mb-1 block text-[12px] font-medium text-text-muted">
             {{ editing ? 'New Password (leave blank to keep)' : 'Password *' }}
           </label>
           <N8nInput
@@ -297,7 +297,7 @@ const roleVariant = (r: string): BadgeVariant => (r === 'admin' ? 'danger' : r =
           </N8nInput>
         </div>
         <div>
-          <label class="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-text-muted">Role</label>
+          <label class="mb-1 block text-[12px] font-medium text-text-muted">Role</label>
           <N8nSelect v-model="role" :filterable="false" class="w-full">
             <N8nOption value="viewer" label="Viewer">Viewer</N8nOption>
             <N8nOption value="editor" label="Editor">Editor</N8nOption>

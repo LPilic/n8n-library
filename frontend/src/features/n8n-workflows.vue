@@ -243,7 +243,7 @@ function setOwner(v: unknown) {
 
 <template>
   <div>
-    <div class="mb-4 flex items-center gap-3">
+    <div class="mb-5 flex items-center gap-3">
       <N8nInput
         :model-value="search"
         placeholder="Search workflows..."
@@ -262,7 +262,7 @@ function setOwner(v: unknown) {
     </div>
 
     <!-- Filter bar -->
-    <div v-if="!isLoading && workflows.length > 0" class="mb-4 flex flex-wrap items-center gap-3">
+    <div v-if="!isLoading && workflows.length > 0" class="mb-5 flex flex-wrap items-center gap-3">
       <!-- Status button group -->
       <div class="flex items-center gap-1">
         <button

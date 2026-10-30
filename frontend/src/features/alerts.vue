@@ -150,7 +150,7 @@ function recipientLabel(r: Alert['recipients'][number]): string {
 <template>
   <div>
     <!-- Toolbar -->
-    <div class="mb-4 flex items-center justify-between">
+    <div class="mb-5 flex items-center justify-between">
       <span class="text-xs text-text-muted">
         {{ alerts.length }} alert{{ alerts.length !== 1 ? 's' : '' }}
       </span>
@@ -162,11 +162,11 @@ function recipientLabel(r: Alert['recipients'][number]): string {
     <div v-else-if="alerts.length === 0" class="py-12 text-center text-sm text-text-muted">
       No alerts configured
     </div>
-    <div v-else class="space-y-2">
+    <div v-else class="space-y-4">
       <div
         v-for="alert in alerts"
         :key="alert.id"
-        class="flex items-start gap-3 rounded-md border border-border bg-card p-3"
+        class="flex items-start gap-3 rounded-xl border border-border bg-card p-4"
       >
         <div class="mt-0.5">
           <N8nIcon

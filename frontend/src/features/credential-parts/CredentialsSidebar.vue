@@ -32,7 +32,7 @@ function onTypeFilter(type: string) {
 
 <template>
   <aside class="w-48 shrink-0">
-    <div class="space-y-4 rounded-md border border-border bg-card p-3">
+    <div class="space-y-4 rounded-xl border border-border bg-card p-4">
       <div>
         <p class="mb-2 text-[10px] font-semibold uppercase text-text-xmuted">Overview</p>
         <div class="space-y-1.5">

@@ -3,7 +3,7 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { N8nIcon, N8nOption, N8nSelect } from '@n8n/design-system'
+import { N8nHeading, N8nIcon, N8nOption, N8nSelect } from '@n8n/design-system'
 import { api, ApiError } from '@/api/client'
 import { useToast } from '@/stores/toast'
 import { appConfirm } from '@/stores/confirm'
@@ -176,7 +176,7 @@ function statusChipClass(current: PromptStatus, target: PromptStatus): string {
     <div v-else-if="prompt">
       <!-- Back -->
       <button
-        class="mb-4 inline-block text-sm text-primary hover:text-primary-hover"
+        class="mb-5 inline-block text-sm text-primary hover:text-primary-hover"
         @click="router.push('/prompts')"
       >
         &larr; Back to Prompts
@@ -199,12 +199,12 @@ function statusChipClass(current: PromptStatus, target: PromptStatus): string {
 
       <div class="flex flex-col gap-6 lg:flex-row">
         <!-- Main -->
-        <div class="min-w-0 flex-1 space-y-4">
+        <div class="min-w-0 flex-1 space-y-5">
           <!-- Header -->
-          <div class="rounded-md border border-border bg-card p-4">
+          <div class="rounded-xl border border-border bg-card p-5">
             <div class="mb-3 flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
-                <h2 class="text-lg font-semibold text-text-dark">{{ prompt.name }}</h2>
+                <N8nHeading size="xlarge" tag="h2">{{ prompt.name }}</N8nHeading>
                 <p v-if="prompt.description" class="mt-0.5 text-sm text-text-muted">
                   {{ prompt.description }}
                 </p>
@@ -266,9 +266,9 @@ function statusChipClass(current: PromptStatus, target: PromptStatus): string {
           </div>
 
           <!-- Content -->
-          <div class="overflow-hidden rounded-md border border-border bg-card">
-            <div class="flex items-center justify-between border-b border-border-light bg-bg px-4 py-2">
-              <h3 class="text-xs font-semibold uppercase text-text-muted">Prompt Content</h3>
+          <div class="overflow-hidden rounded-xl border border-border bg-card">
+            <div class="flex items-center justify-between border-b border-border-light bg-bg px-4 py-2.5">
+              <N8nHeading size="medium" tag="h3">Prompt Content</N8nHeading>
               <button
                 class="flex items-center gap-1 rounded-sm px-2 py-1 text-xs text-text-muted hover:bg-card-hover hover:text-text-dark"
                 @click="copyContent"
@@ -283,11 +283,11 @@ function statusChipClass(current: PromptStatus, target: PromptStatus): string {
           </div>
 
           <!-- Diff viewer -->
-          <div v-if="versions && versions.length >= 2" class="overflow-hidden rounded-md border border-border bg-card">
-            <div class="flex flex-wrap items-center gap-3 border-b border-border-light bg-bg px-4 py-2">
-              <h3 class="flex items-center gap-1 text-xs font-semibold uppercase text-text-muted">
+          <div v-if="versions && versions.length >= 2" class="overflow-hidden rounded-xl border border-border bg-card">
+            <div class="flex flex-wrap items-center gap-3 border-b border-border-light bg-bg px-4 py-2.5">
+              <N8nHeading size="medium" tag="h3" class="flex items-center gap-1">
                 <N8nIcon icon="git-compare" :size="12" /> Version Diff
-              </h3>
+              </N8nHeading>
               <div class="ml-auto flex items-center gap-2">
                 <N8nSelect
                   :model-value="diffFrom === null ? '' : String(diffFrom)"
@@ -313,14 +313,14 @@ function statusChipClass(current: PromptStatus, target: PromptStatus): string {
               </div>
             </div>
             <div v-if="diff && diffTokens" class="grid grid-cols-2 divide-x divide-border-light">
-              <div class="p-3">
-                <div class="mb-2 text-[10px] font-semibold uppercase text-text-muted">
+              <div class="p-4">
+                <div class="mb-2 text-[12px] font-medium text-text-muted">
                   v{{ diff.from.version }}<span v-if="diff.from.created_at" class="ml-1 font-normal">({{ timeAgo(diff.from.created_at) }})</span>
                 </div>
                 <DiffPane :tokens="diffTokens.left" />
               </div>
-              <div class="p-3">
-                <div class="mb-2 text-[10px] font-semibold uppercase text-text-muted">
+              <div class="p-4">
+                <div class="mb-2 text-[12px] font-medium text-text-muted">
                   v{{ diff.to.version }}<span v-if="diff.to.created_at" class="ml-1 font-normal">({{ timeAgo(diff.to.created_at) }})</span>
                 </div>
                 <DiffPane :tokens="diffTokens.right" />
@@ -336,13 +336,13 @@ function statusChipClass(current: PromptStatus, target: PromptStatus): string {
         </div>
 
         <!-- Sidebar -->
-        <aside class="w-full shrink-0 space-y-3 lg:w-56">
+        <aside class="w-full shrink-0 space-y-4 lg:w-56">
           <!-- Variables -->
-          <div v-if="varList.length > 0" class="overflow-hidden rounded-md border border-border bg-card">
-            <div class="border-b border-border-light bg-bg px-3 py-2">
-              <h3 class="flex items-center gap-1 text-[10px] font-semibold uppercase text-text-muted">
+          <div v-if="varList.length > 0" class="overflow-hidden rounded-xl border border-border bg-card">
+            <div class="border-b border-border-light bg-bg px-3 py-2.5">
+              <N8nHeading size="medium" tag="h3" class="flex items-center gap-1">
                 <N8nIcon icon="variable" :size="10" /> Variables ({{ varList.length }})
-              </h3>
+              </N8nHeading>
             </div>
             <div class="space-y-1 px-3 py-2">
               <div
@@ -356,11 +356,11 @@ function statusChipClass(current: PromptStatus, target: PromptStatus): string {
           </div>
 
           <!-- Version history -->
-          <div v-if="versions && versions.length > 0" class="overflow-hidden rounded-md border border-border bg-card">
-            <div class="border-b border-border-light bg-bg px-3 py-2">
-              <h3 class="flex items-center gap-1 text-[10px] font-semibold uppercase text-text-muted">
+          <div v-if="versions && versions.length > 0" class="overflow-hidden rounded-xl border border-border bg-card">
+            <div class="border-b border-border-light bg-bg px-3 py-2.5">
+              <N8nHeading size="medium" tag="h3" class="flex items-center gap-1">
                 <N8nIcon icon="history" :size="10" /> Version History
-              </h3>
+              </N8nHeading>
             </div>
             <div class="divide-y divide-border-light">
               <div v-for="v in versions" :key="v.id" class="px-3 py-2">

@@ -82,12 +82,12 @@ function onOpenChange(open: boolean) {
 
       <!-- Side-by-side after improvement -->
       <div v-if="diff !== null" class="grid grid-cols-2 divide-x divide-border-light overflow-hidden rounded-sm border border-border-light">
-        <div class="p-3">
-          <div class="mb-2 text-[10px] font-semibold uppercase text-text-muted">Original</div>
+        <div class="p-4">
+          <div class="mb-2 text-[12px] font-medium text-text-muted">Original</div>
           <DiffPane :tokens="diff.left" />
         </div>
-        <div class="p-3">
-          <div class="mb-2 text-[10px] font-semibold uppercase text-success">Improved</div>
+        <div class="p-4">
+          <div class="mb-2 text-[12px] font-medium text-success">Improved</div>
           <DiffPane :tokens="diff.right" />
         </div>
       </div>

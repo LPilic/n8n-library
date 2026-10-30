@@ -5,7 +5,7 @@
 // "Credential Store" tab inside credentials.vue and served at /credential-store.
 import { computed, ref } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { N8nButton, N8nIcon, N8nTimeAgo } from '@n8n/design-system'
+import { N8nButton, N8nHeading, N8nIcon, N8nTimeAgo } from '@n8n/design-system'
 import { api, ApiError } from '@/api/client'
 import { appConfirm } from '@/stores/confirm'
 import { useToast } from '@/stores/toast'
@@ -71,7 +71,7 @@ function onTemplateSaved() {
     <!-- Template grid -->
     <div class="mb-6">
       <div class="mb-3 flex items-center justify-between">
-        <h3 class="text-xs font-semibold uppercase text-text-muted">Available Templates</h3>
+        <N8nHeading size="medium" tag="h3">Available Templates</N8nHeading>
         <N8nButton
           v-if="isAdmin"
           variant="brand"
@@ -86,11 +86,11 @@ function onTemplateSaved() {
         <N8nIcon icon="package-open" :size="28" class="mx-auto mb-2 text-text-xmuted" />
         <p class="text-sm text-text-muted">No credential templates available</p>
       </div>
-      <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div
           v-for="tpl in templates"
           :key="tpl.id"
-          class="flex flex-col gap-2 rounded-md border border-border bg-card p-3 transition-colors hover:border-primary/40"
+          class="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40"
         >
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0 flex-1">
@@ -147,8 +147,8 @@ function onTemplateSaved() {
 
     <!-- Recent activity -->
     <div v-if="recentActivity.length > 0">
-      <h3 class="mb-3 text-xs font-semibold uppercase text-text-muted">Recent Activity</h3>
-      <div class="overflow-hidden rounded-md border border-border bg-card">
+      <N8nHeading size="medium" tag="h3" class="mb-3">Recent Activity</N8nHeading>
+      <div class="overflow-hidden rounded-xl border border-border bg-card">
         <div class="divide-y divide-border-light">
           <div v-for="(a, i) in recentActivity" :key="i" class="flex items-start gap-3 px-4 py-2.5">
             <N8nIcon icon="shield" :size="13" class="mt-0.5 shrink-0 text-text-xmuted" />
