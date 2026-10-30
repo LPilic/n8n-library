@@ -40,17 +40,17 @@ function priorityVariant(priority: string): BadgeVariant {
 
 <template>
   <div
-    class="cursor-pointer rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary"
+    class="cursor-pointer rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary"
     @click="emit('click')"
   >
-    <div class="flex items-start gap-2">
+    <div class="flex items-start gap-3">
       <TicketStatusIcon :status="ticket.status" />
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-2">
-          <h3 class="truncate text-sm font-medium text-text-dark">{{ ticket.title }}</h3>
+          <h3 class="truncate text-[14px] font-medium text-text-dark underline decoration-border-strong underline-offset-2">{{ ticket.title }}</h3>
           <span class="shrink-0 text-[10px] text-text-xmuted">#{{ ticket.id }}</span>
         </div>
-        <div class="mt-1 flex flex-wrap items-center gap-2">
+        <div class="mt-2.5 flex flex-wrap items-center gap-2.5">
           <N8nBadge :variant="statusVariant(ticket.status)" size="xsmall" class="capitalize">
             {{ ticket.status.replace('_', ' ') }}
           </N8nBadge>
@@ -63,13 +63,13 @@ function priorityVariant(priority: string): BadgeVariant {
           >
             {{ ticket.category_name }}
           </span>
-          <span v-if="ticket.assignee_username ?? ticket.assignee_name" class="text-[10px] text-text-muted">
+          <span v-if="ticket.assignee_username ?? ticket.assignee_name" class="text-[11px] text-text-muted">
             Assigned to <strong>{{ ticket.assignee_username ?? ticket.assignee_name }}</strong>
           </span>
-          <span v-else class="text-[10px] text-text-xmuted">Unassigned</span>
-          <span class="ml-auto text-[10px] text-text-xmuted">{{ timeAgo(ticket.created_at) }}</span>
-          <span v-if="(ticket.comment_count ?? 0) > 0" class="flex items-center gap-0.5 text-[10px] text-text-muted">
-            <N8nIcon icon="message-square" :size="10" />
+          <span v-else class="text-[11px] text-text-xmuted">Unassigned</span>
+          <span class="ml-auto text-[11px] text-text-xmuted">{{ timeAgo(ticket.created_at) }}</span>
+          <span v-if="(ticket.comment_count ?? 0) > 0" class="flex items-center gap-0.5 text-[11px] text-text-muted">
+            <N8nIcon icon="message-square" :size="11" />
             {{ ticket.comment_count }}
           </span>
         </div>

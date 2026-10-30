@@ -40,11 +40,13 @@ const route = useRoute()
 const router = useRouter()
 
 // `settings/:section*` yields a string|null|undefined when single-segment or an
-// array when repeatable — normalize to the first sub-segment.
+// array when repeatable — normalize to the first sub-segment (URLs use dashes;
+// tab ids use underscores).
 const activeSection = computed(() => {
   const raw = route.params.section as string | string[] | undefined
   const first = Array.isArray(raw) ? raw[0] : raw
-  return typeof first === 'string' && first !== '' ? first : 'users'
+  const norm = typeof first === 'string' && first !== '' ? first.replace(/-/g, '_') : 'users'
+  return norm
 })
 
 // ─── ActiveTabContent ─────────────────────────────────────────────────────────
@@ -66,7 +68,8 @@ const SECTION_COMPONENTS: Record<string, Component> = {
 const sectionComponent = computed(() => SECTION_COMPONENTS[activeSection.value] ?? null)
 
 function selectTab(tabId: string) {
-  router.push(`/settings/${tabId}`)
+  // Pretty URLs: tab ids use underscores internally, dashes in the URL
+  router.push(`/settings/${tabId.replace(/_/g, '-')}`)
 }
 </script>
 
@@ -80,14 +83,14 @@ function selectTab(tabId: string) {
             <button
               type="button"
               class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] transition-all duration-150"
-              :class="activeSection === tab.id ? 'bg-primary font-medium text-white shadow-sm' : 'text-text-muted hover:bg-bg hover:text-text-dark'"
+              :class="activeSection === tab.id ? 'bg-bg-light font-medium text-text-dark' : 'text-text-muted hover:bg-bg-light hover:text-text-dark'"
               @click="selectTab(tab.id)"
             >
               <N8nIcon
                 :icon="tab.icon"
                 :size="14"
                 class="shrink-0"
-                :class="activeSection === tab.id ? 'text-white' : 'text-text-xmuted'"
+                :class="activeSection === tab.id ? 'text-primary' : 'text-text-xmuted'"
               />
               {{ tab.label }}
             </button>

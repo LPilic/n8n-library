@@ -296,7 +296,7 @@ function onSearchInput(e: Event) {
           <N8nIcon icon="book-open" :size="32" class="mx-auto mb-2 text-text-xmuted" />
           <p class="text-sm text-text-muted">No articles found</p>
         </div>
-        <div v-else class="space-y-4">
+        <div v-else class="space-y-5">
           <ArticleCard
             v-for="article in articles"
             :key="article.id"

@@ -520,22 +520,27 @@ function formatRespondedAt(iso: string): string {
     <!-- Request list -->
     <div class="min-w-0 flex-1">
       <!-- Header -->
-      <div class="mb-4 flex items-center gap-3">
-        <N8nHeading size="xlarge" tag="h2">Approval Requests</N8nHeading>
-        <span
-          v-if="pendingCount > 0"
-          class="rounded-full bg-warning px-1.5 py-0.5 text-[10px] font-semibold text-white"
-        >
-          {{ pendingCount }}
-        </span>
-        <N8nButton
-          variant="outline"
-          size="small"
-          icon="wrench"
-          label="Form Builder"
-          class="ml-auto"
-          @click="router.push('/approvals-builder')"
-        />
+      <div class="mb-5">
+        <div class="flex items-center gap-3">
+          <N8nHeading size="xlarge" tag="h2">Approval Requests</N8nHeading>
+          <span
+            v-if="pendingCount > 0"
+            class="rounded-full bg-warning px-1.5 py-0.5 text-[10px] font-semibold text-white"
+          >
+            {{ pendingCount }}
+          </span>
+          <N8nButton
+            variant="outline"
+            size="small"
+            icon="layout-template"
+            label="Form Builder"
+            class="ml-auto"
+            @click="router.push('/approvals-builder')"
+          />
+        </div>
+        <p class="mt-1 text-[13px] text-text-muted">
+          Review requests sent from n8n workflows and respond with an approval decision.
+        </p>
       </div>
 
       <!-- Tabs -->

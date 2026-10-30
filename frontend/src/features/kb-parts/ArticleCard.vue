@@ -59,31 +59,31 @@ function tagName(tag: KbTagRef | string): string {
             :size="12"
             class="shrink-0 text-warning"
           />
-          <h3 class="truncate text-sm font-medium text-text-dark transition-colors group-hover:text-primary">
+          <h3 class="truncate text-sm font-medium text-text-dark underline decoration-border-strong underline-offset-2 transition-colors group-hover:text-primary">
             {{ article.title }}
           </h3>
         </div>
-        <p v-if="article.excerpt" class="mb-2 line-clamp-2 text-xs text-text-muted">
+        <p v-if="article.excerpt" class="mb-2.5 line-clamp-2 text-[13px] leading-relaxed text-text-muted">
           {{ article.excerpt }}
         </p>
         <div class="flex flex-wrap items-center gap-2">
           <span
             v-if="article.category_name"
-            class="rounded bg-primary-light px-1.5 py-0.5 text-[10px] text-primary"
+            class="rounded bg-primary-light px-1.5 py-0.5 text-[11px] text-primary"
           >
             {{ article.category_name }}
           </span>
           <span
             v-for="(tag, i) in (article.tags ?? []).slice(0, 3)"
             :key="tagKey(tag, i)"
-            class="flex items-center gap-0.5 rounded bg-border-light px-1.5 py-0.5 text-[10px] text-text-muted"
+            class="flex items-center gap-0.5 rounded bg-border-light px-1.5 py-0.5 text-[11px] text-text-muted"
           >
-            <N8nIcon icon="tags" :size="8" />{{ tagName(tag) }}
+            <N8nIcon icon="tags" :size="9" />{{ tagName(tag) }}
           </span>
-          <span class="ml-auto flex items-center gap-0.5 text-[10px] text-text-xmuted">
-            <N8nIcon icon="eye" :size="10" /> {{ (article.view_count ?? 0).toLocaleString() }}
+          <span class="ml-auto flex items-center gap-0.5 text-[11px] text-text-xmuted">
+            <N8nIcon icon="eye" :size="11" /> {{ (article.view_count ?? 0).toLocaleString() }}
           </span>
-          <span class="text-[10px] text-text-xmuted">{{ timeAgo(article.updated_at) }}</span>
+          <span class="text-[11px] text-text-xmuted">{{ timeAgo(article.updated_at) }}</span>
         </div>
       </div>
       <N8nIcon

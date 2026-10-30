@@ -64,6 +64,16 @@ const actionOptions = [
   { value: '', label: 'All Actions' },
   ...ACTIONS.map((a) => ({ value: a, label: a })),
 ]
+
+/** Semantic badge variants for the audit actions (friendly color-coding) */
+function actionVariant(action: string): 'primary' | 'success' | 'danger' | 'warning' | 'subtle' {
+  const a = action.toLowerCase()
+  if (a.includes('delete') || a.includes('remove')) return 'danger'
+  if (a.includes('create') || a.includes('import')) return 'success'
+  if (a.includes('provision') || a.includes('login')) return 'primary'
+  if (a.includes('status')) return 'warning'
+  return 'subtle'
+}
 </script>
 
 <template>
@@ -128,7 +138,7 @@ const actionOptions = [
                 <span v-else class="text-text-xmuted">—</span>
               </td>
               <td class="px-3 py-2.5">
-                <N8nBadge variant="primary" size="xsmall" class="capitalize">
+                <N8nBadge :variant="actionVariant(entry.action) as 'primary'" size="xsmall" class="capitalize">
                   {{ entry.action }}
                 </N8nBadge>
               </td>

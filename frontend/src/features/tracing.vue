@@ -312,7 +312,7 @@ function refreshAll() {
         </p>
       </div>
       <div class="flex items-center gap-2">
-        <N8nBadge :variant="backendUnavailable ? 'danger' : 'success'">
+        <N8nBadge :variant="backendUnavailable ? 'danger' : 'subtle'">
           {{ backendUnavailable ? 'Jaeger unavailable' : `${healthData?.services?.length ?? 0} services` }}
         </N8nBadge>
         <N8nButton variant="outline" size="small" icon="refresh-cw" @click="refreshAll">

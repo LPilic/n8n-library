@@ -123,11 +123,11 @@ async function onDelete(id: number) {
       <template v-if="stats">
         <!-- Overview KPI cards -->
         <div class="grid grid-cols-2 gap-4">
-          <div class="rounded-xl border border-border bg-card p-4 text-center">
+          <div class="rounded-xl border border-border bg-card p-5 text-center">
             <div class="text-[20px] font-semibold text-primary">{{ stats.unassigned }}</div>
             <div class="mt-0.5 text-[12px] font-medium text-text-muted">Unassigned</div>
           </div>
-          <div class="rounded-xl border border-border bg-card p-4 text-center">
+          <div class="rounded-xl border border-border bg-card p-5 text-center">
             <div class="text-[20px] font-semibold text-text-dark">{{ avgResolveLabel }}</div>
             <div class="mt-0.5 text-[12px] font-medium text-text-muted">Avg Resolve</div>
           </div>
@@ -135,7 +135,7 @@ async function onDelete(id: number) {
 
         <!-- By Status -->
         <div class="overflow-hidden rounded-xl border border-border bg-card">
-          <div class="border-b border-border-light px-3 py-2">
+          <div class="border-b border-border-light px-4 py-2.5">
             <N8nHeading size="medium" tag="h3">By Status</N8nHeading>
           </div>
           <div class="p-1">
@@ -158,7 +158,7 @@ async function onDelete(id: number) {
 
         <!-- By Priority -->
         <div class="overflow-hidden rounded-xl border border-border bg-card">
-          <div class="border-b border-border-light px-3 py-2">
+          <div class="border-b border-border-light px-4 py-2.5">
             <N8nHeading size="medium" tag="h3">By Priority</N8nHeading>
           </div>
           <div class="p-1">
@@ -236,7 +236,7 @@ async function onDelete(id: number) {
       <div v-else-if="tickets.length === 0" class="py-12 text-center">
         <p class="text-text-muted">No tickets found</p>
       </div>
-      <div v-else class="space-y-4">
+      <div v-else class="space-y-5">
         <TicketCard
           v-for="ticket in tickets"
           :key="ticket.id"

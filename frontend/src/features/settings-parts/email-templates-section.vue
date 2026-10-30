@@ -209,7 +209,7 @@ const keyOptions = computed(() =>
           />
           <button
             type="button"
-            class="rounded-md border border-danger/40 px-3 py-1.5 text-[12px] font-semibold text-danger hover:bg-danger/5 disabled:opacity-50"
+            class="whitespace-nowrap rounded-md border border-danger/40 px-3 py-1.5 text-[12px] font-semibold text-danger hover:bg-danger/5 disabled:opacity-50"
             :disabled="resetting"
             @click="resetTemplate"
           >
