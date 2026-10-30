@@ -36,6 +36,9 @@
 :root {
   --lightningcss-light: initial;
   --lightningcss-dark: ;
+  /* Uniform card padding: the design system's card is 16px by default; the
+     n8n-insights style cards use 20px — keep every card the same */
+  --card--padding: 1.25rem;
 }
 :root[data-theme='dark'] {
   --lightningcss-light: ;

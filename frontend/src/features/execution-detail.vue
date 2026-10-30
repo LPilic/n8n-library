@@ -250,7 +250,7 @@ const nodeRows = computed<NodeRowModel[]>(() =>
           <span class="text-sm text-text-muted">- {{ workflowName }}</span>
           <span
             :class="cn(
-              'rounded px-1.5 py-0.5 text-[10px] font-medium capitalize',
+              'rounded px-1.5 py-0.5 text-[11px] font-medium capitalize',
               status === 'success' ? 'bg-success-light text-success'
                 : status === 'error' ? 'bg-danger-light text-danger'
                 : status === 'running' ? 'bg-primary/10 text-primary'

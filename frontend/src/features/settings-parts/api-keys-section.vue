@@ -140,7 +140,7 @@ async function createKey() {
           <td class="px-4 py-2.5 font-medium text-text-dark">{{ k.name }}</td>
           <td class="px-4 py-2.5 font-mono text-xs text-text-muted">{{ k.key_prefix }}…</td>
           <td class="px-4 py-2.5">
-            <span class="rounded bg-bg px-1.5 py-0.5 text-[10px] font-semibold uppercase text-text-muted">{{ k.role }}</span>
+            <span class="rounded bg-bg px-1.5 py-0.5 text-[11px] font-semibold uppercase text-text-muted">{{ k.role }}</span>
           </td>
           <td class="px-4 py-2.5 text-xs text-text-muted">{{ k.last_used_at ? timeAgo(k.last_used_at) : 'Never' }}</td>
           <td class="px-4 py-2.5 text-xs text-text-muted">{{ k.expires_at ? timeAgo(k.expires_at) : '—' }}</td>

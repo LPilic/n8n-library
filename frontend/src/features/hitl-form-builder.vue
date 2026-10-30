@@ -240,7 +240,7 @@ const ComponentPreview = defineComponent({
         case 'spacer':
           return h('div', {
             style: { height: `${Number(pr.height || 20)}px` },
-            class: 'bg-bg-alt rounded text-center text-[10px] text-text-xmuted',
+            class: 'bg-bg-alt rounded text-center text-[11px] text-text-xmuted',
           }, `spacer ${String(pr.height || 20)}px`)
         case 'text-input':
         case 'number':
@@ -900,7 +900,7 @@ function copyCurl(prod: boolean) {
         <span class="text-text-xmuted">(requires API key: Authorization: Bearer n8nlib_xxx)</span>
       </div>
       <div class="mb-1 flex items-center gap-2">
-        <span class="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase bg-success/10 text-success">PROD</span>
+        <span class="rounded px-1.5 py-0.5 text-[11px] font-bold uppercase bg-success/10 text-success">PROD</span>
         <input
           type="text"
           readonly
@@ -912,7 +912,7 @@ function copyCurl(prod: boolean) {
         <button class="rounded border border-border px-2 py-1 text-[11px] hover:bg-bg" @click="copyCurl(true)">&gt;_ cURL</button>
       </div>
       <div class="flex items-center gap-2">
-        <span class="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase bg-warning/10 text-warning">TEST</span>
+        <span class="rounded px-1.5 py-0.5 text-[11px] font-bold uppercase bg-warning/10 text-warning">TEST</span>
         <input
           type="text"
           readonly
@@ -956,7 +956,7 @@ function copyCurl(prod: boolean) {
         <div class="w-[280px] flex-shrink-0 overflow-y-auto border-r border-border bg-card">
           <template v-for="cat in CATEGORIES" :key="cat.key">
             <div v-if="PALETTE_BY_CATEGORY[cat.key]?.length">
-              <div class="px-2 pb-1 pt-3 text-[10px] font-bold uppercase tracking-[0.08em] text-text-xmuted">
+              <div class="px-2 pb-1 pt-3 text-[11px] font-bold uppercase tracking-[0.08em] text-text-xmuted">
                 {{ cat.label }}
               </div>
               <VueDraggable
@@ -983,7 +983,7 @@ function copyCurl(prod: boolean) {
           <!-- Data Fields section -->
           <div class="mt-2 border-t border-border px-2 pt-2">
             <div class="mb-2 flex items-center justify-between">
-              <span class="text-[10px] font-bold uppercase tracking-[0.08em] text-text-xmuted">Data Fields</span>
+              <span class="text-[11px] font-bold uppercase tracking-[0.08em] text-text-xmuted">Data Fields</span>
             </div>
 
             <!-- Webhook capture card -->
@@ -1008,7 +1008,7 @@ function copyCurl(prod: boolean) {
                   <N8nIcon icon="copy" :size="14" />
                 </button>
               </div>
-              <div class="mb-2 text-[10px] text-text-muted">
+              <div class="mb-2 text-[11px] text-text-muted">
                 Send a POST request with JSON body to this URL from your n8n workflow
               </div>
               <button
@@ -1041,10 +1041,10 @@ function copyCurl(prod: boolean) {
                 :key="f.key"
                 class="datafield-item flex cursor-grab select-none items-center gap-1.5 rounded border border-border-light px-2 py-1 text-[12px] hover:border-primary"
               >
-                <span class="w-4 text-center font-mono text-[10px] text-text-xmuted">{{ f.icon }}</span>
+                <span class="w-4 text-center font-mono text-[11px] text-text-xmuted">{{ f.icon }}</span>
                 <div class="min-w-0 flex-1">
                   <div class="truncate font-semibold">{{ f.key }}</div>
-                  <div class="truncate text-[10px] text-text-muted">{{ f.preview }}</div>
+                  <div class="truncate text-[11px] text-text-muted">{{ f.preview }}</div>
                 </div>
               </div>
             </VueDraggable>
@@ -1083,7 +1083,7 @@ function copyCurl(prod: boolean) {
             <div class="flex items-center justify-between bg-bg-alt px-2 py-1">
               <div class="flex items-center gap-1.5">
                 <span class="drag-handle cursor-grab text-text-muted"><N8nIcon icon="grip-vertical" :size="14" /></span>
-                <span class="text-[10px] font-bold uppercase tracking-wider text-danger">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-danger">
                   {{ compLabel(comp) }}
                 </span>
               </div>
@@ -1126,7 +1126,7 @@ function copyCurl(prod: boolean) {
                       @click.stop="selectChild(comp.id, child.id)"
                     >
                       <div class="flex items-center justify-between">
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-danger">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-danger">
                           {{ compLabel(child) }}
                         </span>
                         <button

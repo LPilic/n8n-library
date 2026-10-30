@@ -218,7 +218,7 @@ function onSearchInput(e: Event) {
               @click="categoryFilter = c.name; page = 1"
             >
               <span class="truncate">{{ c.name }}</span>
-              <span class="ml-1 shrink-0 text-[10px] font-bold tabular-nums text-text-xmuted">{{ c.article_count }}</span>
+              <span class="ml-1 shrink-0 text-[11px] font-bold tabular-nums text-text-xmuted">{{ c.article_count }}</span>
             </button>
           </div>
         </div>

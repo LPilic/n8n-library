@@ -127,7 +127,7 @@ function onOpenChange(open: boolean) {
               class="w-full rounded-sm border border-input-border bg-input-bg px-3 py-1.5 text-sm text-text-dark focus:border-input-focus focus:outline-none"
               @input="setUserString(def.key, inputVal($event))"
             />
-            <p v-if="def.description" class="mt-1 text-[10px] text-text-xmuted">{{ def.description }}</p>
+            <p v-if="def.description" class="mt-1 text-[11px] text-text-xmuted">{{ def.description }}</p>
           </div>
         </template>
 

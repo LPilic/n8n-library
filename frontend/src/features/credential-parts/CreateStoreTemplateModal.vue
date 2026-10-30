@@ -229,7 +229,7 @@ function onOpenChange(open: boolean) {
               @click="pickType(t)"
             >
               <span class="text-sm text-text-dark">{{ t.displayName }}</span>
-              <span class="font-mono text-[10px] text-text-xmuted">{{ t.name }}</span>
+              <span class="font-mono text-[11px] text-text-xmuted">{{ t.name }}</span>
             </button>
           </div>
         </template>

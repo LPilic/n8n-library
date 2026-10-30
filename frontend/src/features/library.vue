@@ -134,7 +134,13 @@ async function openDocs(templateId: number, templateName: string) {
 </script>
 
 <template>
-  <div class="flex gap-6">
+  <div>
+    <!-- Page header -->
+    <div class="mb-6">
+      <N8nHeading size="xlarge" tag="h2">Template Library</N8nHeading>
+      <p class="mt-1 text-[13px] text-text-muted">Browse, manage, and import reusable workflow templates.</p>
+    </div>
+    <div class="flex gap-6">
     <!-- Sidebar -->
     <aside class="flex flex-col gap-4 hidden w-64 shrink-0 lg:block">
       <!-- Template count -->
@@ -155,7 +161,7 @@ async function openDocs(templateId: number, templateName: string) {
             @click="selectedCategory = null"
           >
             <span>All</span>
-            <span class="text-[10px] font-bold tabular-nums text-text-xmuted">{{ templates.length }}</span>
+            <span class="text-[11px] font-bold tabular-nums text-text-xmuted">{{ templates.length }}</span>
           </button>
           <button
             v-for="c in categories"
@@ -165,7 +171,7 @@ async function openDocs(templateId: number, templateName: string) {
             @click="selectedCategory = c.name"
           >
             <span class="truncate">{{ c.name }}</span>
-            <span v-if="categoryCount(c.name) > 0" class="ml-1 shrink-0 text-[10px] font-bold tabular-nums text-text-xmuted">
+            <span v-if="categoryCount(c.name) > 0" class="ml-1 shrink-0 text-[11px] font-bold tabular-nums text-text-xmuted">
               {{ categoryCount(c.name) }}
             </span>
           </button>
@@ -244,5 +250,6 @@ async function openDocs(templateId: number, templateName: string) {
       :connections="docsTarget.connections"
       @close="docsTarget = null"
     />
+    </div>
   </div>
 </template>

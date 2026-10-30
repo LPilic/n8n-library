@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { N8nIcon, N8nInput, N8nSelect, N8nOption } from '@n8n/design-system'
+import { N8nHeading, N8nIcon, N8nInput, N8nSelect, N8nOption } from '@n8n/design-system'
 import { api, ApiError } from '@/api/client'
 import { useToast } from '@/stores/toast'
 import { useInstanceStore } from '@/stores/instance'
@@ -243,6 +243,11 @@ function setOwner(v: unknown) {
 
 <template>
   <div>
+    <!-- Page header -->
+    <div class="mb-6">
+      <N8nHeading size="xlarge" tag="h2">n8n Workflows</N8nHeading>
+      <p class="mt-1 text-[13px] text-text-muted">Browse workflows and templates from your connected n8n instances.</p>
+    </div>
     <div class="mb-5 flex items-center gap-3">
       <N8nInput
         :model-value="search"

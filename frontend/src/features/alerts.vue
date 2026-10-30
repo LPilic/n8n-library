@@ -257,7 +257,7 @@ function recipientLabel(r: Alert['recipients'][number]): string {
             type="text"
             placeholder="user@example.com, another@example.com"
           />
-          <p class="mt-0.5 text-[10px] text-text-xmuted">Comma-separated email addresses</p>
+          <p class="mt-0.5 text-[11px] text-text-xmuted">Comma-separated email addresses</p>
         </div>
         <N8nCheckbox v-model="form.enabled" label="Enabled" />
       </div>

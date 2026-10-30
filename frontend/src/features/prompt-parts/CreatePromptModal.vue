@@ -95,7 +95,7 @@ const VARIABLE_HINT = 'Use {{variable_name}} syntax for template variables'
           class="w-full resize-y rounded-sm border border-input-border bg-input-bg px-3 py-2 font-mono text-sm text-text-dark outline-none focus:border-input-focus"
           placeholder="You are a helpful assistant. {{variable_name}} ..."
         />
-        <p class="mt-0.5 text-[10px] text-text-xmuted">
+        <p class="mt-0.5 text-[11px] text-text-xmuted">
           {{ VARIABLE_HINT }}
         </p>
       </div>

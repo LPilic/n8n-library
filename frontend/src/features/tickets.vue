@@ -117,7 +117,13 @@ async function onDelete(id: number) {
 </script>
 
 <template>
-  <div class="flex gap-6">
+  <div>
+    <!-- Page header -->
+    <div class="mb-6">
+      <N8nHeading size="xlarge" tag="h2">Service Desk</N8nHeading>
+      <p class="mt-1 text-[13px] text-text-muted">Track workflow issues, requests, and follow-ups.</p>
+    </div>
+    <div class="flex gap-6">
     <!-- KPI Sidebar -->
     <aside class="flex flex-col gap-4 hidden w-64 shrink-0 lg:block">
       <template v-if="stats">
@@ -264,6 +270,7 @@ async function onDelete(id: number) {
           Next
         </button>
       </div>
+    </div>
     </div>
   </div>
 </template>

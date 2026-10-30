@@ -7,7 +7,7 @@ defineProps<{
 </script>
 
 <template>
-  <span class="inline-block whitespace-nowrap rounded bg-primary-light px-1.5 py-0.5 text-[10px] font-medium text-primary">
+  <span class="inline-block whitespace-nowrap rounded bg-primary-light px-1.5 py-0.5 text-[11px] font-medium text-primary">
     {{ formatCredType(type) }}
   </span>
 </template>

@@ -105,7 +105,7 @@ watch(open, (o) => {
         <p v-if="filtered.length === 0" class="py-4 text-center text-xs text-text-xmuted">
           No icons matching "{{ search }}"
         </p>
-        <p v-if="!search" class="mt-2 text-center text-[10px] text-text-xmuted">
+        <p v-if="!search" class="mt-2 text-center text-[11px] text-text-xmuted">
           Type to search all {{ allIconNames.length }} icons
         </p>
       </div>

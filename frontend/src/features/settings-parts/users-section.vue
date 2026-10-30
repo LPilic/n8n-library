@@ -119,13 +119,13 @@ async function saveUser() {
             {{ u.username }}
             <span
               v-if="auth.user?.id === u.id"
-              class="ml-1.5 rounded bg-primary-light px-1.5 py-0.5 text-[10px] font-semibold text-primary"
+              class="ml-1.5 rounded bg-primary-light px-1.5 py-0.5 text-[11px] font-semibold text-primary"
             >you</span>
           </td>
           <td class="px-4 py-2.5 text-xs text-text-muted">{{ u.email }}</td>
           <td class="px-4 py-2.5">
             <span
-              class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase"
+              class="rounded px-1.5 py-0.5 text-[11px] font-semibold uppercase"
               :class="roleColors[u.role] ?? 'bg-bg text-text-muted'"
             >{{ u.role }}</span>
           </td>

@@ -172,7 +172,7 @@ function renderCompNode(comp: SchemaComponent, ctx: RenderCtx, key?: number | st
       else if (comp.format === 'date' && displayValue) formatted = new Date(displayValue).toLocaleDateString()
       return h('div', { key, class: 'flex flex-col gap-0.5' }, [
         comp.label
-          ? h('span', { class: 'text-[10px] font-semibold uppercase text-text-xmuted' }, resolveTemplate(String(comp.label), ctx.data))
+          ? h('span', { class: 'text-[11px] font-semibold uppercase text-text-xmuted' }, resolveTemplate(String(comp.label), ctx.data))
           : null,
         formatted
           ? h('span', { class: 'text-sm text-text-dark' }, formatted)
@@ -182,7 +182,7 @@ function renderCompNode(comp: SchemaComponent, ctx: RenderCtx, key?: number | st
 
     case 'json-viewer':
       return h('div', { key, class: 'flex flex-col gap-0.5' }, [
-        comp.label ? h('span', { class: 'text-[10px] font-semibold uppercase text-text-xmuted' }, comp.label) : null,
+        comp.label ? h('span', { class: 'text-[11px] font-semibold uppercase text-text-xmuted' }, comp.label) : null,
         h(
           'pre',
           { class: 'max-h-40 overflow-auto rounded-sm border border-border bg-bg p-2 font-mono text-[11px] text-text-muted' },
@@ -205,7 +205,7 @@ function renderCompNode(comp: SchemaComponent, ctx: RenderCtx, key?: number | st
       const matched = (comp.thresholds ?? []).find((t) => numVal >= t.value)
       const color = matched?.color ?? 'bg-border-light text-text-muted'
       const label = matched?.label ?? displayValue
-      return h('span', { key, class: cn('rounded px-1.5 py-0.5 font-medium text-[10px]', color) }, label)
+      return h('span', { key, class: cn('rounded px-1.5 py-0.5 font-medium text-[11px]', color) }, label)
     }
 
     case 'divider':
@@ -525,7 +525,7 @@ function formatRespondedAt(iso: string): string {
           <N8nHeading size="xlarge" tag="h2">Approval Requests</N8nHeading>
           <span
             v-if="pendingCount > 0"
-            class="rounded-full bg-warning px-1.5 py-0.5 text-[10px] font-semibold text-white"
+            class="rounded-full bg-warning px-1.5 py-0.5 text-[11px] font-semibold text-white"
           >
             {{ pendingCount }}
           </span>
@@ -586,7 +586,7 @@ function formatRespondedAt(iso: string): string {
             <div class="min-w-0 flex-1">
               <div class="flex flex-wrap items-center gap-2">
                 <span class="truncate text-sm font-medium text-text-dark">{{ r.template_name }}</span>
-                <span class="shrink-0 text-[10px] text-text-xmuted">#{{ r.id }}</span>
+                <span class="shrink-0 text-[11px] text-text-xmuted">#{{ r.id }}</span>
                 <N8nBadge
                   :variant="(statusBadgeVariant(r.status) as 'warning')"
                   size="xsmall"
@@ -600,7 +600,7 @@ function formatRespondedAt(iso: string): string {
                   <span class="text-text-xmuted">{{ k }}:</span> {{ trimText(v) }}
                 </span>
               </div>
-              <div class="mt-1 text-[10px] text-text-xmuted">
+              <div class="mt-1 text-[11px] text-text-xmuted">
                 <N8nTimeAgo :date="r.created_at" />
               </div>
             </div>
@@ -644,8 +644,8 @@ function formatRespondedAt(iso: string): string {
             <N8nBadge :variant="(statusBadgeVariant(req.status) as 'warning')" size="xsmall" class="capitalize">
               {{ req.status }}
             </N8nBadge>
-            <span class="text-[10px] text-text-xmuted"><N8nTimeAgo :date="req.created_at" /></span>
-            <span v-if="req.responded_at" class="text-[10px] text-text-xmuted">
+            <span class="text-[11px] text-text-xmuted"><N8nTimeAgo :date="req.created_at" /></span>
+            <span v-if="req.responded_at" class="text-[11px] text-text-xmuted">
               · responded <N8nTimeAgo :date="req.responded_at" />
             </span>
           </div>
@@ -679,14 +679,14 @@ function formatRespondedAt(iso: string): string {
           <!-- Fallback: show raw submitted data -->
           <div v-else class="flex flex-col gap-2 ">
             <div v-for="[k, v] in dataEntriesOf(req.submitted_data)" :key="k" class="flex flex-col gap-0.5">
-              <span class="text-[10px] font-semibold uppercase text-text-xmuted">{{ k }}</span>
+              <span class="text-[11px] font-semibold uppercase text-text-xmuted">{{ k }}</span>
               <span class="text-sm text-text-dark">{{ String(v) }}</span>
             </div>
           </div>
 
           <!-- Response data (for completed requests) -->
           <div v-if="!isPending" class="border-t border-border-light pt-3">
-            <div class="mb-2 text-[10px] font-semibold uppercase text-text-xmuted">Reviewer Response</div>
+            <div class="mb-2 text-[11px] font-semibold uppercase text-text-xmuted">Reviewer Response</div>
             <div v-if="hasResponseData" class="flex flex-col gap-1 ">
               <div v-for="[k, v] in dataEntriesOf(req.response_data)" :key="k" class="flex gap-2 text-xs">
                 <span class="text-text-xmuted">{{ k }}:</span>

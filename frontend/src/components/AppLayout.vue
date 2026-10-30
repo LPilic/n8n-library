@@ -173,7 +173,7 @@ watch(
 
       <nav class="sidebar-scroll flex flex-1 flex-col overflow-y-auto px-2 py-2">
         <template v-for="(entry, i) in sidebarDisplay" :key="entry.type === 'item' ? entry.item.path : `s${i}`">
-          <div v-if="entry.type === 'section' && sidebarOpen" class="px-2.5 pt-4 pb-1 text-[10px] font-semibold tracking-[0.08em] text-text-xmuted uppercase">
+          <div v-if="entry.type === 'section' && sidebarOpen" class="px-2.5 pt-4 pb-1 text-[11px] font-semibold tracking-[0.08em] text-text-xmuted uppercase">
             {{ entry.label }}
           </div>
           <RouterLink
@@ -197,7 +197,7 @@ watch(
               <span v-if="sidebarOpen" class="truncate">{{ entry.item.label }}</span>
               <span
                 v-if="sidebarOpen && (navBadges[entry.item.path] ?? 0) > 0"
-                class="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-white"
+                class="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-semibold text-white"
               >
                 {{ navBadges[entry.item.path] }}
               </span>
@@ -223,7 +223,7 @@ watch(
           </div>
           <div class="min-w-0 flex-1">
             <div class="truncate text-[13px] font-medium text-text-dark">{{ user?.username }}</div>
-            <div class="text-[10px] text-text-xmuted">{{ role }}</div>
+            <div class="text-[11px] text-text-xmuted">{{ role }}</div>
           </div>
           <NotificationDropdown />
           <button
@@ -287,7 +287,7 @@ watch(
         :to="item.path"
       >
         <div
-          class="flex cursor-pointer flex-col items-center gap-0.5 rounded-md px-3 py-1.5 text-[10px] font-semibold transition-colors"
+          class="flex cursor-pointer flex-col items-center gap-0.5 rounded-md px-3 py-1.5 text-[11px] font-semibold transition-colors"
           :class="isActive ? 'text-primary' : 'text-text-muted'"
           @click="navigate($event)"
         >
@@ -296,7 +296,7 @@ watch(
         </div>
       </RouterLink>
       <button
-        class="flex cursor-pointer flex-col items-center gap-0.5 rounded-md px-3 py-1.5 text-[10px] font-semibold text-text-muted"
+        class="flex cursor-pointer flex-col items-center gap-0.5 rounded-md px-3 py-1.5 text-[11px] font-semibold text-text-muted"
         @click="mobileMoreOpen = !mobileMoreOpen"
       >
         <N8nIcon icon="ellipsis" :size="20" />

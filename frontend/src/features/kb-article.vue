@@ -216,13 +216,13 @@ function attachmentHref(att: NonNullable<KbArticle['attachments']>[number]): str
           <div class="mb-1 flex flex-wrap items-center gap-2">
             <span
               v-if="article.category_name"
-              class="rounded bg-primary-light px-1.5 py-0.5 text-[10px] text-primary"
+              class="rounded bg-primary-light px-1.5 py-0.5 text-[11px] text-primary"
             >
               {{ article.category_name }}
             </span>
             <span
               :class="cn(
-                'rounded px-1.5 py-0.5 text-[10px] capitalize',
+                'rounded px-1.5 py-0.5 text-[11px] capitalize',
                 article.status === 'published' ? 'bg-success-light text-success' : 'bg-border-light text-text-muted',
               )"
             >
@@ -313,7 +313,7 @@ function attachmentHref(att: NonNullable<KbArticle['attachments']>[number]): str
         <span
           v-for="(tag, i) in article.tags ?? []"
           :key="tagKey(tag, i)"
-          class="flex items-center gap-0.5 rounded bg-border-light px-1.5 py-0.5 text-[10px] text-text-muted"
+          class="flex items-center gap-0.5 rounded bg-border-light px-1.5 py-0.5 text-[11px] text-text-muted"
         >
           <N8nIcon icon="tags" :size="8" />{{ tagName(tag) }}
         </span>

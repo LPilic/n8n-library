@@ -169,7 +169,7 @@ const displayItems = computed<DisplayItem[]>(() => {
         <li v-for="(r, i) in displayItems" :key="`${r.path}-${i}`">
           <div
             v-if="r.section"
-            class="px-4 pt-2 pb-1 text-[10px] font-semibold tracking-[0.06em] text-text-xmuted uppercase"
+            class="px-4 pt-2 pb-1 text-[11px] font-semibold tracking-[0.06em] text-text-xmuted uppercase"
           >
             {{ r.section }}
           </div>

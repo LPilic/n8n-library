@@ -70,11 +70,11 @@ const emit = defineEmits<{
       <span
         v-for="tag in workflow.tagNames.slice(0, 3)"
         :key="tag"
-        class="rounded border border-border-light bg-bg px-1.5 py-0.5 text-[10px] text-text-muted"
+        class="rounded border border-border-light bg-bg px-1.5 py-0.5 text-[11px] text-text-muted"
       >
         {{ tag }}
       </span>
-      <span v-if="workflow.tagNames.length > 3" class="text-[10px] text-text-xmuted">
+      <span v-if="workflow.tagNames.length > 3" class="text-[11px] text-text-xmuted">
         +{{ workflow.tagNames.length - 3 }}
       </span>
     </div>

@@ -173,7 +173,7 @@ function handleSaved() {
               <span class="text-xs text-text-dark">{{ tpl.request_count }}</span>
               <span
                 v-if="tpl.pending_count > 0"
-                class="ml-1.5 rounded-full bg-warning px-1.5 py-0.5 text-[10px] font-semibold text-white"
+                class="ml-1.5 rounded-full bg-warning px-1.5 py-0.5 text-[11px] font-semibold text-white"
               >
                 {{ tpl.pending_count }}
               </span>

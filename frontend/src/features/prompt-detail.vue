@@ -367,7 +367,7 @@ function statusChipClass(current: PromptStatus, target: PromptStatus): string {
                 <div class="mb-0.5 flex items-center justify-between">
                   <span class="text-xs font-medium text-text-dark">v{{ v.version }}</span>
                   <div class="flex items-center gap-1">
-                    <span class="text-[10px] text-text-xmuted">{{ timeAgo(v.created_at) }}</span>
+                    <span class="text-[11px] text-text-xmuted">{{ timeAgo(v.created_at) }}</span>
                     <button
                       v-if="v.version !== prompt.version"
                       :disabled="revertPending"
@@ -379,15 +379,15 @@ function statusChipClass(current: PromptStatus, target: PromptStatus): string {
                     </button>
                   </div>
                 </div>
-                <div v-if="v.author_username" class="text-[10px] text-text-muted">
+                <div v-if="v.author_username" class="text-[11px] text-text-muted">
                   {{ v.author_username }}
                 </div>
-                <div v-if="v.change_note || v.message" class="truncate text-[10px] italic text-text-muted">
+                <div v-if="v.change_note || v.message" class="truncate text-[11px] italic text-text-muted">
                   {{ v.change_note ?? v.message ?? '' }}
                 </div>
                 <div
                   v-if="(v.variables ?? []).length > 0"
-                  class="mt-0.5 flex items-center gap-0.5 text-[10px] text-text-xmuted"
+                  class="mt-0.5 flex items-center gap-0.5 text-[11px] text-text-xmuted"
                 >
                   <N8nIcon icon="variable" :size="8" />
                   {{ (v.variables ?? []).length }} var{{ (v.variables ?? []).length !== 1 ? 's' : '' }}

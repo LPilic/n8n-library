@@ -99,7 +99,7 @@ function onTemplateSaved() {
                 <TypeBadge :type="tpl.type || tpl.credential_type || ''" />
                 <span
                   v-if="tpl.instance_name"
-                  class="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                  class="rounded bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary"
                 >
                   {{ tpl.instance_name }}
                 </span>
@@ -123,7 +123,7 @@ function onTemplateSaved() {
               <span
                 v-for="role in tpl.allowed_roles"
                 :key="role"
-                class="rounded border border-border bg-bg px-1 py-0.5 text-[10px] text-text-xmuted"
+                class="rounded border border-border bg-bg px-1 py-0.5 text-[11px] text-text-xmuted"
               >
                 {{ role }}
               </span>
@@ -138,7 +138,7 @@ function onTemplateSaved() {
             />
           </div>
 
-          <p v-if="tpl.creator || tpl.creator_name" class="flex items-center gap-1 text-[10px] text-text-xmuted">
+          <p v-if="tpl.creator || tpl.creator_name" class="flex items-center gap-1 text-[11px] text-text-xmuted">
             <N8nIcon icon="user" :size="10" /> {{ tpl.creator || tpl.creator_name }}
           </p>
         </div>
@@ -157,11 +157,11 @@ function onTemplateSaved() {
                 <span class="font-medium capitalize">{{ a.action }}</span>
                 <span class="text-text-muted"> — {{ a.credential_name }}</span>
               </p>
-              <p v-if="a.detail" class="text-[10px] text-text-xmuted">{{ a.detail }}</p>
+              <p v-if="a.detail" class="text-[11px] text-text-xmuted">{{ a.detail }}</p>
             </div>
             <div class="shrink-0 text-right">
-              <p class="whitespace-nowrap text-[10px] text-text-xmuted"><N8nTimeAgo :date="a.created_at" class="text-[10px] text-text-xmuted" /></p>
-              <p v-if="a.username" class="text-[10px] text-text-xmuted">{{ a.username }}</p>
+              <p class="whitespace-nowrap text-[11px] text-text-xmuted"><N8nTimeAgo :date="a.created_at" class="text-[11px] text-text-xmuted" /></p>
+              <p v-if="a.username" class="text-[11px] text-text-xmuted">{{ a.username }}</p>
             </div>
           </div>
         </div>

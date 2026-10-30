@@ -656,7 +656,7 @@ const WF_FILTERS: Array<'all' | 'active' | 'inactive'> = ['all', 'active', 'inac
             <h3 class="mr-2 truncate text-sm font-medium text-text-dark">{{ wf.name }}</h3>
             <span
               :class="cn(
-                'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium',
+                'shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium',
                 wf.active ? 'bg-success-light text-success' : 'bg-border-light text-text-muted',
               )"
             >

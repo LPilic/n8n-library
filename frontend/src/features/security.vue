@@ -154,7 +154,7 @@ const totalHigh = computed(() =>
             >
               {{ categorySummary(itemsOf(cat)).low }} low
             </N8nBadge>
-            <span v-if="itemsOf(cat).length === 0" class="text-[10px] text-text-xmuted">No issues</span>
+            <span v-if="itemsOf(cat).length === 0" class="text-[11px] text-text-xmuted">No issues</span>
           </div>
         </button>
 

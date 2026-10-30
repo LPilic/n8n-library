@@ -48,7 +48,7 @@ function priorityVariant(priority: string): BadgeVariant {
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-2">
           <h3 class="truncate text-[14px] font-medium text-text-dark underline decoration-border-strong underline-offset-2">{{ ticket.title }}</h3>
-          <span class="shrink-0 text-[10px] text-text-xmuted">#{{ ticket.id }}</span>
+          <span class="shrink-0 text-[11px] text-text-xmuted">#{{ ticket.id }}</span>
         </div>
         <div class="mt-2.5 flex flex-wrap items-center gap-2.5">
           <N8nBadge :variant="statusVariant(ticket.status)" size="xsmall" class="capitalize">
@@ -59,7 +59,7 @@ function priorityVariant(priority: string): BadgeVariant {
           </N8nBadge>
           <span
             v-if="ticket.category_name"
-            class="rounded bg-border-light px-1.5 py-0.5 text-[10px] text-text-muted"
+            class="rounded bg-border-light px-1.5 py-0.5 text-[11px] text-text-muted"
           >
             {{ ticket.category_name }}
           </span>

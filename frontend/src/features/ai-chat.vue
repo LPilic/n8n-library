@@ -373,11 +373,11 @@ function backToList() {
                   {{ conv.title }}
                 </p>
                 <div class="mt-0.5 flex items-center gap-2">
-                  <span class="text-[10px] text-text-xmuted">
+                  <span class="text-[11px] text-text-xmuted">
                     {{ conv.message_count }} message{{ conv.message_count !== 1 ? 's' : '' }}
                   </span>
-                  <span class="text-[10px] text-text-xmuted">&middot;</span>
-                  <span class="text-[10px] text-text-xmuted">{{ timeAgo(conv.updated_at) }}</span>
+                  <span class="text-[11px] text-text-xmuted">&middot;</span>
+                  <span class="text-[11px] text-text-xmuted">{{ timeAgo(conv.updated_at) }}</span>
                 </div>
               </div>
               <button
@@ -442,7 +442,7 @@ function backToList() {
         <!-- MCP panel -->
         <div v-if="showMcp && mcpServers.length > 0" class="shrink-0 border-b border-border bg-bg px-4 py-2.5">
           <div class="mb-2 flex items-center justify-between">
-            <span class="text-[10px] font-semibold uppercase text-text-muted">MCP Servers</span>
+            <span class="text-[11px] font-semibold uppercase text-text-muted">MCP Servers</span>
             <button class="cursor-pointer text-text-xmuted hover:text-text-dark" @click="showMcp = false">
               <N8nIcon icon="chevron-up" :size="12" />
             </button>
@@ -458,11 +458,11 @@ function backToList() {
               <span class="flex-1 truncate text-xs text-text-dark transition-colors group-hover:text-primary">
                 {{ srv.name }}
               </span>
-              <span class="shrink-0 text-[10px] text-text-xmuted">
+              <span class="shrink-0 text-[11px] text-text-xmuted">
                 {{ srv.toolCount }} tool{{ srv.toolCount !== 1 ? 's' : '' }}
               </span>
               <span
-                class="shrink-0 text-[10px]"
+                class="shrink-0 text-[11px]"
                 :class="srv.status === 'connected' ? 'text-success' : 'text-text-xmuted'"
               >
                 {{ srv.status }}
@@ -473,7 +473,7 @@ function backToList() {
 
         <div v-else-if="showMcp" class="shrink-0 border-b border-border bg-bg px-4 py-2.5">
           <div class="mb-1 flex items-center justify-between">
-            <span class="text-[10px] font-semibold uppercase text-text-muted">MCP Servers</span>
+            <span class="text-[11px] font-semibold uppercase text-text-muted">MCP Servers</span>
             <button class="cursor-pointer text-text-xmuted hover:text-text-dark" @click="showMcp = false">
               <N8nIcon icon="chevron-up" :size="12" />
             </button>
@@ -512,7 +512,7 @@ function backToList() {
           <!-- Tool calls -->
           <div v-for="(name, i) in toolCallNames" :key="`tool-${i}`" class="flex justify-start gap-2.5">
             <span class="w-7 shrink-0" />
-            <span class="rounded-full border border-border bg-border-light px-2 py-0.5 text-[10px] text-text-muted">
+            <span class="rounded-full border border-border bg-border-light px-2 py-0.5 text-[11px] text-text-muted">
               Used tool: {{ name }}
             </span>
           </div>
@@ -549,7 +549,7 @@ function backToList() {
               <N8nIcon icon="send" :size="16" />
             </button>
           </div>
-          <p class="mt-1 text-right text-[10px] text-text-xmuted">
+          <p class="mt-1 text-right text-[11px] text-text-xmuted">
             Shift+Enter for new line
           </p>
         </div>

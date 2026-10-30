@@ -163,7 +163,7 @@ function onOpenChange(open: boolean) {
             :placeholder="properties[fieldName].description || properties[fieldName].displayName || camelToLabel(fieldName)"
             @update:model-value="(v: string) => setField(fieldName, v)"
           />
-          <p v-if="properties[fieldName].description" class="mt-0.5 text-[10px] text-text-xmuted">
+          <p v-if="properties[fieldName].description" class="mt-0.5 text-[11px] text-text-xmuted">
             {{ properties[fieldName].description }}
           </p>
         </div>

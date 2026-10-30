@@ -171,11 +171,11 @@ const reporterName = computed(() => ticket.value?.reporter_username ?? ticket.va
                   <span class="text-xs font-medium text-text-dark">{{ c.author_username }}</span>
                   <span
                     v-if="c.is_internal"
-                    class="rounded bg-warning-light px-1.5 py-0.5 text-[10px] text-warning"
+                    class="rounded bg-warning-light px-1.5 py-0.5 text-[11px] text-warning"
                   >
                     Internal
                   </span>
-                  <span class="ml-auto text-[10px] text-text-xmuted">{{ timeAgo(c.created_at) }}</span>
+                  <span class="ml-auto text-[11px] text-text-xmuted">{{ timeAgo(c.created_at) }}</span>
                 </div>
                 <!-- Plain comments (legacy) stay as text; rich comments render as HTML -->
                 <p
@@ -265,7 +265,7 @@ const reporterName = computed(() => ticket.value?.reporter_username ?? ticket.va
                 class="flex items-center gap-2 text-xs"
               >
                 <span
-                  class="rounded px-1 py-0.5 text-[10px] font-semibold"
+                  class="rounded px-1 py-0.5 text-[11px] font-semibold"
                   :class="ex.status === 'error' ? 'bg-danger-light text-danger' : 'bg-success-light text-success'"
                 >
                   {{ ex.status }}

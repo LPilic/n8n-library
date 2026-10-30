@@ -305,7 +305,7 @@ async function reconnectServer(id: number) {
 // MCP status badge helpers (McpStatusBadge in the React version)
 function mcpBadgeClass(srv: McpServer): string {
   return cn(
-    'inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-medium',
+    'inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded font-medium',
     srv.status === 'connected' ? 'bg-success-light text-success' : 'bg-danger-light text-danger',
   )
 }
@@ -368,7 +368,7 @@ function serverSubtitle(srv: McpServer): string {
             :placeholder="settingsData?.ai_api_key_set ? settingsData?.ai_api_key_masked || '••••••••••••' : 'Enter API key...'"
             :class="inputCls"
           />
-          <p v-if="settingsData?.ai_api_key_set" class="text-[10px] text-text-xmuted mt-0.5">Leave blank to keep existing key</p>
+          <p v-if="settingsData?.ai_api_key_set" class="text-[11px] text-text-xmuted mt-0.5">Leave blank to keep existing key</p>
         </div>
 
         <!-- Base URL -->
@@ -380,7 +380,7 @@ function serverSubtitle(srv: McpServer): string {
             placeholder="https://api.openai.com/v1"
             :class="inputCls"
           />
-          <p class="text-[10px] text-text-xmuted mt-0.5">
+          <p class="text-[11px] text-text-xmuted mt-0.5">
             Required for Ollama. Optional for OpenAI-compatible endpoints.
           </p>
         </div>
@@ -425,10 +425,10 @@ function serverSubtitle(srv: McpServer): string {
             type="number"
             min="0"
             max="23"
-            placeholder="Leave empty to disable"
-            :class="cn(inputCls, 'max-w-[140px]')"
+            placeholder="Empty = off"
+            :class="cn(inputCls, 'max-w-[180px]')"
           />
-          <p class="text-[10px] text-text-xmuted mt-0.5">UTC hour to send daily workflow summary. Leave empty to disable.</p>
+          <p class="text-[11px] text-text-xmuted mt-0.5">UTC hour to send daily workflow summary. Leave empty to disable.</p>
         </div>
 
         <!-- Save -->
@@ -466,7 +466,7 @@ function serverSubtitle(srv: McpServer): string {
           <div class="flex items-center justify-between mb-1">
             <label class="text-xs font-medium text-text-muted">{{ label }}</label>
             <button
-              class="cursor-pointer border border-input-border rounded-sm px-2 py-0.5 text-[10px] text-text-xmuted transition-colors hover:bg-card-hover hover:text-text-muted disabled:opacity-50"
+              class="cursor-pointer border border-input-border rounded-sm px-2 py-0.5 text-[11px] text-text-xmuted transition-colors hover:bg-card-hover hover:text-text-muted disabled:opacity-50"
               :disabled="resetPending"
               @click="confirmResetPrompt(key, label)"
             >
@@ -620,7 +620,7 @@ function serverSubtitle(srv: McpServer): string {
                   placeholder="Bearer sk-..."
                   :class="inputCls"
                 />
-                <p class="mt-0.5 text-[10px] text-text-xmuted">Value for the Authorization header, if required</p>
+                <p class="mt-0.5 text-[11px] text-text-xmuted">Value for the Authorization header, if required</p>
               </div>
             </template>
 
@@ -652,7 +652,7 @@ function serverSubtitle(srv: McpServer): string {
                   rows="4"
                   class="w-full px-3 py-1.5 border border-input-border rounded-sm bg-input-bg text-sm text-text-dark font-mono resize-y focus:outline-none focus:border-input-focus"
                 />
-                <p class="mt-0.5 text-[10px] text-text-xmuted">JSON object, e.g. {"KEY": "VALUE"}</p>
+                <p class="mt-0.5 text-[11px] text-text-xmuted">JSON object, e.g. {"KEY": "VALUE"}</p>
               </div>
             </template>
 

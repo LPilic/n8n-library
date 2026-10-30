@@ -65,7 +65,7 @@ function onOpenChange(open: boolean) {
 
         <!-- Shared with -->
         <div v-if="cred.shared && cred.shared.length > 0">
-          <p class="mb-2 text-[10px] font-semibold uppercase text-text-xmuted">Shared With</p>
+          <p class="mb-2 text-[11px] font-semibold uppercase text-text-xmuted">Shared With</p>
           <div class="flex flex-col gap-1 ">
             <div
               v-for="(s, i) in cred.shared"
@@ -83,7 +83,7 @@ function onOpenChange(open: boolean) {
 
         <!-- Audit trail -->
         <div v-if="credAudit.length > 0">
-          <p class="mb-2 text-[10px] font-semibold uppercase text-text-xmuted">Recent Activity</p>
+          <p class="mb-2 text-[11px] font-semibold uppercase text-text-xmuted">Recent Activity</p>
           <div class="flex flex-col gap-1 ">
             <div v-for="(a, i) in credAudit" :key="i" class="flex items-start gap-2 text-xs text-text-muted">
               <N8nIcon icon="clock" :size="11" class="mt-0.5 shrink-0 text-text-xmuted" />

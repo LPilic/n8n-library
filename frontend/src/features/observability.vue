@@ -607,13 +607,13 @@ const workerCards = computed<WorkerCard[]>(() =>
                   <span
                     v-if="w.worker.status"
                     :class="cn(
-                      'text-[10px] px-1.5 py-0.5 rounded font-medium',
+                      'text-[11px] px-1.5 py-0.5 rounded font-medium',
                       w.healthy ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'
                     )"
                   >
                     {{ w.worker.status.charAt(0).toUpperCase() + w.worker.status.slice(1) }}
                   </span>
-                  <span v-if="w.healthy" class="text-[10px] px-1.5 py-0.5 rounded font-medium bg-primary/10 text-primary">Ready</span>
+                  <span v-if="w.healthy" class="text-[11px] px-1.5 py-0.5 rounded font-medium bg-primary/10 text-primary">Ready</span>
                 </div>
               </div>
               <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-text-muted">
@@ -632,7 +632,7 @@ const workerCards = computed<WorkerCard[]>(() =>
                   Loop: {{ w.wLag.toFixed(1) }}ms
                 </span>
               </div>
-              <div v-if="w.worker.version" class="text-[10px] text-text-xmuted mt-1">v{{ w.worker.version }}</div>
+              <div v-if="w.worker.version" class="text-[11px] text-text-xmuted mt-1">v{{ w.worker.version }}</div>
             </div>
           </div>
         </div>
@@ -660,7 +660,7 @@ const workerCards = computed<WorkerCard[]>(() =>
               @click="toggleGroup(g.prefix)"
             >
               <span>{{ g.prefix }} <span class="text-text-xmuted font-normal">({{ g.entries.length }})</span></span>
-              <span class="text-text-xmuted text-[10px]">{{ openGroups[g.prefix] ? '▲' : '▼' }}</span>
+              <span class="text-text-xmuted text-[11px]">{{ openGroups[g.prefix] ? '▲' : '▼' }}</span>
             </button>
             <div v-if="openGroups[g.prefix]" class="flex flex-col gap-0.5 px-3 pb-2">
               <div v-for="(m, i) in g.entries" :key="i" class="flex items-center justify-between py-0.5 text-xs">
