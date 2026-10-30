@@ -142,7 +142,7 @@ async function openDocs(templateId: number, templateName: string) {
     </div>
     <div class="flex gap-6">
     <!-- Sidebar -->
-    <aside class="flex flex-col gap-4 hidden w-64 shrink-0 lg:block">
+    <aside class="flex flex-col gap-4 hidden w-64 shrink-0 lg:flex">
       <!-- Template count -->
       <div class="rounded-xl border border-border bg-card p-5 text-center">
         <div class="text-[12px] font-medium text-text-muted">Templates</div>

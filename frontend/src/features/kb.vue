@@ -147,7 +147,7 @@ function onSearchInput(e: Event) {
 
     <div class="flex gap-6">
       <!-- Sidebar -->
-      <aside class="hidden w-64 shrink-0 flex-col gap-5 self-start lg:sticky lg:top-6 lg:block">
+      <aside class="hidden w-64 shrink-0 flex-col gap-5 self-start lg:sticky lg:top-6 lg:flex">
         <!-- Stats KPI -->
         <div v-if="stats" class="rounded-xl border border-border bg-card p-5 text-center">
           <div class="text-[12px] font-medium text-text-muted">Articles</div>

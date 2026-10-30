@@ -392,7 +392,9 @@ const { startRetentionJob } = require('./lib/retention');
 startRetentionJob();
 
 // --- Client-side routing catch-all ---
-// Serve index.html for panel routes so direct navigation and refresh work
+// Serve index.html for panel routes so direct navigation and refresh work.
+// index.html MUST always revalidate: it is the only pointer to the hashed
+// assets; a cached copy keeps a stale browser on an old build after deploys.
 const CLIENT_ROUTES = ['dashboard','library','n8n','categories','tickets','kb','monitoring','tracing','observability','ai','settings','users','audit','approvals','approvals-builder','prompts','variables','tags','security','credentials','credential-store'];
 app.get('*', (req, res, next) => {
   const segment = req.path.split('/')[1];
@@ -404,6 +406,7 @@ app.get('*', (req, res, next) => {
     if (!fs.existsSync(reactIndex)) {
       return res.status(503).send('React frontend is not built. Run: npm run build:frontend');
     }
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     return res.sendFile(reactIndex);
   }
   next();
