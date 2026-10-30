@@ -490,16 +490,19 @@ function backToList() {
           </div>
           <template v-else>
             <template v-for="(msg, i) in messages" :key="`msg-${i}`">
-              <!-- User message -->
+              <!-- User message: right-aligned tinted bubble -->
               <div v-if="msg.role === 'user'" class="flex justify-end">
-                <div class="max-w-[85%] break-words rounded-lg bg-primary-light px-3 py-2 text-sm leading-relaxed text-text-dark">
+                <div class="max-w-[85%] break-words rounded-xl rounded-br-sm bg-primary-light px-3.5 py-2.5 text-sm leading-relaxed text-text-dark">
                   {{ msg.content }}
                 </div>
               </div>
-              <!-- Assistant message -->
-              <div v-else class="flex justify-start">
+              <!-- Assistant message: avatar + plain text (n8n assistant style) -->
+              <div v-else class="flex justify-start gap-2.5">
+                <div class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                  <N8nIcon icon="sparkles" :size="14" class="text-primary" />
+                </div>
                 <div
-                  class="max-w-[90%] break-words rounded-lg border border-border bg-card px-3 py-2 text-sm leading-relaxed text-text-dark"
+                  class="min-w-0 max-w-[88%] break-words text-sm leading-relaxed text-text-dark"
                   v-html="assistantHtml(msg.content)"
                 />
               </div>
@@ -507,14 +510,16 @@ function backToList() {
           </template>
 
           <!-- Tool calls -->
-          <div v-for="(name, i) in toolCallNames" :key="`tool-${i}`" class="flex justify-start">
+          <div v-for="(name, i) in toolCallNames" :key="`tool-${i}`" class="flex justify-start gap-2.5">
+            <span class="w-7 shrink-0" />
             <span class="rounded-full border border-border bg-border-light px-2 py-0.5 text-[10px] text-text-muted">
               Used tool: {{ name }}
             </span>
           </div>
 
           <!-- Thinking indicator -->
-          <div v-if="isThinking" class="flex items-center gap-1.5 text-xs text-text-muted">
+          <div v-if="isThinking" class="flex items-center gap-2.5 text-xs text-text-muted">
+            <span class="w-7" />
             <N8nIcon icon="loader-circle" :size="13" spin />
             Thinking...
           </div>
