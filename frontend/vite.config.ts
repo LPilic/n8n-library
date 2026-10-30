@@ -3,8 +3,24 @@ import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
+// Bumped on every build so running tabs can detect a stale session and reload
+const BUILD_ID = JSON.stringify(Date.now().toString(36))
+
 export default defineConfig({
-  plugins: [vue(), tailwindcss()],
+  define: {
+    __BUILD_ID__: BUILD_ID,
+  },
+  plugins: [
+    vue(),
+    tailwindcss(),
+    {
+      // Expose the build id as a meta tag in index.html for stale-tab detection
+      name: 'build-id-meta',
+      transformIndexHtml(html) {
+        return html.replace('</head>', `<meta name="build-id" content="${BUILD_ID.slice(1, -1)}"></head>`)
+      },
+    },
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
