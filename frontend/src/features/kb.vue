@@ -147,7 +147,7 @@ function onSearchInput(e: Event) {
 
     <div class="flex gap-6">
       <!-- Sidebar -->
-      <aside class="hidden w-64 shrink-0 flex-col gap-4 self-start lg:sticky lg:top-6 lg:block">
+      <aside class="hidden w-64 shrink-0 flex-col gap-5 self-start lg:sticky lg:top-6 lg:block">
         <!-- Stats KPI -->
         <div v-if="stats" class="rounded-xl border border-border bg-card p-5 text-center">
           <div class="text-[12px] font-medium text-text-muted">Articles</div>
@@ -181,7 +181,7 @@ function onSearchInput(e: Event) {
               v-for="s in STATUS_OPTIONS"
               :key="s"
               :class="cn(
-                'w-full text-left text-[12px] px-2.5 py-1.5 rounded-md capitalize transition-colors',
+                'w-full text-left rounded-md px-3 py-2 text-[13px] capitalize transition-colors',
                 statusFilter === s
                   ? 'bg-primary-light text-primary font-semibold'
                   : 'text-text-muted hover:bg-bg',
@@ -201,7 +201,7 @@ function onSearchInput(e: Event) {
           <div class="p-1">
             <button
               :class="cn(
-                'flex w-full items-center justify-between text-[12px] px-2.5 py-1.5 rounded-md transition-colors',
+                'flex w-full items-center justify-between rounded-md px-3 py-2 text-[13px] transition-colors',
                 categoryFilter === '' ? 'bg-primary-light text-primary font-semibold' : 'text-text-muted hover:bg-bg',
               )"
               @click="categoryFilter = ''; page = 1"
@@ -212,13 +212,13 @@ function onSearchInput(e: Event) {
               v-for="c in categories ?? []"
               :key="c.id"
               :class="cn(
-                'flex w-full items-center justify-between text-[12px] px-2.5 py-1.5 rounded-md transition-colors truncate',
+                'flex w-full items-center justify-between rounded-md px-3 py-2 text-[13px] transition-colors truncate',
                 categoryFilter === c.name ? 'bg-primary-light text-primary font-semibold' : 'text-text-muted hover:bg-bg',
               )"
               @click="categoryFilter = c.name; page = 1"
             >
               <span class="truncate">{{ c.name }}</span>
-              <span class="ml-1 shrink-0 text-[11px] font-bold tabular-nums text-text-xmuted">{{ c.article_count }}</span>
+              <span class="ml-1 shrink-0 text-[12px] font-medium tabular-nums text-text-xmuted">{{ c.article_count }}</span>
             </button>
           </div>
         </div>
