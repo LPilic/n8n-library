@@ -62,7 +62,7 @@ const descriptionHtml = computed(() =>
     </div>
 
     <div
-      class="mb-2.5 h-10 overflow-hidden leading-relaxed text-text-muted line-clamp-2 [&_a]:text-primary [&_code]:bg-bg [&_code]:px-1 [&_code]:text-xs [&_code]:rounded [&_strong]:text-text-dark"
+      class="mb-2.5 h-10 overflow-hidden text-[13px] leading-5 text-text-muted line-clamp-2 [&_a]:text-primary [&_code]:bg-bg [&_code]:px-1 [&_code]:text-xs [&_code]:rounded [&_strong]:text-text-dark"
       v-html="descriptionHtml"
     />
 
