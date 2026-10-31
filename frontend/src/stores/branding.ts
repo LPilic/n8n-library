@@ -31,7 +31,11 @@ export const useBrandingStore = defineStore('branding', {
     },
 
     applyBrandingCss() {
-      const root = document.documentElement
+      // Apply on <body>, not documentElement: the design system ships both
+      // :root and [data-theme=light] rules that re-declare --background--brand
+      // (pink-500). body[data-theme=light] would shadow an inline style on
+      // <html>, so the branded values must live on <body> to win the cascade.
+      const root = document.body
       const b = this.branding
       // Clear previous inline overrides first
       const dsProps = [
