@@ -6,6 +6,7 @@ uploads/*
 !uploads/.gitkeep
 .DS_Store
 *.log
+.shots/
 .claude/
 docker-compose.yml
 docker-compose.yaml

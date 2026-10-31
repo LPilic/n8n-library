@@ -25,6 +25,24 @@ A self-hosted companion app for [n8n](https://n8n.io) that adds a workflow templ
 - **Role-Based Access** — Admin, editor, and viewer roles with granular permissions
 - **Dark Mode** — System-preference-aware theme toggle
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/hero-modes.png" alt="Dashboard in light and dark mode" width="98%">
+</p>
+
+| Monitoring | Template Library |
+|:---:|:---:|
+| <img src="docs/screenshots/monitoring.png" alt="Monitoring — real-time execution stats" width="98%"> | <img src="docs/screenshots/library.png" alt="Template library with workflow previews" width="98%"> |
+
+| n8n Workflows | Observability |
+|:---:|:---:|
+| <img src="docs/screenshots/workflows.png" alt="Workflows from connected n8n instances, ready to import" width="98%"> | <img src="docs/screenshots/observability.png" alt="Prometheus metrics — CPU, memory, heap, event loop, queue" width="98%"> |
+
+| Service Desk | Knowledge Base |
+|:---:|:---:|
+| <img src="docs/screenshots/service-desk.png" alt="Service desk tickets" width="98%"> | <img src="docs/screenshots/knowledge-base.png" alt="Knowledge base articles" width="98%"> |
+
 ## Quick Start
 
 ### Prerequisites
